@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subject Content Manager — Vedanta Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{
+    --bg:#0d1320; --surface:#161e2e; --surface2:#1c2638; --line:#26324a;
+    --teal:#00c6a7; --teal-dim:rgba(0,198,167,.14);
+    --amber:#f5a623; --amber-dim:rgba(245,166,35,.14);
+    --red:#ef5b5b; --red-dim:rgba(239,91,91,.14);
+    --green:#22c55e; --green-dim:rgba(34,197,94,.14);
+    --ink:#e8edf6; --muted:#8b97ad; --muted2:#5e6a82;
+    --fd:'Sora',sans-serif; --fb:'Inter',sans-serif; --fm:'JetBrains Mono',monospace;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:14.5px;line-height:1.5;}
+  a{color:var(--teal);}
+  .wrap{max-width:1140px;margin:0 auto;padding:28px 24px 120px;}
+
+  /* ── Header ───────────────────────────────────────────────────────── */
+  .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px;flex-wrap:wrap;}
+  .hdr h1{font-family:var(--fd);font-size:24px;font-weight:700;margin:0 0 4px;}
+  .hdr p{margin:0;color:var(--muted);max-width:560px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--teal-dim);color:var(--teal);
+    border:1px solid rgba(0,198,167,.3);border-radius:999px;padding:4px 12px;font-family:var(--fm);font-size:11.5px;font-weight:600;letter-spacing:.03em;}
+
+  /* ── Settings (collapsible) ──────────────────────────────────────── */
+  details.settings{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:24px;}
+  details.settings summary{cursor:pointer;padding:14px 18px;font-family:var(--fd);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;list-style:none;}
+  details.settings summary::-webkit-details-marker{display:none;}
+  details.settings summary i{color:var(--muted);transition:transform .15s;}
+  details.settings[open] summary i{transform:rotate(90deg);}
+  .settings-body{padding:4px 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .settings-body .full{grid-column:1/-1;}
+  .settings-note{grid-column:1/-1;background:var(--surface2);border-radius:8px;padding:10px 12px;color:var(--muted);font-size:12.5px;}
+  .settings-actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;}
+  #connTestResult{font-size:12.5px;font-family:var(--fm);}
+
+  /* ── Progress rail ───────────────────────────────────────────────── */
+  .rail{display:flex;gap:6px;margin-bottom:24px;}
+  .rail .step{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;opacity:.5;transition:all .15s;}
+  .rail .step.active{opacity:1;border-color:rgba(0,198,167,.4);background:var(--teal-dim);}
+  .rail .step.done{opacity:1;}
+  .rail .num{width:22px;height:22px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;
+    font-family:var(--fm);font-size:11.5px;font-weight:600;flex-shrink:0;}
+  .rail .step.active .num{background:var(--teal);color:#06231d;}
+  .rail .step.done .num{background:var(--green);color:#04220f;}
+  .rail .step.done .num::before{content:'✓';}
+  .rail .label{font-size:12.5px;font-weight:600;font-family:var(--fd);}
+
+  /* ── Cards / sections ────────────────────────────────────────────── */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;}
+  .card h2{font-family:var(--fd);font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
+  .card .sub{color:var(--muted);font-size:13px;margin:0 0 18px;}
+  .hidden{display:none !important;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .field label .opt{color:var(--muted2);font-weight:400;}
+  input[type=text],input[type=url],input[type=number],input[type=password],select,textarea{
+    width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+    padding:10px 12px;font-family:var(--fb);font-size:13.5px;transition:border-color .15s;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);}
+  textarea{resize:vertical;min-height:64px;}
+  input[type=color]{width:44px;height:38px;padding:2px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);cursor:pointer;}
+  .colorrow{display:flex;gap:8px;}
+  .colorrow input[type=text]{font-family:var(--fm);}
+  .checkrow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+  .checkrow input{width:auto;}
+
+  .pillgroup{display:flex;gap:10px;}
+  .pillgroup label{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--line);
+    border-radius:10px;padding:13px 14px;cursor:pointer;font-size:13.5px;font-weight:500;transition:all .15s;}
+  .pillgroup input{width:auto;accent-color:var(--teal);}
+  .pillgroup label:has(input:checked){border-color:var(--teal);background:var(--teal-dim);}
+
+  .iconprev{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;background:var(--surface2);
+    border:1px solid var(--line);flex-shrink:0;}
+  .iconrow{display:flex;gap:8px;align-items:flex-start;}
+  .iconrow .field{flex:1;margin-bottom:0;}
+
+  .callout{border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+  .callout i{margin-top:1px;}
+  .callout.warn{background:var(--amber-dim);border:1px solid rgba(245,166,35,.3);color:#f5c777;}
+  .callout.err{background:var(--red-dim);border:1px solid rgba(239,91,91,.3);color:#f59b9b;}
+  .callout.ok{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:#86e7ab;}
+  .callout.info{background:var(--surface2);border:1px solid var(--line);color:var(--muted);}
+  .callout a{font-weight:600;}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);
+    border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:12.5px;}
+  .chip.id{background:var(--teal-dim);border-color:rgba(0,198,167,.35);color:var(--teal);font-weight:600;}
+  .prefix-hi{background:rgba(0,198,167,.3);border-radius:3px;padding:0 2px;color:#fff;}
+
+  /* ── Question blocks ─────────────────────────────────────────────── */
+  .qblock{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;background:var(--surface2);position:relative;}
+  .qblock .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .qblock .qhead .step-chip{font-family:var(--fm);font-size:11.5px;color:var(--teal);background:var(--teal-dim);
+    border-radius:999px;padding:3px 10px;font-weight:600;}
+  .qblock .rm{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;}
+  .qblock .rm:hover{color:var(--red);background:var(--red-dim);}
+  .opt4{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .opt-label{display:flex;align-items:center;gap:8px;}
+  .opt-letter{width:24px;height:24px;border-radius:6px;background:var(--surface);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:11.5px;font-weight:700;flex-shrink:0;}
+
+  /* ── Buttons ──────────────────────────────────────────────────────── */
+  .btn{font-family:var(--fd);font-weight:600;font-size:13.5px;border-radius:9px;padding:11px 20px;border:1px solid transparent;
+    cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s;}
+  .btn-primary{background:var(--teal);color:#06231d;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .btn-ghost{background:transparent;border-color:var(--line);color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--muted2);}
+  .btn-sm{padding:7px 13px;font-size:12.5px;}
+  .btn-danger-ghost{background:transparent;border-color:rgba(239,91,91,.3);color:var(--red);}
+
+  .actionbar{position:fixed;left:0;right:0;bottom:0;background:rgba(13,19,32,.92);backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;z-index:20;}
+  .actionbar .right{display:flex;gap:10px;}
+
+  table.preview{width:100%;border-collapse:collapse;font-size:13px;}
+  table.preview th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;
+    padding:6px 10px;border-bottom:1px solid var(--line);}
+  table.preview td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.preview tr:last-child td{border-bottom:none;}
+  .kv{display:flex;gap:8px;padding:5px 0;font-size:13px;}
+  .kv .k{color:var(--muted);min-width:140px;flex-shrink:0;}
+
+  .toast{position:fixed;top:20px;right:20px;z-index:50;display:flex;flex-direction:column;gap:8px;}
+  .toast .t{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;
+    display:flex;gap:10px;align-items:flex-start;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:slide .2s ease-out;}
+  .toast .t.ok{border-color:rgba(34,197,94,.4);}
+  .toast .t.err{border-color:rgba(239,91,91,.4);}
+  @keyframes slide{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#06231d;
+    border-radius:50%;animation:rot .6s linear infinite;}
+  @keyframes rot{to{transform:rotate(360deg);}}
+
+  ::placeholder{color:var(--muted2);}
+
+  @media(max-width:760px){
+    .grid2,.grid3,.opt4,.settings-body{grid-template-columns:1fr;}
+    .rail{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hdr">
+    <div>
+      <h1>Subject Content Manager</h1>
+      <p>Add a new chapter and its quiz questions for any class/subject — or extend an existing chapter — and push it straight into the right Google Sheet. No manual row-editing.</p>
+    </div>
+    <span class="badge"><i class="fa-solid fa-table-cells"></i> Sheets-connected</span>
+  </div>
+
+  <details class="settings" id="settingsPanel">
+    <summary><i class="fa-solid fa-chevron-right"></i> Connection settings</summary>
+    <div class="settings-body">
+      <div class="field full">
+        <label>Master Config Sheet ID</label>
+        <input type="text" id="cfgMasterSheetId" placeholder="Sheet ID from the Master Config Sheet URL">
+      </div>
+      <div class="field">
+        <label>Apps Script Web App URL <span class="opt">(the /exec URL — see manual)</span></label>
+        <input type="text" id="cfgScriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div class="field">
+        <label>Shared secret <span class="opt">(set in the Apps Script)</span></label>
+        <input type="password" id="cfgSecret" placeholder="••••••••">
+      </div>
+      <div class="settings-note">
+        These are saved in this browser only (localStorage) — never sent anywhere except your own Apps Script Web App.
+        First time here? See <strong>"Subject Content Manager — Setup"</strong> in the manual for how to deploy the Apps Script backend.
+      </div>
+      <div class="settings-actions">
+        <button class="btn btn-ghost btn-sm" id="btnSaveSettings"><i class="fa-solid fa-floppy-disk"></i> Save settings</button>
+        <button class="btn btn-ghost btn-sm" id="btnTestConn"><i class="fa-solid fa-plug"></i> Test connection</button>
+        <span id="connTestResult"></span>
+      </div>
+    </div>
+  </details>
+
+  <div class="rail" id="rail">
+    <div class="step active" data-step="1"><span class="num">1</span><span class="label">Class &amp; Subject</span></div>
+    <div class="step" data-step="2"><span class="num">2</span><span class="label">Chapter</span></div>
+    <div class="step" data-step="3"><span class="num">3</span><span class="label">Questions</span></div>
+    <div class="step" data-step="4"><span class="num">4</span><span class="label">Review &amp; submit</span></div>
+  </div>
+
+  <div id="globalCallouts"></div>
+
+  <!-- ───────────────────────── STEP 1 ───────────────────────── -->
+  <section class="card" id="step1">
+    <h2><i class="fa-solid fa-graduation-cap"></i> Class &amp; Subject</h2>
+    <p class="sub">Pick where this content belongs. The subject list comes straight from the "Class Subject Map" tab.</p>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Class</label>
+        <select id="selClass"><option value="">Loading classes…</option></select>
+      </div>
+      <div class="field">
+        <label>Subject</label>
+        <select id="selSubject"><option value="">Select a class first</option></select>
+      </div>
+    </div>
+
+    <div id="subjectMissingNote" class="callout warn hidden">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div>
+        Don't see your subject for this class? It must already have a row in <strong>"Class Subject Map"</strong>
+        with its Sheet ID before you can add content for it — that's a one-time setup step done directly in the Sheet, not in this tool.
+        Add the row, then click "Refresh".
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
+      <button class="btn btn-ghost btn-sm" id="btnRefreshSubjects"><i class="fa-solid fa-rotate"></i> Refresh subject list</button>
+      <a id="lnkOpenMaster" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;">
+        <i class="fa-solid fa-up-right-from-square"></i> Open Master Config Sheet
+      </a>
+    </div>
+
+    <div id="targetSheetInfo" class="callout info hidden" style="margin-top:16px;">
+      <i class="fa-solid fa-circle-check"></i>
+      <div id="targetSheetInfoText"></div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── STEP 2 ───────────────────────── -->
+  <section class="card hidden" id="step2">
+    <h2><i class="fa-solid fa-book-open"></i> Chapter</h2>
+    <p class="sub">Add a brand-new chapter, or add more questions to one that already exists.</p>
+
+    <div class="pillgroup" style="margin-bottom:18px;">
+      <label><input type="radio" name="chapterMode" value="new" checked> <span><strong>New chapter</strong><br><span style="color:var(--muted);font-weight:400;">Creates a new row in "Learning Modules"</span></span></label>
+      <label><input type="radio" name="chapterMode" value="existing"> <span><strong>Existing chapter</strong><br><span style="color:var(--muted);font-weight:400;">Just append more questions</span></span></label>
+    </div>
+
+    <!-- Existing chapter picker -->
+    <div id="existingChapterBlock" class="hidden">
+      <div class="field">
+        <label>Chapter</label>
+        <select id="selExistingModule"><option value="">Loading chapters…</option></select>
+      </div>
+      <div id="existingChapterInfo"></div>
+    </div>
+
+    <!-- New chapter form -->
+    <div id="newChapterBlock">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" id="modTitle" placeholder="e.g. Input and Output Devices">
+      </div>
+
+      <div class="field">
+        <label>Module ID <span class="opt">(auto-generated — you can override the prefix)</span></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="modPrefix" maxlength="4" style="width:80px;font-family:var(--fm);text-transform:uppercase;">
+          <span style="color:var(--muted);font-family:var(--fm);">_</span>
+          <span class="chip id" id="modSerialChip">01</span>
+          <span class="chip" id="modIdFull" style="margin-left:auto;">Module ID: —</span>
+        </div>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted2);" id="modPrefixHint"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>Subtopics <span class="opt">(comma-separated, optional)</span></label>
+          <input type="text" id="modSubtopics" placeholder="Input devices, Output devices, Safety">
+        </div>
+        <div class="field">
+          <label>Display order <span class="opt">(auto-suggested)</span></label>
+          <input type="number" id="modDisplayOrder" min="1">
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="field">
+          <label>Icon <span class="opt">(FontAwesome solid)</span></label>
+          <div class="iconrow">
+            <span class="iconprev"><i id="modIconPrev" class="fa-solid fa-shapes"></i></span>
+            <div class="field"><input type="text" id="modIcon" placeholder="fa-laptop-code"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Emoji <span class="opt">(optional)</span></label>
+          <input type="text" id="modEmoji" placeholder="💻">
+        </div>
+        <div class="field">
+          <label>Color</label>
+          <div class="colorrow">
+            <input type="color" id="modColorPicker" value="#0ea5e9">
+            <input type="text" id="modColorHex" value="#0ea5e9">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Introduction</label>
+        <textarea id="modIntro" placeholder="What this chapter teaches, in 1-2 sentences."></textarea>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>"Now You Try" prompt <span class="opt">(optional)</span></label>
+          <textarea id="modNowYouTry"></textarea>
+        </div>
+        <div class="field">
+          <label>Intro image URL <span class="opt">(optional)</span></label>
+          <input type="url" id="modImageUrl" placeholder="https://…">
+        </div>
+      </div>
+      <div class="checkrow"><input type="checkbox" id="modActive" checked> <label for="modActive" style="margin:0;">Active (visible to students immediately)</label></div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── STEP 3 ───────────────────────── -->
+  <section class="card hidden" id="step3">
+    <h2><i class="fa-solid fa-circle-question"></i> Questions</h2>
+    <p class="sub" id="step3sub">Add one or more quiz questions for this chapter. Step numbers continue automatically.</p>
+    <div id="questionsHost"></div>
+    <button class="btn btn-ghost" id="btnAddQuestion"><i class="fa-solid fa-plus"></i> Add another question</button>
+  </section>
+
+  <!-- ───────────────────────── STEP 4 ───────────────────────── -->
+  <section class="card hidden" id="step4">
+    <h2><i class="fa-solid fa-clipboard-check"></i> Review &amp; submit</h2>
+    <p class="sub">Confirm everything below, then push it to the Google Sheet.</p>
+    <div id="reviewHost"></div>
+    <div id="submitResult"></div>
+  </section>
+
+</div>
+
+<div class="actionbar">
+  <button class="btn btn-ghost" id="btnBack"><i class="fa-solid fa-arrow-left"></i> Back</button>
+  <div class="right">
+    <span id="actionHint" style="color:var(--muted);font-size:12.5px;align-self:center;"></span>
+    <button class="btn btn-primary" id="btnNext">Continue <i class="fa-solid fa-arrow-right"></i></button>
+  </div>
+</div>
+
+<div class="toast" id="toastHost"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   CONFIG
+   ════════════════════════════════════════════════════════════════════════ */
+const DEFAULT_MASTER_SHEET_ID = '1GMW16KYN9IFHecNu06vnf5vrA8vqePJeff261bhmDrs';
+const DEFAULT_CLASS_LEVELS = [
+  {Class:'Class 0',Label:'Class 0 (Nursery/KG)'},{Class:'Class 1',Label:'Class 1'},{Class:'Class 2',Label:'Class 2'},
+  {Class:'Class 3',Label:'Class 3'},{Class:'Class 4',Label:'Class 4'},{Class:'Class 5',Label:'Class 5'},
+  {Class:'Class 6',Label:'Class 6'},{Class:'Class 7',Label:'Class 7'},{Class:'Class 8',Label:'Class 8'},
+  {Class:'Class 9',Label:'Class 9'},{Class:'Class 10',Label:'Class 10'},{Class:'Adult',Label:'Adult'},
+];
+
+const cfg = {
+  masterSheetId: localStorage.getItem('scm_masterSheetId') || DEFAULT_MASTER_SHEET_ID,
+  scriptUrl:     localStorage.getItem('scm_scriptUrl')     || '',
+  secret:        localStorage.getItem('scm_secret')        || '',
+};
+document.getElementById('cfgMasterSheetId').value = cfg.masterSheetId;
+document.getElementById('cfgScriptUrl').value      = cfg.scriptUrl;
+document.getElementById('cfgSecret').value         = cfg.secret;
+if (!cfg.scriptUrl) document.getElementById('settingsPanel').open = true;
+
+document.getElementById('btnSaveSettings').addEventListener('click', () => {
+  cfg.masterSheetId = document.getElementById('cfgMasterSheetId').value.trim() || DEFAULT_MASTER_SHEET_ID;
+  cfg.scriptUrl     = document.getElementById('cfgScriptUrl').value.trim();
+  cfg.secret        = document.getElementById('cfgSecret').value;
+  localStorage.setItem('scm_masterSheetId', cfg.masterSheetId);
+  localStorage.setItem('scm_scriptUrl', cfg.scriptUrl);
+  localStorage.setItem('scm_secret', cfg.secret);
+  toast('ok', 'Settings saved to this browser.');
+  document.getElementById('lnkOpenMaster').href = `https://docs.google.com/spreadsheets/d/${cfg.masterSheetId}/edit`;
+});
+document.getElementById('lnkOpenMaster').href = `https://docs.google.com/spreadsheets/d/${cfg.masterSheetId}/edit`;
+
+document.getElementById('btnTestConn').addEventListener('click', async () => {
+  const out = document.getElementById('connTestResult');
+  if (!cfg.scriptUrl) { out.textContent = '⚠ Enter and save an Apps Script URL first.'; out.style.color = 'var(--amber)'; return; }
+  out.textContent = 'Testing…'; out.style.color = 'var(--muted)';
+  try {
+    const res = await fetch(`${cfg.scriptUrl}?secret=${encodeURIComponent(cfg.secret)}`);
+    const data = await res.json();
+    if (data.success) { out.textContent = '✓ ' + data.message; out.style.color = 'var(--green)'; }
+    else { out.textContent = '✗ ' + data.message; out.style.color = 'var(--red)'; }
+  } catch (err) {
+    out.textContent = '✗ Could not reach the script (' + err.message + ')';
+    out.style.color = 'var(--red)';
+  }
+});
+
+/* ════════════════════════════════════════════════════════════════════════
+   CSV FETCH / PARSE  (mirrors pages/api/portal-config.js exactly)
+   ════════════════════════════════════════════════════════════════════════ */
+const csvUrl = (sheetId, tab) =>
+  `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && next === '"') { field += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else field += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { row.push(field); field = ''; }
+      else if (ch === '\r') { /* skip */ }
+      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += ch;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows) {
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  const out = [];
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    if (cells.every(c => (c||'').trim() === '')) continue;
+    const obj = {};
+    headers.forEach((h, i) => {
+      if (!h) return;
+      let val = (cells[i] !== undefined ? cells[i] : '').trim();
+      if (h === 'Active') val = val === '' ? true : val.toUpperCase() === 'TRUE';
+      obj[h] = val;
+    });
+    out.push(obj);
+  }
+  return out;
+}
+async function fetchTab(sheetId, tabName) {
+  const url = csvUrl(sheetId, tabName);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching "${tabName}"`);
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder('utf-8').decode(buf);
+  if (text.trimStart().startsWith('<')) {
+    throw new Error(`"${tabName}" tab not found, or the sheet isn't shared as "Anyone with the link → Viewer".`);
+  }
+  return rowsToObjects(parseCSV(text));
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   APP STATE
+   ════════════════════════════════════════════════════════════════════════ */
+const state = {
+  step: 1,
+  classLevels: [],
+  subjectMapRows: [],
+  selectedClass: '',
+  selectedSubject: null,   // { Subject, 'Sheet ID', ... } row from Class Subject Map
+  existingModules: [],     // Learning Modules rows for the resolved sheet
+  existingSteps: [],       // Learning Steps rows for the resolved sheet
+  chapterMode: 'new',
+  selectedExistingModuleId: '',
+  questions: [],           // [{...fields}]
+  qSeq: 0,
+};
+
+function toast(kind, msg) {
+  const host = document.getElementById('toastHost');
+  const el = document.createElement('div');
+  el.className = `t ${kind}`;
+  el.innerHTML = `<i class="fa-solid ${kind==='ok'?'fa-circle-check':'fa-circle-exclamation'}" style="color:${kind==='ok'?'var(--green)':'var(--red)'};margin-top:1px;"></i><div>${msg}</div>`;
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+function callout(host, kind, icon, html) {
+  host.innerHTML = `<div class="callout ${kind}"><i class="fa-solid ${icon}"></i><div>${html}</div></div>`;
+}
+function clearCallout(host) { host.innerHTML = ''; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP NAVIGATION
+   ════════════════════════════════════════════════════════════════════════ */
+function goToStep(n) {
+  state.step = n;
+  document.querySelectorAll('.card[id^="step"]').forEach(c => c.classList.add('hidden'));
+  document.getElementById(`step${n}`).classList.remove('hidden');
+  document.querySelectorAll('.rail .step').forEach(el => {
+    const s = Number(el.dataset.step);
+    el.classList.toggle('active', s === n);
+    el.classList.toggle('done', s < n);
+  });
+  document.getElementById('btnBack').style.visibility = n === 1 ? 'hidden' : 'visible';
+  const nextBtn = document.getElementById('btnNext');
+  nextBtn.innerHTML = n === 4
+    ? '<i class="fa-solid fa-cloud-arrow-up"></i> Submit to Google Sheet'
+    : 'Continue <i class="fa-solid fa-arrow-right"></i>';
+  if (n === 3) renderQuestions();
+  if (n === 4) renderReview();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.getElementById('btnBack').addEventListener('click', () => { if (state.step > 1) goToStep(state.step - 1); });
+document.getElementById('btnNext').addEventListener('click', onNextClicked);
+
+async function onNextClicked() {
+  if (state.step === 1) {
+    if (!validateStep1()) return;
+    await loadModulesAndSteps();
+    goToStep(2);
+  } else if (state.step === 2) {
+    if (!validateStep2()) return;
+    if (state.questions.length === 0) addQuestionBlock();
+    goToStep(3);
+  } else if (state.step === 3) {
+    if (!validateStep3()) return;
+    goToStep(4);
+  } else if (state.step === 4) {
+    await submitAll();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 1 — Class & Subject
+   ════════════════════════════════════════════════════════════════════════ */
+async function loadClassLevels() {
+  const sel = document.getElementById('selClass');
+  try {
+    const rows = await fetchTab(cfg.masterSheetId, 'Class Levels');
+    state.classLevels = rows.length
+      ? rows.filter(r => r.Active !== false && r.Class).sort((a,b)=>(Number(a['Display Order'])||999)-(Number(b['Display Order'])||999))
+      : DEFAULT_CLASS_LEVELS;
+  } catch {
+    state.classLevels = DEFAULT_CLASS_LEVELS;
+  }
+  sel.innerHTML = '<option value="">Select a class…</option>' +
+    state.classLevels.map(c => `<option value="${esc(c.Class)}">${esc(c.Label || c.Class)}</option>`).join('');
+}
+
+async function loadSubjectMap() {
+  try {
+    state.subjectMapRows = await fetchTab(cfg.masterSheetId, 'Class Subject Map');
+  } catch (err) {
+    callout(document.getElementById('globalCallouts'), 'err', 'fa-triangle-exclamation',
+      `Couldn't load "Class Subject Map" from the Master Config Sheet: ${esc(err.message)}`);
+    state.subjectMapRows = [];
+  }
+}
+
+function refreshSubjectDropdown() {
+  const sel = document.getElementById('selSubject');
+  const note = document.getElementById('subjectMissingNote');
+  if (!state.selectedClass) {
+    sel.innerHTML = '<option value="">Select a class first</option>';
+    note.classList.add('hidden');
+    return;
+  }
+  const rows = state.subjectMapRows.filter(r =>
+    r.Active !== false && r.Subject &&
+    ((r.Class||'').trim() === state.selectedClass || (r.Class||'').trim() === '')
+  );
+  // de-dupe by Subject name
+  const seen = new Map();
+  rows.forEach(r => { if (!seen.has(r.Subject)) seen.set(r.Subject, r); });
+  const list = [...seen.values()].sort((a,b)=>(Number(a['Display Order'])||999)-(Number(b['Display Order'])||999));
+
+  sel.innerHTML = '<option value="">Select a subject…</option>' +
+    list.map(r => `<option value="${esc(r.Subject)}">${esc(r.Subject)}</option>`).join('');
+  note.classList.remove('hidden');
+  document.getElementById('targetSheetInfo').classList.add('hidden');
+  state.selectedSubject = null;
+}
+
+function onSubjectChosen() {
+  const name = document.getElementById('selSubject').value;
+  const infoBox = document.getElementById('targetSheetInfo');
+  const infoText = document.getElementById('targetSheetInfoText');
+  if (!name) { infoBox.classList.add('hidden'); state.selectedSubject = null; return; }
+  const row = state.subjectMapRows.find(r =>
+    r.Subject === name && ((r.Class||'').trim() === state.selectedClass || (r.Class||'').trim() === '')
+  );
+  if (!row || !row['Sheet ID']) {
+    infoBox.classList.remove('hidden');
+    infoBox.className = 'callout warn';
+    infoText.innerHTML = `No Sheet ID found for "${esc(name)}" / ${esc(state.selectedClass)}. Add or fix the row in "Class Subject Map" first.`;
+    state.selectedSubject = null;
+    return;
+  }
+  state.selectedSubject = row;
+  infoBox.classList.remove('hidden');
+  infoBox.className = 'callout ok';
+  infoText.innerHTML = `Target sheet resolved — <strong>${esc(name)}</strong> for <strong>${esc(state.selectedClass)}</strong>.
+    <a href="https://docs.google.com/spreadsheets/d/${esc(row['Sheet ID'])}/edit" target="_blank">Open this subject's sheet ↗</a>`;
+}
+
+document.getElementById('selClass').addEventListener('change', e => {
+  state.selectedClass = e.target.value;
+  refreshSubjectDropdown();
+});
+document.getElementById('selSubject').addEventListener('change', onSubjectChosen);
+document.getElementById('btnRefreshSubjects').addEventListener('click', async () => {
+  await loadSubjectMap();
+  refreshSubjectDropdown();
+  toast('ok', 'Subject list refreshed.');
+});
+
+function validateStep1() {
+  clearCallout(document.getElementById('globalCallouts'));
+  if (!state.selectedClass) { toast('err', 'Pick a class first.'); return false; }
+  if (!state.selectedSubject) { toast('err', 'Pick a subject that already has a Sheet ID in "Class Subject Map".'); return false; }
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 2 — Chapter
+   ════════════════════════════════════════════════════════════════════════ */
+async function loadModulesAndSteps() {
+  const sheetId = state.selectedSubject['Sheet ID'];
+  try {
+    [state.existingModules, state.existingSteps] = await Promise.all([
+      fetchTab(sheetId, 'Learning Modules'),
+      fetchTab(sheetId, 'Learning Steps'),
+    ]);
+  } catch (err) {
+    toast('err', `Couldn't load existing chapters: ${esc(err.message)}`);
+    state.existingModules = []; state.existingSteps = [];
+  }
+  populateExistingModuleDropdown();
+  prefillNewChapterDefaults();
+}
+
+function populateExistingModuleDropdown() {
+  const sel = document.getElementById('selExistingModule');
+  const list = state.existingModules.filter(m => m['Module ID'] && m.Active !== false);
+  if (!list.length) {
+    sel.innerHTML = '<option value="">No existing chapters found in this sheet yet</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">Select a chapter…</option>' +
+    list.map(m => `<option value="${esc(m['Module ID'])}">${esc(m['Module ID'])} — ${esc(m.Title)} (${esc(m.Class||'—')})</option>`).join('');
+}
+
+document.querySelectorAll('input[name=chapterMode]').forEach(r => r.addEventListener('change', e => {
+  state.chapterMode = e.target.value;
+  document.getElementById('existingChapterBlock').classList.toggle('hidden', state.chapterMode !== 'existing');
+  document.getElementById('newChapterBlock').classList.toggle('hidden', state.chapterMode === 'existing');
+}));
+
+document.getElementById('selExistingModule').addEventListener('change', e => {
+  state.selectedExistingModuleId = e.target.value;
+  const m = state.existingModules.find(x => x['Module ID'] === e.target.value);
+  const info = document.getElementById('existingChapterInfo');
+  if (!m) { info.innerHTML = ''; return; }
+  const stepCount = state.existingSteps.filter(s => s['Module ID'] === m['Module ID']).length;
+  info.innerHTML = `<div class="kv"><span class="k">Subject</span>${esc(m.Subject)}</div>
+    <div class="kv"><span class="k">Class</span>${esc(m.Class)}</div>
+    <div class="kv"><span class="k">Existing questions</span>${stepCount}</div>`;
+});
+
+// ── Module ID auto-generation ───────────────────────────────────────────
+function subjectPrefix(subject) {
+  const words = subject.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return subject.trim().slice(0,2).toUpperCase();
+}
+function nextSerial(existingIds, prefix) {
+  const re = new RegExp('^' + prefix + '_(\\d+)$', 'i');
+  let max = 0, width = 2;
+  existingIds.forEach(id => {
+    const m = String(id||'').trim().match(re);
+    if (m) { max = Math.max(max, parseInt(m[1],10)); width = Math.max(width, m[1].length); }
+  });
+  return String(max+1).padStart(width, '0');
+}
+function prefillNewChapterDefaults() {
+  const subjectName = state.selectedSubject.Subject;
+  const prefix = subjectPrefix(subjectName);
+  document.getElementById('modPrefix').value = prefix;
+  document.getElementById('modPrefixHint').innerHTML =
+    `Auto-picked from "<span class="prefix-hi">${esc(subjectName.split(/\s+/).slice(0,2).join(' '))}</span>" — edit the box above if you'd rather use a different prefix.`;
+  updateModuleIdPreview();
+
+  const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
+  document.getElementById('modDisplayOrder').value = maxOrder + 1;
+
+  // Reasonable defaults from the subject's own card styling, if available
+  document.getElementById('modIcon').value = state.selectedSubject['Icon (FontAwesome solid)'] || '';
+  document.getElementById('modEmoji').value = state.selectedSubject['Emoji'] || '';
+  const color = state.selectedSubject['Color (Hex)'] || '#0ea5e9';
+  document.getElementById('modColorHex').value = color;
+  document.getElementById('modColorPicker').value = /^#[0-9a-f]{6}$/i.test(color) ? color : '#0ea5e9';
+  updateIconPreview();
+}
+function updateModuleIdPreview() {
+  const prefix = (document.getElementById('modPrefix').value || '').toUpperCase().trim();
+  const existingIds = state.existingModules.map(m => m['Module ID']);
+  const serial = nextSerial(existingIds, prefix || 'XX');
+  document.getElementById('modSerialChip').textContent = serial;
+  document.getElementById('modIdFull').textContent = `Module ID: ${prefix||'—'}_${serial}`;
+}
+document.getElementById('modPrefix').addEventListener('input', updateModuleIdPreview);
+function updateIconPreview() {
+  const val = (document.getElementById('modIcon').value || 'fa-shapes').trim();
+  document.getElementById('modIconPrev').className = 'fa-solid ' + (val || 'fa-shapes');
+}
+document.getElementById('modIcon').addEventListener('input', updateIconPreview);
+document.getElementById('modColorPicker').addEventListener('input', e => { document.getElementById('modColorHex').value = e.target.value; });
+document.getElementById('modColorHex').addEventListener('input', e => {
+  if (/^#[0-9a-f]{6}$/i.test(e.target.value)) document.getElementById('modColorPicker').value = e.target.value;
+});
+
+function validateStep2() {
+  if (state.chapterMode === 'existing') {
+    if (!state.selectedExistingModuleId) { toast('err', 'Pick an existing chapter, or switch to "New chapter".'); return false; }
+    return true;
+  }
+  const title = document.getElementById('modTitle').value.trim();
+  const intro = document.getElementById('modIntro').value.trim();
+  const prefix = document.getElementById('modPrefix').value.trim();
+  if (!title) { toast('err', 'Give the chapter a title.'); return false; }
+  if (!intro) { toast('err', 'Add a short introduction for the chapter.'); return false; }
+  if (!prefix) { toast('err', 'The Module ID prefix can\'t be empty.'); return false; }
+  return true;
+}
+
+function buildNewModulePayload() {
+  const prefix = document.getElementById('modPrefix').value.toUpperCase().trim();
+  const serial = document.getElementById('modSerialChip').textContent;
+  return {
+    'Module ID': `${prefix}_${serial}`,
+    'Title': document.getElementById('modTitle').value.trim(),
+    'Subject': state.selectedSubject.Subject,
+    'Class': state.selectedClass,
+    'Subtopics': document.getElementById('modSubtopics').value.trim(),
+    'Icon (FontAwesome solid)': document.getElementById('modIcon').value.trim(),
+    'Emoji': document.getElementById('modEmoji').value.trim(),
+    'Color (Hex)': document.getElementById('modColorHex').value.trim(),
+    'Introduction': document.getElementById('modIntro').value.trim(),
+    'Now You Try': document.getElementById('modNowYouTry').value.trim(),
+    'Intro Image URL': document.getElementById('modImageUrl').value.trim(),
+    'Display Order': Number(document.getElementById('modDisplayOrder').value) || 1,
+    'Active': document.getElementById('modActive').checked ? 'TRUE' : 'FALSE',
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 3 — Questions
+   ════════════════════════════════════════════════════════════════════════ */
+function currentModuleIdForSteps() {
+  return state.chapterMode === 'existing' ? state.selectedExistingModuleId : buildNewModulePayload()['Module ID'];
+}
+function startingStepNumber() {
+  if (state.chapterMode !== 'existing') return 1;
+  const mid = state.selectedExistingModuleId;
+  const max = state.existingSteps.filter(s => s['Module ID'] === mid)
+    .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
+  return max + 1;
+}
+function addQuestionBlock() {
+  state.qSeq += 1;
+  state.questions.push({
+    _id: state.qSeq, learningSection:'', teaching:'', stepImageUrl:'', question:'',
+    optA:'', optB:'', optC:'', optD:'', correct:'A', explanation:'', learnMoreUrl:'', learnMoreLabel:'', active:true,
+  });
+  renderQuestions();
+}
+function removeQuestionBlock(id) {
+  state.questions = state.questions.filter(q => q._id !== id);
+  if (!state.questions.length) addQuestionBlock(); else renderQuestions();
+}
+function renderQuestions() {
+  document.getElementById('step3sub').textContent =
+    `Adding to ${state.chapterMode==='existing' ? `"${state.selectedExistingModuleId}"` : 'this new chapter'} — starting at step ${startingStepNumber()}.`;
+  const host = document.getElementById('questionsHost');
+  const startNum = startingStepNumber();
+  host.innerHTML = state.questions.map((q, idx) => `
+    <div class="qblock" data-id="${q._id}">
+      <div class="qhead">
+        <span class="step-chip">Step ${startNum + idx}</span>
+        <button class="rm" data-rm="${q._id}" ${state.questions.length===1?'disabled':''}><i class="fa-solid fa-trash"></i> Remove</button>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Learning section <span class="opt">(optional)</span></label>
+          <input type="text" data-f="learningSection" data-id="${q._id}" value="${escAttr(q.learningSection)}" placeholder="e.g. Introduction to Computers"></div>
+        <div class="field"><label>Step image URL <span class="opt">(optional)</span></label>
+          <input type="url" data-f="stepImageUrl" data-id="${q._id}" value="${escAttr(q.stepImageUrl)}" placeholder="https://…"></div>
+      </div>
+      <div class="field"><label>Teaching <span class="opt">(shown before the question, optional)</span></label>
+        <textarea data-f="teaching" data-id="${q._id}">${escHtml(q.teaching)}</textarea></div>
+      <div class="field"><label>Question</label>
+        <textarea data-f="question" data-id="${q._id}" placeholder="What is a computer?">${escHtml(q.question)}</textarea></div>
+      <div class="opt4">
+        ${['A','B','C','D'].map(L => `
+          <div class="field">
+            <label class="opt-label"><span class="opt-letter">${L}</span> Option ${L}</label>
+            <input type="text" data-f="opt${L}" data-id="${q._id}" value="${escAttr(q['opt'+L])}">
+          </div>`).join('')}
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Correct option</label>
+          <select data-f="correct" data-id="${q._id}">
+            ${['A','B','C','D'].map(L => `<option value="${L}" ${q.correct===L?'selected':''}>${L}</option>`).join('')}
+          </select></div>
+        <div class="checkrow" style="margin-top:30px;">
+          <input type="checkbox" data-f="active" data-id="${q._id}" ${q.active?'checked':''}>
+          <label style="margin:0;">Active</label>
+        </div>
+      </div>
+      <div class="field"><label>Explanation <span class="opt">(optional)</span></label>
+        <textarea data-f="explanation" data-id="${q._id}">${escHtml(q.explanation)}</textarea></div>
+      <div class="grid2">
+        <div class="field"><label>Learn more URL <span class="opt">(optional)</span></label>
+          <input type="url" data-f="learnMoreUrl" data-id="${q._id}" value="${escAttr(q.learnMoreUrl)}"></div>
+        <div class="field"><label>Learn more label <span class="opt">(optional)</span></label>
+          <input type="text" data-f="learnMoreLabel" data-id="${q._id}" value="${escAttr(q.learnMoreLabel)}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  host.querySelectorAll('[data-f]').forEach(el => {
+    el.addEventListener('input', onQuestionFieldChange);
+    el.addEventListener('change', onQuestionFieldChange);
+  });
+  host.querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', () => removeQuestionBlock(Number(btn.dataset.rm))));
+}
+function onQuestionFieldChange(e) {
+  const id = Number(e.target.dataset.id), field = e.target.dataset.f;
+  const q = state.questions.find(x => x._id === id);
+  if (!q) return;
+  q[field] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+}
+document.getElementById('btnAddQuestion').addEventListener('click', addQuestionBlock);
+
+function validateStep3() {
+  if (!state.questions.length) { toast('err', 'Add at least one question.'); return false; }
+  for (const q of state.questions) {
+    if (!q.question.trim()) { toast('err', 'Every question needs question text.'); return false; }
+    if (!q.optA.trim() || !q.optB.trim() || !q.optC.trim() || !q.optD.trim()) { toast('err', 'Fill in all four options for every question.'); return false; }
+  }
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 4 — Review & submit
+   ════════════════════════════════════════════════════════════════════════ */
+function buildStepsPayload() {
+  const moduleId = currentModuleIdForSteps();
+  const startNum = startingStepNumber();
+  return state.questions.map((q, idx) => ({
+    'Module ID': moduleId,
+    'Class': state.selectedClass,
+    'Step Number': startNum + idx,
+    'Learning Section': q.learningSection,
+    'Teaching': q.teaching,
+    'Step Image URL': q.stepImageUrl,
+    'Question': q.question,
+    'Option A': q.optA, 'Option B': q.optB, 'Option C': q.optC, 'Option D': q.optD,
+    'Correct Option': q.correct,
+    'Explanation': q.explanation,
+    'Learn More URL': q.learnMoreUrl,
+    'Learn More Label': q.learnMoreLabel,
+    'Active': q.active ? 'TRUE' : 'FALSE',
+  }));
+}
+function renderReview() {
+  const host = document.getElementById('reviewHost');
+  const moduleId = currentModuleIdForSteps();
+  const steps = buildStepsPayload();
+  let html = `
+    <div class="kv"><span class="k">Class</span><strong>${esc(state.selectedClass)}</strong></div>
+    <div class="kv"><span class="k">Subject</span><strong>${esc(state.selectedSubject.Subject)}</strong></div>
+    <div class="kv"><span class="k">Target sheet</span><span class="chip">${esc(state.selectedSubject['Sheet ID'])}</span></div>
+    <div class="kv"><span class="k">Chapter</span><strong>${state.chapterMode==='existing' ? '(existing) ' : '(new) '}${esc(moduleId)}</strong></div>
+    <hr style="border-color:var(--line);margin:16px 0;">
+  `;
+  if (state.chapterMode === 'new') {
+    const m = buildNewModulePayload();
+    html += `<h3 style="font-family:var(--fd);font-size:14px;">New chapter row</h3>`;
+    html += Object.entries(m).map(([k,v]) => `<div class="kv"><span class="k">${esc(k)}</span>${esc(String(v))}</div>`).join('');
+    html += `<hr style="border-color:var(--line);margin:16px 0;">`;
+  }
+  html += `<h3 style="font-family:var(--fd);font-size:14px;">${steps.length} question${steps.length===1?'':'s'} to add</h3>`;
+  html += `<table class="preview"><tr><th>Step</th><th>Question</th><th>Correct</th></tr>` +
+    steps.map(s => `<tr><td>${s['Step Number']}</td><td>${esc(s.Question)}</td><td>${esc(s['Correct Option'])}</td></tr>`).join('') +
+    `</table>`;
+  host.innerHTML = html;
+}
+
+async function submitAll() {
+  if (!cfg.scriptUrl) {
+    toast('err', 'Set the Apps Script Web App URL in Connection settings first.');
+    document.getElementById('settingsPanel').open = true;
+    return;
+  }
+  const btn = document.getElementById('btnNext');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Submitting…';
+
+  const payload = {
+    secret: cfg.secret,
+    sheetId: state.selectedSubject['Sheet ID'],
+    newModule: state.chapterMode === 'new' ? buildNewModulePayload() : null,
+    existingModuleId: state.chapterMode === 'existing' ? state.selectedExistingModuleId : null,
+    newSteps: buildStepsPayload(),
+  };
+
+  const resultHost = document.getElementById('submitResult');
+  try {
+    const res = await fetch(cfg.scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) {
+      callout(resultHost, 'ok', 'fa-circle-check',
+        `Added chapter <strong>${esc(data.moduleId || payload.existingModuleId)}</strong> with <strong>${data.stepsAdded}</strong> question(s) to ${esc(state.selectedSubject.Subject)} / ${esc(state.selectedClass)}.`);
+      toast('ok', 'Saved to Google Sheets.');
+      document.getElementById('btnBack').classList.add('hidden');
+      btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Add another chapter';
+      btn.disabled = false;
+      btn.onclick = () => location.reload();
+    } else {
+      throw new Error(data.message || 'Unknown error from the Apps Script.');
+    }
+  } catch (err) {
+    callout(resultHost, 'err', 'fa-triangle-exclamation', `Submit failed: ${esc(err.message)}. Nothing was changed — fix and try again.`);
+    toast('err', 'Submit failed — see details below.');
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   HELPERS
+   ════════════════════════════════════════════════════════════════════════ */
+function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s) { return esc(s); }
+function escHtml(s) { return esc(s); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════════════════════════════════ */
+(async function init() {
+  addQuestionBlock(); // start with one empty question block ready
+  await Promise.all([loadClassLevels(), loadSubjectMap()]);
+})();
+</script>
+</body>
+</html>
