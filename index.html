@@ -414,11 +414,20 @@
    CONFIG
    ════════════════════════════════════════════════════════════════════════ */
 const DEFAULT_MASTER_SHEET_ID = '1GMW16KYN9IFHecNu06vnf5vrA8vqePJeff261bhmDrs';
+// These 12 classes are ALWAYS shown. Sheet data can override Label/Age but cannot remove entries.
 const DEFAULT_CLASS_LEVELS = [
-  {Class:'Class 0',Label:'Class 0 (Nursery/KG)'},{Class:'Class 1',Label:'Class 1'},{Class:'Class 2',Label:'Class 2'},
-  {Class:'Class 3',Label:'Class 3'},{Class:'Class 4',Label:'Class 4'},{Class:'Class 5',Label:'Class 5'},
-  {Class:'Class 6',Label:'Class 6'},{Class:'Class 7',Label:'Class 7'},{Class:'Class 8',Label:'Class 8'},
-  {Class:'Class 9',Label:'Class 9'},{Class:'Class 10',Label:'Class 10'},{Class:'Adult',Label:'Adult'},
+  {Class:'Class 0',  Label:'Class 0 (Nursery/KG)', Age:'4-5 yrs',   'Display Order':1,  Active:true},
+  {Class:'Class 1',  Label:'Class 1',               Age:'5-6 yrs',   'Display Order':2,  Active:true},
+  {Class:'Class 2',  Label:'Class 2',               Age:'6-7 yrs',   'Display Order':3,  Active:true},
+  {Class:'Class 3',  Label:'Class 3',               Age:'7-8 yrs',   'Display Order':4,  Active:true},
+  {Class:'Class 4',  Label:'Class 4',               Age:'8-9 yrs',   'Display Order':5,  Active:true},
+  {Class:'Class 5',  Label:'Class 5',               Age:'9-10 yrs',  'Display Order':6,  Active:true},
+  {Class:'Class 6',  Label:'Class 6',               Age:'10-11 yrs', 'Display Order':7,  Active:true},
+  {Class:'Class 7',  Label:'Class 7',               Age:'11-12 yrs', 'Display Order':8,  Active:true},
+  {Class:'Class 8',  Label:'Class 8',               Age:'12-13 yrs', 'Display Order':9,  Active:true},
+  {Class:'Class 9',  Label:'Class 9',               Age:'13-14 yrs', 'Display Order':10, Active:true},
+  {Class:'Class 10', Label:'Class 10',              Age:'14-15 yrs', 'Display Order':11, Active:true},
+  {Class:'Adult',    Label:'Adult',                 Age:'18+ yrs',   'Display Order':12, Active:true},
 ];
 
 const cfg = {
@@ -592,14 +601,17 @@ async function loadClassLevels() {
   const sel = document.getElementById('selClass');
   try {
     const rows = await fetchTab(cfg.masterSheetId, 'Class Levels');
-    state.classLevels = rows.length
-      ? rows.filter(r => r.Active !== false && r.Class).sort((a,b)=>(Number(a['Display Order'])||999)-(Number(b['Display Order'])||999))
-      : DEFAULT_CLASS_LEVELS;
+    // Merge: start with all 12 defaults, then overlay any Sheet rows that match by Class key.
+    // This guarantees all 12 classes always appear, even if the Sheet only has a subset.
+    const sheetMap = {};
+    rows.filter(r => r.Active !== false && r.Class).forEach(r => { sheetMap[r.Class.trim()] = r; });
+    state.classLevels = DEFAULT_CLASS_LEVELS.map(def => sheetMap[def.Class] ? {...def, ...sheetMap[def.Class]} : def)
+      .sort((a,b) => (Number(a['Display Order'])||999) - (Number(b['Display Order'])||999));
   } catch {
     state.classLevels = DEFAULT_CLASS_LEVELS;
   }
   sel.innerHTML = '<option value="">Select a class…</option>' +
-    state.classLevels.map(c => `<option value="${esc(c.Class)}">${esc(c.Label || c.Class)}</option>`).join('');
+    state.classLevels.map(c => `<option value="${esc(c.Class)}">${esc(c.Label || c.Class)}${c.Age ? ' — ' + esc(c.Age) : ''}</option>`).join('');
 }
 
 async function loadSubjectMap() {
