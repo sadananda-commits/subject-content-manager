@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#0d1320; --surface:#161e2e; --surface2:#1c2638; --line:#26324a;
@@ -113,6 +114,25 @@
   .opt-label{display:flex;align-items:center;gap:8px;}
   .opt-letter{width:24px;height:24px;border-radius:6px;background:var(--surface);border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:11.5px;font-weight:700;flex-shrink:0;}
+
+  /* ── Excel upload ──────────────────────────────────────────────────── */
+  .upload-zone{border:2px dashed var(--line);border-radius:12px;padding:32px 24px;text-align:center;cursor:pointer;
+    transition:border-color .2s,background .2s;background:var(--surface2);}
+  .upload-zone:hover,.upload-zone.drag-over{border-color:var(--teal);background:var(--teal-dim);}
+  .upload-zone input[type=file]{display:none;}
+  .upload-zone .uz-icon{font-size:28px;color:var(--teal);margin-bottom:10px;}
+  .upload-zone p{margin:4px 0;font-size:13.5px;}
+  .upload-zone .uz-hint{font-size:12px;color:var(--muted);}
+  .upload-toggle{display:flex;gap:10px;margin-bottom:16px;}
+  .upload-toggle button{flex:1;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);
+    color:var(--muted);font-family:var(--fd);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+  .upload-toggle button.active{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
+  .import-status{font-size:13px;padding:10px 14px;border-radius:8px;margin-top:10px;}
+  .import-status.ok{background:rgba(34,197,94,.1);color:#86e7ab;border:1px solid rgba(34,197,94,.25);}
+  .import-status.err{background:var(--red-dim);color:#f59b9b;border:1px solid rgba(239,91,91,.25);}
+  .import-status.warn{background:var(--amber-dim);color:#fcd57a;border:1px solid rgba(245,166,35,.25);}
+  .dl-template{font-size:12.5px;color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-top:10px;}
+  .dl-template:hover{text-decoration:underline;}
 
   /* ── Buttons ──────────────────────────────────────────────────────── */
   .btn{font-family:var(--fd);font-weight:600;font-size:13.5px;border-radius:9px;padding:11px 20px;border:1px solid transparent;
@@ -333,8 +353,40 @@
   <section class="card hidden" id="step3">
     <h2><i class="fa-solid fa-circle-question"></i> Questions</h2>
     <p class="sub" id="step3sub">Add one or more quiz questions for this chapter. Step numbers continue automatically.</p>
-    <div id="questionsHost"></div>
-    <button class="btn btn-ghost" id="btnAddQuestion"><i class="fa-solid fa-plus"></i> Add another question</button>
+
+    <!-- toggle: manual vs excel -->
+    <div class="upload-toggle" id="inputModeToggle">
+      <button id="btnModeManual" class="active" onclick="setInputMode('manual')">
+        <i class="fa-solid fa-pen-to-square"></i> Add manually
+      </button>
+      <button id="btnModeExcel" onclick="setInputMode('excel')">
+        <i class="fa-solid fa-file-excel"></i> Upload Excel
+      </button>
+    </div>
+
+    <!-- manual entry -->
+    <div id="manualEntry">
+      <div id="questionsHost"></div>
+      <button class="btn btn-ghost" id="btnAddQuestion"><i class="fa-solid fa-plus"></i> Add another question</button>
+    </div>
+
+    <!-- excel upload -->
+    <div id="excelEntry" class="hidden">
+      <label class="upload-zone" id="uploadZone">
+        <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv">
+        <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+        <p><strong>Click to choose</strong> or drag &amp; drop your Excel file here</p>
+        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; All 13 columns required as headers</p>
+      </label>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
+          <i class="fa-solid fa-download"></i> Download blank template (.xlsx)
+        </a>
+        <span style="font-size:12px;color:var(--muted);">Required columns: Learning Section · Teaching Step · Image URL · Question · Option A–D · Correct Option · Explanation · Learn More URL · Learn More Label · Active</span>
+      </div>
+      <div id="importStatus"></div>
+      <div id="importPreview"></div>
+    </div>
   </section>
 
   <!-- ───────────────────────── STEP 4 ───────────────────────── -->
@@ -509,7 +561,7 @@ function goToStep(n) {
   nextBtn.innerHTML = n === 4
     ? '<i class="fa-solid fa-cloud-arrow-up"></i> Submit to Google Sheet'
     : 'Continue <i class="fa-solid fa-arrow-right"></i>';
-  if (n === 3) renderQuestions();
+  if (n === 3) { renderQuestions(); if (importedQuestions.length) renderImportPreview(importedQuestions); }
   if (n === 4) renderReview();
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -757,6 +809,152 @@ function buildNewModulePayload() {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
+   STEP 3 — Input mode (manual vs excel)
+   ════════════════════════════════════════════════════════════════════════ */
+const EXCEL_COLUMNS = [
+  'Learning Section','Teaching Step','Image URL','Question',
+  'Option A','Option B','Option C','Option D',
+  'Correct Option','Explanation','Learn More URL','Learn More Label','Active'
+];
+
+let inputMode = 'manual'; // 'manual' | 'excel'
+let importedQuestions = []; // parsed from excel, ready to use
+
+function setInputMode(mode) {
+  inputMode = mode;
+  document.getElementById('btnModeManual').classList.toggle('active', mode === 'manual');
+  document.getElementById('btnModeExcel').classList.toggle('active', mode === 'excel');
+  document.getElementById('manualEntry').classList.toggle('hidden', mode !== 'manual');
+  document.getElementById('excelEntry').classList.toggle('hidden', mode !== 'excel');
+}
+
+/* ── Template download ───────────────────────────────────────────────── */
+function downloadTemplate() {
+  if (typeof XLSX === 'undefined') { toast('err','SheetJS library not loaded yet. Try again in a moment.'); return; }
+  const ws = XLSX.utils.aoa_to_sheet([EXCEL_COLUMNS]);
+  // style header row (column widths)
+  ws['!cols'] = EXCEL_COLUMNS.map(h => ({ wch: Math.max(h.length + 4, 14) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+  XLSX.writeFile(wb, 'questions-template.xlsx');
+}
+
+/* ── Drag-and-drop wiring ─────────────────────────────────────────────── */
+(function wireDrop() {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleExcelFile(file);
+  });
+  document.getElementById('xlsxInput').addEventListener('change', e => {
+    if (e.target.files[0]) handleExcelFile(e.target.files[0]);
+  });
+})();
+
+/* ── Parse uploaded file ─────────────────────────────────────────────── */
+function handleExcelFile(file) {
+  if (typeof XLSX === 'undefined') { showImportStatus('err','SheetJS not loaded — reload the page and try again.'); return; }
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows;
+      if (ext === 'csv') {
+        const wb = XLSX.read(e.target.result, { type:'string' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+      } else {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+      }
+      validateAndPreviewImport(rows);
+    } catch(err) {
+      showImportStatus('err', 'Could not read file: ' + err.message);
+    }
+  };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function validateAndPreviewImport(rows) {
+  if (!rows.length) { showImportStatus('err','The file is empty.'); importedQuestions=[]; return; }
+
+  // normalise headers: trim + lowercase for checking
+  const headers = Object.keys(rows[0]);
+  const missing = EXCEL_COLUMNS.filter(col => !headers.some(h => h.trim() === col));
+  if (missing.length) {
+    showImportStatus('err', `Missing column${missing.length>1?'s':''}: <strong>${missing.join(', ')}</strong>. Download the template to see the exact headers.`);
+    importedQuestions=[]; renderImportPreview([]); return;
+  }
+
+  const errs = [];
+  const parsed = rows.map((row, i) => {
+    const q = row['Question'] ? String(row['Question']).trim() : '';
+    const a = row['Option A'] ? String(row['Option A']).trim() : '';
+    const b = row['Option B'] ? String(row['Option B']).trim() : '';
+    const c = row['Option C'] ? String(row['Option C']).trim() : '';
+    const d = row['Option D'] ? String(row['Option D']).trim() : '';
+    const correct = row['Correct Option'] ? String(row['Correct Option']).trim().toUpperCase() : '';
+    if (!q) errs.push(`Row ${i+2}: Question is blank.`);
+    if (!a||!b||!c||!d) errs.push(`Row ${i+2}: One or more options are blank.`);
+    if (!['A','B','C','D'].includes(correct)) errs.push(`Row ${i+2}: Correct Option must be A, B, C, or D (got "${row['Correct Option']}").`);
+    const activeRaw = String(row['Active']||'').trim().toUpperCase();
+    return {
+      _id: i+1,
+      learningSection: String(row['Learning Section']||'').trim(),
+      teaching:        String(row['Teaching Step']||'').trim(),
+      stepImageUrl:    String(row['Image URL']||'').trim(),
+      question:        q,
+      optA: a, optB: b, optC: c, optD: d,
+      correct: ['A','B','C','D'].includes(correct) ? correct : 'A',
+      explanation:   String(row['Explanation']||'').trim(),
+      learnMoreUrl:  String(row['Learn More URL']||'').trim(),
+      learnMoreLabel:String(row['Learn More Label']||'').trim(),
+      active: activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES',
+    };
+  });
+
+  if (errs.length) {
+    showImportStatus('err', errs.slice(0,5).join('<br>') + (errs.length>5 ? `<br>…and ${errs.length-5} more` : ''));
+    importedQuestions=[]; renderImportPreview([]); return;
+  }
+
+  importedQuestions = parsed;
+  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;<strong>${parsed.length} question${parsed.length===1?'':'s'}</strong> ready to import. Review below, then click <strong>Continue</strong>.`);
+  renderImportPreview(parsed);
+}
+
+function showImportStatus(type, html) {
+  const el = document.getElementById('importStatus');
+  el.className = 'import-status ' + type;
+  el.innerHTML = html;
+}
+
+function renderImportPreview(questions) {
+  const el = document.getElementById('importPreview');
+  if (!questions.length) { el.innerHTML=''; return; }
+  const startNum = startingStepNumber();
+  el.innerHTML = `
+    <div style="margin-top:16px;">
+      <table class="preview">
+        <tr><th>Step</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>✓</th><th>Active</th></tr>
+        ${questions.map((q,i) => `<tr>
+          <td>${startNum+i}</td>
+          <td>${esc(q.question)}</td>
+          <td>${esc(q.optA)}</td>
+          <td>${esc(q.optB)}</td>
+          <td>${esc(q.optC)}</td>
+          <td>${esc(q.optD)}</td>
+          <td><strong style="color:var(--teal)">${esc(q.correct)}</strong></td>
+          <td>${q.active?'✓':'—'}</td>
+        </tr>`).join('')}
+      </table>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
    STEP 3 — Questions
    ════════════════════════════════════════════════════════════════════════ */
 function currentModuleIdForSteps() {
@@ -845,6 +1043,10 @@ function onQuestionFieldChange(e) {
 document.getElementById('btnAddQuestion').addEventListener('click', addQuestionBlock);
 
 function validateStep3() {
+  if (inputMode === 'excel') {
+    if (!importedQuestions.length) { toast('err', 'Upload an Excel file with at least one question first.'); return false; }
+    return true;
+  }
   if (!state.questions.length) { toast('err', 'Add at least one question.'); return false; }
   for (const q of state.questions) {
     if (!q.question.trim()) { toast('err', 'Every question needs question text.'); return false; }
@@ -859,7 +1061,8 @@ function validateStep3() {
 function buildStepsPayload() {
   const moduleId = currentModuleIdForSteps();
   const startNum = startingStepNumber();
-  return state.questions.map((q, idx) => ({
+  const questions = inputMode === 'excel' ? importedQuestions : state.questions;
+  return questions.map((q, idx) => ({
     'Module ID': moduleId,
     'Class': state.selectedClass,
     'Step Number': startNum + idx,
