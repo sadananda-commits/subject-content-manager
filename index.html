@@ -382,7 +382,7 @@
         <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
           <i class="fa-solid fa-download"></i> Download blank template (.xlsx)
         </a>
-        <span style="font-size:12px;color:var(--muted);">Required columns: Learning Section · Teaching Step · Image URL · Question · Option A–D · Correct Option · Explanation · Learn More URL · Learn More Label · Active</span>
+        <span style="font-size:12px;color:var(--muted);">Required columns: Learning Section · Learning Section Body · Teaching · Image URL · Question · Option A–D · Correct Option · Explanation · Learn More URL · Learn More Label · Active</span>
       </div>
       <div id="importStatus"></div>
       <div id="importPreview"></div>
@@ -414,20 +414,11 @@
    CONFIG
    ════════════════════════════════════════════════════════════════════════ */
 const DEFAULT_MASTER_SHEET_ID = '1GMW16KYN9IFHecNu06vnf5vrA8vqePJeff261bhmDrs';
-// These 12 classes are ALWAYS shown. Sheet data can override Label/Age but cannot remove entries.
 const DEFAULT_CLASS_LEVELS = [
-  {Class:'Class 0',  Label:'Class 0 (Nursery/KG)', Age:'4-5 yrs',   'Display Order':1,  Active:true},
-  {Class:'Class 1',  Label:'Class 1',               Age:'5-6 yrs',   'Display Order':2,  Active:true},
-  {Class:'Class 2',  Label:'Class 2',               Age:'6-7 yrs',   'Display Order':3,  Active:true},
-  {Class:'Class 3',  Label:'Class 3',               Age:'7-8 yrs',   'Display Order':4,  Active:true},
-  {Class:'Class 4',  Label:'Class 4',               Age:'8-9 yrs',   'Display Order':5,  Active:true},
-  {Class:'Class 5',  Label:'Class 5',               Age:'9-10 yrs',  'Display Order':6,  Active:true},
-  {Class:'Class 6',  Label:'Class 6',               Age:'10-11 yrs', 'Display Order':7,  Active:true},
-  {Class:'Class 7',  Label:'Class 7',               Age:'11-12 yrs', 'Display Order':8,  Active:true},
-  {Class:'Class 8',  Label:'Class 8',               Age:'12-13 yrs', 'Display Order':9,  Active:true},
-  {Class:'Class 9',  Label:'Class 9',               Age:'13-14 yrs', 'Display Order':10, Active:true},
-  {Class:'Class 10', Label:'Class 10',              Age:'14-15 yrs', 'Display Order':11, Active:true},
-  {Class:'Adult',    Label:'Adult',                 Age:'18+ yrs',   'Display Order':12, Active:true},
+  {Class:'Class 0',Label:'Class 0 (Nursery/KG)'},{Class:'Class 1',Label:'Class 1'},{Class:'Class 2',Label:'Class 2'},
+  {Class:'Class 3',Label:'Class 3'},{Class:'Class 4',Label:'Class 4'},{Class:'Class 5',Label:'Class 5'},
+  {Class:'Class 6',Label:'Class 6'},{Class:'Class 7',Label:'Class 7'},{Class:'Class 8',Label:'Class 8'},
+  {Class:'Class 9',Label:'Class 9'},{Class:'Class 10',Label:'Class 10'},{Class:'Adult',Label:'Adult'},
 ];
 
 const cfg = {
@@ -601,17 +592,14 @@ async function loadClassLevels() {
   const sel = document.getElementById('selClass');
   try {
     const rows = await fetchTab(cfg.masterSheetId, 'Class Levels');
-    // Merge: start with all 12 defaults, then overlay any Sheet rows that match by Class key.
-    // This guarantees all 12 classes always appear, even if the Sheet only has a subset.
-    const sheetMap = {};
-    rows.filter(r => r.Active !== false && r.Class).forEach(r => { sheetMap[r.Class.trim()] = r; });
-    state.classLevels = DEFAULT_CLASS_LEVELS.map(def => sheetMap[def.Class] ? {...def, ...sheetMap[def.Class]} : def)
-      .sort((a,b) => (Number(a['Display Order'])||999) - (Number(b['Display Order'])||999));
+    state.classLevels = rows.length
+      ? rows.filter(r => r.Active !== false && r.Class).sort((a,b)=>(Number(a['Display Order'])||999)-(Number(b['Display Order'])||999))
+      : DEFAULT_CLASS_LEVELS;
   } catch {
     state.classLevels = DEFAULT_CLASS_LEVELS;
   }
   sel.innerHTML = '<option value="">Select a class…</option>' +
-    state.classLevels.map(c => `<option value="${esc(c.Class)}">${esc(c.Label || c.Class)}${c.Age ? ' — ' + esc(c.Age) : ''}</option>`).join('');
+    state.classLevels.map(c => `<option value="${esc(c.Class)}">${esc(c.Label || c.Class)}</option>`).join('');
 }
 
 async function loadSubjectMap() {
@@ -824,7 +812,7 @@ function buildNewModulePayload() {
    STEP 3 — Input mode (manual vs excel)
    ════════════════════════════════════════════════════════════════════════ */
 const EXCEL_COLUMNS = [
-  'Learning Section','Teaching Step','Image URL','Question',
+  'Learning Section','Learning Section Body','Teaching','Image URL','Question',
   'Option A','Option B','Option C','Option D',
   'Correct Option','Explanation','Learn More URL','Learn More Label','Active'
 ];
@@ -915,9 +903,10 @@ function validateAndPreviewImport(rows) {
     const activeRaw = String(row['Active']||'').trim().toUpperCase();
     return {
       _id: i+1,
-      learningSection: String(row['Learning Section']||'').trim(),
-      teaching:        String(row['Teaching Step']||'').trim(),
-      stepImageUrl:    String(row['Image URL']||'').trim(),
+      learningSection:     String(row['Learning Section']||'').trim(),
+      learningSectionBody: String(row['Learning Section Body']||'').trim(),
+      teaching:            String(row['Teaching']||row['Teaching Step']||'').trim(),
+      stepImageUrl:        String(row['Image URL']||'').trim(),
       question:        q,
       optA: a, optB: b, optC: c, optD: d,
       correct: ['A','B','C','D'].includes(correct) ? correct : 'A',
@@ -982,7 +971,7 @@ function startingStepNumber() {
 function addQuestionBlock() {
   state.qSeq += 1;
   state.questions.push({
-    _id: state.qSeq, learningSection:'', teaching:'', stepImageUrl:'', question:'',
+    _id: state.qSeq, learningSection:'', learningSectionBody:'', teaching:'', stepImageUrl:'', question:'',
     optA:'', optB:'', optC:'', optD:'', correct:'A', explanation:'', learnMoreUrl:'', learnMoreLabel:'', active:true,
   });
   renderQuestions();
@@ -1003,13 +992,15 @@ function renderQuestions() {
         <button class="rm" data-rm="${q._id}" ${state.questions.length===1?'disabled':''}><i class="fa-solid fa-trash"></i> Remove</button>
       </div>
       <div class="grid2">
-        <div class="field"><label>Learning section <span class="opt">(optional)</span></label>
-          <input type="text" data-f="learningSection" data-id="${q._id}" value="${escAttr(q.learningSection)}" placeholder="e.g. Introduction to Computers"></div>
+        <div class="field"><label>Learning section <span class="opt">(optional — short heading shown in header)</span></label>
+          <input type="text" data-f="learningSection" data-id="${q._id}" value="${escAttr(q.learningSection)}" placeholder="e.g. What is a seed?"></div>
         <div class="field"><label>Step image URL <span class="opt">(optional)</span></label>
           <input type="url" data-f="stepImageUrl" data-id="${q._id}" value="${escAttr(q.stepImageUrl)}" placeholder="https://…"></div>
       </div>
-      <div class="field"><label>Teaching <span class="opt">(shown before the question, optional)</span></label>
-        <textarea data-f="teaching" data-id="${q._id}">${escHtml(q.teaching)}</textarea></div>
+      <div class="field"><label>Learning section body <span class="opt">(optional — up to ~400 words, shown in scrollable blue box)</span></label>
+        <textarea data-f="learningSectionBody" data-id="${q._id}" style="min-height:160px;font-size:13px;line-height:1.65;" placeholder="Write the full explanatory text for this learning section here — up to about 400 words. Students can scroll to read it all.">${escHtml(q.learningSectionBody)}</textarea></div>
+      <div class="field"><label>Teaching <span class="opt">(optional — up to ~400–500 words, shown in scrollable teal box)</span></label>
+        <textarea data-f="teaching" data-id="${q._id}" style="min-height:160px;font-size:13px;line-height:1.65;" placeholder="Write the teaching fact or explanation here — up to about 400–500 words. Students can scroll to read it all.">${escHtml(q.teaching)}</textarea></div>
       <div class="field"><label>Question</label>
         <textarea data-f="question" data-id="${q._id}" placeholder="What is a computer?">${escHtml(q.question)}</textarea></div>
       <div class="opt4">
@@ -1079,6 +1070,7 @@ function buildStepsPayload() {
     'Class': state.selectedClass,
     'Step Number': startNum + idx,
     'Learning Section': q.learningSection,
+    'Learning Section Body': q.learningSectionBody,
     'Teaching': q.teaching,
     'Step Image URL': q.stepImageUrl,
     'Question': q.question,
