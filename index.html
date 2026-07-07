@@ -264,88 +264,152 @@
 
   <!-- ───────────────────────── STEP 2 ───────────────────────── -->
   <section class="card hidden" id="step2">
-    <h2><i class="fa-solid fa-book-open"></i> Chapter</h2>
-    <p class="sub">Add a brand-new chapter, or add more questions to one that already exists.</p>
+    <h2><i class="fa-solid fa-book-open"></i> Chapter &amp; content</h2>
+    <p class="sub">Add content by hand, or upload a spreadsheet — chapters can be auto-detected from it.</p>
 
-    <div class="pillgroup" style="margin-bottom:18px;">
-      <label><input type="radio" name="chapterMode" value="new" checked> <span><strong>New chapter</strong><br><span style="color:var(--muted);font-weight:400;">Creates a new row in "Learning Modules"</span></span></label>
-      <label><input type="radio" name="chapterMode" value="existing"> <span><strong>Existing chapter</strong><br><span style="color:var(--muted);font-weight:400;">Just append more questions</span></span></label>
+    <!-- toggle: manual vs excel (moved here so chapter handling can depend on it) -->
+    <div class="upload-toggle" id="inputModeToggle">
+      <button id="btnModeManual" class="active" onclick="setInputMode('manual')">
+        <i class="fa-solid fa-pen-to-square"></i> Add manually
+      </button>
+      <button id="btnModeExcel" onclick="setInputMode('excel')">
+        <i class="fa-solid fa-file-excel"></i> Upload spreadsheet
+      </button>
     </div>
 
-    <!-- Existing chapter picker -->
-    <div id="existingChapterBlock" class="hidden">
-      <div class="field">
-        <label>Chapter</label>
-        <select id="selExistingModule"><option value="">Loading chapters…</option></select>
+    <!-- ══ MANUAL MODE: chapter picker/form (unchanged) ══ -->
+    <div id="manualChapterWrap">
+      <div class="pillgroup" style="margin-bottom:18px;">
+        <label><input type="radio" name="chapterMode" value="new" checked> <span><strong>New chapter</strong><br><span style="color:var(--muted);font-weight:400;">Creates a new row in "Learning Modules"</span></span></label>
+        <label><input type="radio" name="chapterMode" value="existing"> <span><strong>Existing chapter</strong><br><span style="color:var(--muted);font-weight:400;">Just append more questions</span></span></label>
       </div>
-      <div id="existingChapterInfo"></div>
+
+      <!-- Existing chapter picker -->
+      <div id="existingChapterBlock" class="hidden">
+        <div class="field">
+          <label>Chapter</label>
+          <select id="selExistingModule"><option value="">Loading chapters…</option></select>
+        </div>
+        <div id="existingChapterInfo"></div>
+      </div>
+
+      <!-- New chapter form -->
+      <div id="newChapterBlock">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="modTitle" placeholder="e.g. Input and Output Devices">
+        </div>
+
+        <div class="field">
+          <label>Module ID <span class="opt">(auto-generated — you can override the prefix)</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="modPrefix" maxlength="4" style="width:80px;font-family:var(--fm);text-transform:uppercase;">
+            <span style="color:var(--muted);font-family:var(--fm);">_</span>
+            <span class="chip id" id="modSerialChip">01</span>
+            <span class="chip" id="modIdFull" style="margin-left:auto;">Module ID: —</span>
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:var(--muted2);" id="modPrefixHint"></div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>Subtopics <span class="opt">(comma-separated, optional)</span></label>
+            <input type="text" id="modSubtopics" placeholder="Input devices, Output devices, Safety">
+          </div>
+          <div class="field">
+            <label>Display order <span class="opt">(auto-suggested)</span></label>
+            <input type="number" id="modDisplayOrder" min="1">
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="field">
+            <label>Icon <span class="opt">(FontAwesome solid)</span></label>
+            <div class="iconrow">
+              <span class="iconprev"><i id="modIconPrev" class="fa-solid fa-shapes"></i></span>
+              <div class="field"><input type="text" id="modIcon" placeholder="fa-laptop-code"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Emoji <span class="opt">(optional)</span></label>
+            <input type="text" id="modEmoji" placeholder="💻">
+          </div>
+          <div class="field">
+            <label>Color</label>
+            <div class="colorrow">
+              <input type="color" id="modColorPicker" value="#0ea5e9">
+              <input type="text" id="modColorHex" value="#0ea5e9">
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Introduction</label>
+          <textarea id="modIntro" placeholder="What this chapter teaches, in 1-2 sentences."></textarea>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>"Now You Try" prompt <span class="opt">(optional)</span></label>
+            <textarea id="modNowYouTry"></textarea>
+          </div>
+          <div class="field">
+            <label>Intro image URL <span class="opt">(optional)</span></label>
+            <input type="url" id="modImageUrl" placeholder="https://…">
+          </div>
+        </div>
+        <div class="checkrow"><input type="checkbox" id="modActive" checked> <label for="modActive" style="margin:0;">Active (visible to students immediately)</label></div>
+      </div>
     </div>
 
-    <!-- New chapter form -->
-    <div id="newChapterBlock">
-      <div class="field">
-        <label>Title</label>
-        <input type="text" id="modTitle" placeholder="e.g. Input and Output Devices">
+    <!-- ══ EXCEL MODE: upload + auto-detected chapters ══ -->
+    <div id="excelChapterWrap" class="hidden">
+      <label class="upload-zone" id="uploadZone">
+        <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv">
+        <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+        <p><strong>Click to choose</strong> or drag &amp; drop your spreadsheet here</p>
+        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; One sheet of MCQ questions, optionally a second "Match The Following" sheet</p>
+      </label>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
+          <i class="fa-solid fa-download"></i> Download blank template (.xlsx)
+        </a>
+        <span style="font-size:12px;color:var(--muted);">Required: Learning Section (used as the chapter name) · Question · Option A–D · Correct Option</span>
       </div>
+      <div id="importStatus"></div>
+      <div id="chapterGroupsHost"></div>
 
-      <div class="field">
-        <label>Module ID <span class="opt">(auto-generated — you can override the prefix)</span></label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="modPrefix" maxlength="4" style="width:80px;font-family:var(--fm);text-transform:uppercase;">
-          <span style="color:var(--muted);font-family:var(--fm);">_</span>
-          <span class="chip id" id="modSerialChip">01</span>
-          <span class="chip" id="modIdFull" style="margin-left:auto;">Module ID: —</span>
-        </div>
-        <div style="margin-top:6px;font-size:12px;color:var(--muted2);" id="modPrefixHint"></div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label>Subtopics <span class="opt">(comma-separated, optional)</span></label>
-          <input type="text" id="modSubtopics" placeholder="Input devices, Output devices, Safety">
-        </div>
-        <div class="field">
-          <label>Display order <span class="opt">(auto-suggested)</span></label>
-          <input type="number" id="modDisplayOrder" min="1">
-        </div>
-      </div>
-
-      <div class="grid3">
-        <div class="field">
-          <label>Icon <span class="opt">(FontAwesome solid)</span></label>
-          <div class="iconrow">
-            <span class="iconprev"><i id="modIconPrev" class="fa-solid fa-shapes"></i></span>
-            <div class="field"><input type="text" id="modIcon" placeholder="fa-laptop-code"></div>
+      <!-- shared defaults applied to any NEW chapters auto-created from the upload -->
+      <div id="newChapterDefaultsWrap" class="hidden" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--line);">
+        <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:10px;">Defaults for auto-created chapters</h3>
+        <p class="sub" style="margin-bottom:14px;">Applied to every <strong>new</strong> chapter detected above — Module ID, class and title come from the sheet automatically.</p>
+        <div class="grid3">
+          <div class="field">
+            <label>Icon <span class="opt">(FontAwesome solid)</span></label>
+            <div class="iconrow">
+              <span class="iconprev"><i id="autoModIconPrev" class="fa-solid fa-shapes"></i></span>
+              <div class="field"><input type="text" id="autoModIcon" placeholder="fa-laptop-code"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Emoji <span class="opt">(optional)</span></label>
+            <input type="text" id="autoModEmoji" placeholder="💻">
+          </div>
+          <div class="field">
+            <label>Color</label>
+            <div class="colorrow">
+              <input type="color" id="autoModColorPicker" value="#0ea5e9">
+              <input type="text" id="autoModColorHex" value="#0ea5e9">
+            </div>
           </div>
         </div>
         <div class="field">
-          <label>Emoji <span class="opt">(optional)</span></label>
-          <input type="text" id="modEmoji" placeholder="💻">
+          <label>Introduction template <span class="opt">(optional — use {chapter} for the chapter's name)</span></label>
+          <textarea id="autoModIntro" placeholder="Learn about {chapter}."></textarea>
         </div>
-        <div class="field">
-          <label>Color</label>
-          <div class="colorrow">
-            <input type="color" id="modColorPicker" value="#0ea5e9">
-            <input type="text" id="modColorHex" value="#0ea5e9">
-          </div>
-        </div>
+        <div class="checkrow"><input type="checkbox" id="autoModActive" checked> <label for="autoModActive" style="margin:0;">Active (visible to students immediately)</label></div>
       </div>
 
-      <div class="field">
-        <label>Introduction</label>
-        <textarea id="modIntro" placeholder="What this chapter teaches, in 1-2 sentences."></textarea>
-      </div>
-      <div class="grid2">
-        <div class="field">
-          <label>"Now You Try" prompt <span class="opt">(optional)</span></label>
-          <textarea id="modNowYouTry"></textarea>
-        </div>
-        <div class="field">
-          <label>Intro image URL <span class="opt">(optional)</span></label>
-          <input type="url" id="modImageUrl" placeholder="https://…">
-        </div>
-      </div>
-      <div class="checkrow"><input type="checkbox" id="modActive" checked> <label for="modActive" style="margin:0;">Active (visible to students immediately)</label></div>
+      <div id="matchSetsHost"></div>
     </div>
   </section>
 
@@ -354,38 +418,15 @@
     <h2><i class="fa-solid fa-circle-question"></i> Questions</h2>
     <p class="sub" id="step3sub">Add one or more quiz questions for this chapter. Step numbers continue automatically.</p>
 
-    <!-- toggle: manual vs excel -->
-    <div class="upload-toggle" id="inputModeToggle">
-      <button id="btnModeManual" class="active" onclick="setInputMode('manual')">
-        <i class="fa-solid fa-pen-to-square"></i> Add manually
-      </button>
-      <button id="btnModeExcel" onclick="setInputMode('excel')">
-        <i class="fa-solid fa-file-excel"></i> Upload Excel
-      </button>
-    </div>
-
     <!-- manual entry -->
     <div id="manualEntry">
       <div id="questionsHost"></div>
       <button class="btn btn-ghost" id="btnAddQuestion"><i class="fa-solid fa-plus"></i> Add another question</button>
     </div>
 
-    <!-- excel upload -->
-    <div id="excelEntry" class="hidden">
-      <label class="upload-zone" id="uploadZone">
-        <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv">
-        <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-        <p><strong>Click to choose</strong> or drag &amp; drop your Excel file here</p>
-        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; All 13 columns required as headers</p>
-      </label>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
-          <i class="fa-solid fa-download"></i> Download blank template (.xlsx)
-        </a>
-        <span style="font-size:12px;color:var(--muted);">Columns matched by name, in any order: Learning Section · Learning Section Body · Teaching · Image URL (or "Step Image URL") · Question · Option A–D · Correct Option (or "Answer") · Explanation · Learn More URL · Learn More Label · Active</span>
-      </div>
-      <div id="importStatus"></div>
-      <div id="importPreview"></div>
+    <!-- excel mode: read-only preview of what step 2 already parsed -->
+    <div id="excelSummary" class="hidden">
+      <div id="excelSummaryHost"></div>
     </div>
   </section>
 
@@ -561,7 +602,12 @@ function goToStep(n) {
   nextBtn.innerHTML = n === 4
     ? '<i class="fa-solid fa-cloud-arrow-up"></i> Submit to Google Sheet'
     : 'Continue <i class="fa-solid fa-arrow-right"></i>';
-  if (n === 3) { renderQuestions(); if (importedQuestions.length) renderImportPreview(importedQuestions); }
+  if (n === 3) {
+    document.getElementById('manualEntry').classList.toggle('hidden', inputMode !== 'manual');
+    document.getElementById('excelSummary').classList.toggle('hidden', inputMode !== 'excel');
+    if (inputMode === 'manual') renderQuestions();
+    else renderExcelSummaryStep3();
+  }
   if (n === 4) renderReview();
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -575,7 +621,7 @@ async function onNextClicked() {
     goToStep(2);
   } else if (state.step === 2) {
     if (!validateStep2()) return;
-    if (state.questions.length === 0) addQuestionBlock();
+    if (inputMode === 'manual' && state.questions.length === 0) addQuestionBlock();
     goToStep(3);
   } else if (state.step === 3) {
     if (!validateStep3()) return;
@@ -775,6 +821,13 @@ document.getElementById('modColorHex').addEventListener('input', e => {
 });
 
 function validateStep2() {
+  if (inputMode === 'excel') {
+    if (!state.chapterGroups.length && !state.matchSets.length) {
+      toast('err', 'Upload a spreadsheet with at least one question or Match-the-Following set first.');
+      return false;
+    }
+    return true;
+  }
   if (state.chapterMode === 'existing') {
     if (!state.selectedExistingModuleId) { toast('err', 'Pick an existing chapter, or switch to "New chapter".'); return false; }
     return true;
@@ -811,111 +864,97 @@ function buildNewModulePayload() {
 /* ════════════════════════════════════════════════════════════════════════
    STEP 3 — Input mode (manual vs excel)
    ════════════════════════════════════════════════════════════════════════ */
-const EXCEL_COLUMNS = [
+// Canonical MCQ columns — matches "Learning Steps" tab headers exactly.
+const MCQ_COLUMNS = [
   'Learning Section','Learning Section Body','Teaching','Image URL','Question',
   'Option A','Option B','Option C','Option D',
   'Correct Option','Explanation','Learn More URL','Learn More Label','Active'
 ];
+const MCQ_REQUIRED = ['Learning Section','Question','Option A','Option B','Option C','Option D','Correct Option'];
 
-/* ── Header mapping (name-based, not position-based) ─────────────────────
-   Maps ANY of a field's accepted header spellings — the friendly template
-   name, the actual Google Sheet "Learning Steps" column name, or common
-   variants — to one internal field key. Uploaded files are matched to
-   these by name (trimmed, case/space/punctuation-insensitive), never by
-   column position, so column order in the uploaded file doesn't matter
-   and near-miss headers ("Image Url", "correct option ") still resolve. */
-const HEADER_ALIASES = {
-  learningSection:     ['Learning Section', 'Section', 'Chapter Section'],
-  learningSectionBody: ['Learning Section Body', 'Section Body'],
-  teaching:            ['Teaching', 'Teaching Step'],
-  stepImageUrl:        ['Image URL', 'Step Image URL', 'Image Url', 'Picture URL'],
-  question:            ['Question', 'Question Text'],
-  optA:                ['Option A', 'Option 1'],
-  optB:                ['Option B', 'Option 2'],
-  optC:                ['Option C', 'Option 3'],
-  optD:                ['Option D', 'Option 4'],
-  correct:             ['Correct Option', 'Correct Answer', 'Answer'],
-  explanation:         ['Explanation'],
-  learnMoreUrl:        ['Learn More URL', 'Learn More Url'],
-  learnMoreLabel:      ['Learn More Label'],
-  active:              ['Active'],
+// Header aliases: normalized (trimmed/lowercased/collapsed-space) synonyms → canonical column.
+// This is what makes header mapping order-independent and typo/rename tolerant.
+const MCQ_HEADER_ALIASES = {
+  'Learning Section':      ['learning section','section','chapter','chapter name','topic'],
+  'Learning Section Body': ['learning section body','section body','section text','section content'],
+  'Teaching':              ['teaching','teaching step','teaching text','teaching content'],
+  'Image URL':             ['image url','step image url','image','picture url'],
+  'Question':              ['question','question text','quiz question'],
+  'Option A':              ['option a','opt a','a','choice a'],
+  'Option B':              ['option b','opt b','b','choice b'],
+  'Option C':              ['option c','opt c','c','choice c'],
+  'Option D':              ['option d','opt d','d','choice d'],
+  'Correct Option':        ['correct option','correct answer','answer','correct'],
+  'Explanation':           ['explanation','explain','why'],
+  'Learn More URL':        ['learn more url','more url','reference url','further reading url'],
+  'Learn More Label':      ['learn more label','more label','reference label'],
+  'Active':                ['active','is active','enabled'],
 };
-// Which internal fields MUST resolve to a column before import can proceed.
-// (Mirrors the previous EXCEL_COLUMNS requirement — every field the sheet
-// needs — but matched by name/alias instead of an exact header string.)
-const REQUIRED_FIELDS = [
-  'learningSection','learningSectionBody','teaching','stepImageUrl','question',
-  'optA','optB','optC','optD','correct','explanation','learnMoreUrl','learnMoreLabel','active',
-];
-function normalizeHeader(h) {
-  return String(h || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ').replace(/[^\w ]+/g, '');
-}
-// Builds { field -> actual header string found in the uploaded file } by
-// matching each uploaded header against every field's alias list. Also
-// returns which uploaded headers didn't match anything known (kept around
-// for informational display — e.g. a future "Question Type" or Match The
-// Following column dropped into the same file — never blocks import).
-function buildHeaderMapping(fileHeaders) {
-  const normToOriginal = new Map();
-  fileHeaders.forEach(h => normToOriginal.set(normalizeHeader(h), h));
 
-  const mapping = {};
-  Object.keys(HEADER_ALIASES).forEach(field => {
-    const aliases = HEADER_ALIASES[field].map(normalizeHeader);
-    const foundNorm = [...normToOriginal.keys()].find(n => aliases.includes(n));
-    mapping[field] = foundNorm ? normToOriginal.get(foundNorm) : null;
-  });
-
-  const mappedOriginals = new Set(Object.values(mapping).filter(Boolean));
-  const unmatchedHeaders = fileHeaders.filter(h => !mappedOriginals.has(h));
-
-  return { mapping, unmatchedHeaders };
-}
-function renderMappingReport(mapping, unmatchedHeaders) {
-  const rows = Object.keys(HEADER_ALIASES).map(field => {
-    const found = mapping[field];
-    const required = REQUIRED_FIELDS.includes(field);
-    return `<tr>
-      <td>${esc(HEADER_ALIASES[field][0])}${required ? '' : ' <span class="opt">(optional)</span>'}</td>
-      <td>${found ? `<span style="color:var(--teal);"><i class="fa-solid fa-arrow-left"></i> ${esc(found)}</span>` : `<span style="color:${required?'var(--red)':'var(--muted2)'};">— not found —</span>`}</td>
-    </tr>`;
-  }).join('');
-  const unmatchedNote = unmatchedHeaders.length
-    ? `<div style="margin-top:8px;font-size:12px;color:var(--muted);">Columns in your file not used: <strong>${unmatchedHeaders.map(esc).join(', ')}</strong></div>`
-    : '';
-  return `
-    <details style="margin-top:10px;">
-      <summary style="cursor:pointer;font-size:12.5px;color:var(--muted);">
-        <i class="fa-solid fa-diagram-project"></i> Header mapping — how your columns were matched
-      </summary>
-      <table class="preview" style="margin-top:8px;">
-        <tr><th>Sheet field</th><th>Matched to your column</th></tr>
-        ${rows}
-      </table>
-      ${unmatchedNote}
-    </details>`;
-}
+// Real "Match The Following" tab currently has 3 pairs of columns (Left 1/Right 1 … Left 3/Right 3).
+// Template offers up to this many — if you extend the sheet's header row with more Left N/Right N
+// columns later, bump MATCH_PAIR_COUNT and the tool will pick them up automatically.
+const MATCH_PAIR_COUNT = 3;
+const MATCH_TAB_NAME = 'Match The Following';
+const MATCH_HEADER_ALIASES = {
+  'Set Title':    ['set title','title','name'],
+  'Instructions': ['instructions','instruction','prompt'],
+  'Active':       ['active','is active','enabled'],
+};
 
 let inputMode = 'manual'; // 'manual' | 'excel'
-let importedQuestions = []; // parsed from excel, ready to use
+let importedQuestions = []; // flat list, used only by legacy helpers (kept for manual-mode compatibility)
+
+state.chapterGroups = [];   // [{ displayName, rows, mode:'existing'|'new', moduleId, startStep }]
+state.matchSets = [];       // [{ setTitle, instructions, active, pairs:[{left,right}], moduleId }]
+state.existingMatchSets = [];
 
 function setInputMode(mode) {
   inputMode = mode;
   document.getElementById('btnModeManual').classList.toggle('active', mode === 'manual');
   document.getElementById('btnModeExcel').classList.toggle('active', mode === 'excel');
-  document.getElementById('manualEntry').classList.toggle('hidden', mode !== 'manual');
-  document.getElementById('excelEntry').classList.toggle('hidden', mode !== 'excel');
+  document.getElementById('manualChapterWrap').classList.toggle('hidden', mode !== 'manual');
+  document.getElementById('excelChapterWrap').classList.toggle('hidden', mode !== 'excel');
 }
 
-/* ── Template download ───────────────────────────────────────────────── */
+/* ── Header mapping helpers ──────────────────────────────────────────── */
+function normalizeHeader(h) { return String(h||'').trim().toLowerCase().replace(/\s+/g,' '); }
+
+// Maps canonical column name -> the raw header actually used in the uploaded file.
+function buildHeaderMap(rawHeaders, canonicalList, aliasMap) {
+  const map = {};
+  rawHeaders.forEach(raw => {
+    const norm = normalizeHeader(raw);
+    for (const canon of canonicalList) {
+      if (map[canon]) continue;
+      const aliasHit = (aliasMap[canon]||[]).includes(norm) || normalizeHeader(canon) === norm;
+      if (aliasHit) map[canon] = raw;
+    }
+  });
+  return map;
+}
+function getCell(row, headerMap, canon) {
+  const raw = headerMap[canon];
+  return raw !== undefined && row[raw] !== undefined ? String(row[raw]).trim() : '';
+}
+
+/* ── Template download (two sheets: MCQ + Match The Following) ───────── */
 function downloadTemplate() {
   if (typeof XLSX === 'undefined') { toast('err','SheetJS library not loaded yet. Try again in a moment.'); return; }
-  const ws = XLSX.utils.aoa_to_sheet([EXCEL_COLUMNS]);
-  // style header row (column widths)
-  ws['!cols'] = EXCEL_COLUMNS.map(h => ({ wch: Math.max(h.length + 4, 14) }));
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Questions');
-  XLSX.writeFile(wb, 'questions-template.xlsx');
+
+  const mcqWs = XLSX.utils.aoa_to_sheet([MCQ_COLUMNS]);
+  mcqWs['!cols'] = MCQ_COLUMNS.map(h => ({ wch: Math.max(h.length + 4, 14) }));
+  XLSX.utils.book_append_sheet(wb, mcqWs, 'MCQ Questions');
+
+  const matchCols = ['Set Title','Instructions'];
+  for (let n=1; n<=MATCH_PAIR_COUNT; n++) matchCols.push(`Left ${n}`, `Right ${n}`);
+  matchCols.push('Active');
+  const matchWs = XLSX.utils.aoa_to_sheet([matchCols]);
+  matchWs['!cols'] = matchCols.map(h => ({ wch: Math.max(h.length + 4, 12) }));
+  XLSX.utils.book_append_sheet(wb, matchWs, 'Match The Following');
+
+  XLSX.writeFile(wb, 'content-import-template.xlsx');
 }
 
 /* ── Drag-and-drop wiring ─────────────────────────────────────────────── */
@@ -934,21 +973,31 @@ function downloadTemplate() {
 })();
 
 /* ── Parse uploaded file ─────────────────────────────────────────────── */
+function findSheetName(workbook, patterns, exclude) {
+  return workbook.SheetNames.find(name =>
+    patterns.some(p => p.test(name)) && !(exclude && exclude.test(name)));
+}
+
 function handleExcelFile(file) {
   if (typeof XLSX === 'undefined') { showImportStatus('err','SheetJS not loaded — reload the page and try again.'); return; }
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      let rows;
-      if (ext === 'csv') {
-        const wb = XLSX.read(e.target.result, { type:'string' });
-        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
-      } else {
-        const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
-        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
-      }
-      validateAndPreviewImport(rows);
+      const wb = ext === 'csv'
+        ? XLSX.read(e.target.result, { type:'string' })
+        : XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+
+      const matchSheetName = findSheetName(wb, [/match/i]);
+      const mcqSheetName = findSheetName(wb, [/^mcq/i, /question/i], /match/i) ||
+        wb.SheetNames.find(n => n !== matchSheetName) || wb.SheetNames[0];
+
+      const mcqRawRows = mcqSheetName && mcqSheetName !== matchSheetName
+        ? XLSX.utils.sheet_to_json(wb.Sheets[mcqSheetName], { defval:'' }) : [];
+      const matchRawRows = matchSheetName
+        ? XLSX.utils.sheet_to_json(wb.Sheets[matchSheetName], { defval:'' }) : [];
+
+      processImport(mcqRawRows, matchRawRows);
     } catch(err) {
       showImportStatus('err', 'Could not read file: ' + err.message);
     }
@@ -957,68 +1006,112 @@ function handleExcelFile(file) {
   else reader.readAsArrayBuffer(file);
 }
 
-let lastHeaderMapping = null; // kept so renderImportPreview can show the report again on Step 3 re-render
-
-function validateAndPreviewImport(rows) {
-  if (!rows.length) { showImportStatus('err','The file is empty.'); importedQuestions=[]; return; }
-
-  // Map the uploaded file's own headers (whatever order/spelling) to our
-  // internal fields BY NAME — not by column position. This is what lets a
-  // sheet with reordered or slightly-renamed columns still import cleanly.
-  const fileHeaders = Object.keys(rows[0]);
-  const { mapping, unmatchedHeaders } = buildHeaderMapping(fileHeaders);
-  lastHeaderMapping = { mapping, unmatchedHeaders };
-
-  const missingRequired = REQUIRED_FIELDS.filter(f => !mapping[f]);
-  if (missingRequired.length) {
-    const missingLabels = missingRequired.map(f => HEADER_ALIASES[f][0]);
-    showImportStatus('err',
-      `Couldn't find a column for: <strong>${missingLabels.join(', ')}</strong>. ` +
-      `Rename the column(s) in your file to match, or download the template to see accepted headers.` +
-      renderMappingReport(mapping, unmatchedHeaders));
-    importedQuestions=[]; renderImportPreview([]); return;
-  }
-
-  // Small helper: read a row's value for an internal field via the header
-  // that was actually matched for it in THIS file.
-  const val = (row, field) => {
-    const header = mapping[field];
-    return header && row[header] !== undefined ? String(row[header]).trim() : '';
-  };
-
+async function processImport(mcqRawRows, matchRawRows) {
   const errs = [];
-  const parsed = rows.map((row, i) => {
-    const q = val(row, 'question');
-    const a = val(row, 'optA'), b = val(row, 'optB'), c = val(row, 'optC'), d = val(row, 'optD');
-    const correctRaw = val(row, 'correct').toUpperCase();
-    if (!q) errs.push(`Row ${i+2}: Question is blank.`);
-    if (!a||!b||!c||!d) errs.push(`Row ${i+2}: One or more options are blank.`);
-    if (!['A','B','C','D'].includes(correctRaw)) errs.push(`Row ${i+2}: Correct Option must be A, B, C, or D (got "${val(row,'correct')}").`);
-    const activeRaw = val(row, 'active').toUpperCase();
-    return {
-      _id: i+1,
-      learningSection:     val(row, 'learningSection'),
-      learningSectionBody: val(row, 'learningSectionBody'),
-      teaching:            val(row, 'teaching'),
-      stepImageUrl:        val(row, 'stepImageUrl'),
-      question:        q,
-      optA: a, optB: b, optC: c, optD: d,
-      correct: ['A','B','C','D'].includes(correctRaw) ? correctRaw : 'A',
-      explanation:   val(row, 'explanation'),
-      learnMoreUrl:  val(row, 'learnMoreUrl'),
-      learnMoreLabel:val(row, 'learnMoreLabel'),
-      active: activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES',
-    };
-  });
+  let mcqParsedRows = [];
 
-  if (errs.length) {
-    showImportStatus('err', errs.slice(0,5).join('<br>') + (errs.length>5 ? `<br>…and ${errs.length-5} more` : '') + renderMappingReport(mapping, unmatchedHeaders));
-    importedQuestions=[]; renderImportPreview([]); return;
+  // ── MCQ sheet ──
+  if (mcqRawRows.length) {
+    const headerMap = buildHeaderMap(Object.keys(mcqRawRows[0]), MCQ_COLUMNS, MCQ_HEADER_ALIASES);
+    const missing = MCQ_REQUIRED.filter(col => !headerMap[col]);
+    if (missing.length) {
+      errs.push(`MCQ sheet is missing column${missing.length>1?'s':''}: <strong>${missing.join(', ')}</strong> (or a recognizable equivalent).`);
+    } else {
+      mcqParsedRows = mcqRawRows.map((row, i) => {
+        const q = getCell(row, headerMap, 'Question');
+        const a = getCell(row, headerMap, 'Option A'), b = getCell(row, headerMap, 'Option B');
+        const c = getCell(row, headerMap, 'Option C'), d = getCell(row, headerMap, 'Option D');
+        const correct = getCell(row, headerMap, 'Correct Option').toUpperCase();
+        const chapter = getCell(row, headerMap, 'Learning Section');
+        if (!chapter) errs.push(`MCQ row ${i+2}: Learning Section (chapter name) is blank.`);
+        if (!q) errs.push(`MCQ row ${i+2}: Question is blank.`);
+        if (!a||!b||!c||!d) errs.push(`MCQ row ${i+2}: One or more options are blank.`);
+        if (!['A','B','C','D'].includes(correct)) errs.push(`MCQ row ${i+2}: Correct Option must be A, B, C, or D.`);
+        const activeRaw = getCell(row, headerMap, 'Active').toUpperCase();
+        return {
+          learningSection: chapter,
+          learningSectionBody: getCell(row, headerMap, 'Learning Section Body'),
+          teaching: getCell(row, headerMap, 'Teaching'),
+          stepImageUrl: getCell(row, headerMap, 'Image URL'),
+          question: q, optA: a, optB: b, optC: c, optD: d,
+          correct: ['A','B','C','D'].includes(correct) ? correct : 'A',
+          explanation: getCell(row, headerMap, 'Explanation'),
+          learnMoreUrl: getCell(row, headerMap, 'Learn More URL'),
+          learnMoreLabel: getCell(row, headerMap, 'Learn More Label'),
+          active: activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES',
+        };
+      });
+    }
   }
 
-  importedQuestions = parsed;
-  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;<strong>${parsed.length} question${parsed.length===1?'':'s'}</strong> ready to import. Review below, then click <strong>Continue</strong>.` + renderMappingReport(mapping, unmatchedHeaders));
-  renderImportPreview(parsed);
+  // ── Match The Following sheet ──
+  let matchParsedRows = [];
+  if (matchRawRows.length) {
+    const headerMap = buildHeaderMap(Object.keys(matchRawRows[0]), ['Set Title','Instructions','Active'], MATCH_HEADER_ALIASES);
+    if (!headerMap['Set Title']) {
+      errs.push(`Match The Following sheet is missing a "Set Title" column.`);
+    } else {
+      matchRawRows.forEach((row, i) => {
+        const setTitle = getCell(row, headerMap, 'Set Title');
+        const pairs = [];
+        for (let n=1; n<=MATCH_PAIR_COUNT; n++) {
+          const leftKey = Object.keys(row).find(k => normalizeHeader(k) === `left ${n}`);
+          const rightKey = Object.keys(row).find(k => normalizeHeader(k) === `right ${n}`);
+          const left = leftKey ? String(row[leftKey]).trim() : '';
+          const right = rightKey ? String(row[rightKey]).trim() : '';
+          if (left || right) pairs.push({ left, right });
+        }
+        if (!setTitle && !pairs.length) return; // fully blank row, skip silently
+        if (!setTitle) { errs.push(`Match sheet row ${i+2}: Set Title is blank.`); return; }
+        if (pairs.length < 2) { errs.push(`Match sheet row ${i+2} ("${setTitle}"): need at least 2 Left/Right pairs.`); return; }
+        const activeRaw = getCell(row, headerMap, 'Active').toUpperCase();
+        matchParsedRows.push({
+          setTitle,
+          instructions: getCell(row, headerMap, 'Instructions'),
+          active: activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES',
+          pairs,
+        });
+      });
+    }
+  }
+
+  if (!mcqRawRows.length && !matchRawRows.length) {
+    showImportStatus('err', 'The file is empty, or no sheet matching "MCQ Questions" / "Match The Following" was found.');
+    resetImportState(); return;
+  }
+  if (errs.length) {
+    showImportStatus('err', errs.slice(0,6).join('<br>') + (errs.length>6 ? `<br>…and ${errs.length-6} more` : ''));
+    resetImportState(); return;
+  }
+
+  // Resolve MCQ rows into chapter groups (existing vs auto-created), matched against
+  // "Learning Modules" already loaded for this Class/Subject in loadModulesAndSteps().
+  state.chapterGroups = resolveChapterGroups(buildRawChapterGroups(mcqParsedRows));
+
+  // Resolve match sets — fetch existing "Match The Following" rows (for Module ID numbering)
+  // only if this upload actually contains any.
+  if (matchParsedRows.length) {
+    try { state.existingMatchSets = await fetchTab(cfg.masterSheetId, MATCH_TAB_NAME); }
+    catch (err) { state.existingMatchSets = []; }
+    state.matchSets = resolveMatchSets(matchParsedRows);
+  } else {
+    state.matchSets = [];
+  }
+
+  importedQuestions = mcqParsedRows; // kept for any legacy references
+
+  const chapterSummary = state.chapterGroups.length
+    ? `${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'} (${state.chapterGroups.filter(g=>g.mode==='existing').length} existing, ${state.chapterGroups.filter(g=>g.mode==='new').length} new), ${mcqParsedRows.length} question${mcqParsedRows.length===1?'':'s'}`
+    : '';
+  const matchSummary = state.matchSets.length ? `${state.matchSets.length} Match-the-Following set${state.matchSets.length===1?'':'s'}` : '';
+  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;${[chapterSummary, matchSummary].filter(Boolean).join(' · ') || 'Nothing to import yet'} — review below, then click <strong>Continue</strong>.`);
+  renderChapterGroups();
+  renderMatchSets();
+}
+
+function resetImportState() {
+  state.chapterGroups = []; state.matchSets = []; importedQuestions = [];
+  renderChapterGroups(); renderMatchSets();
 }
 
 function showImportStatus(type, html) {
@@ -1027,26 +1120,142 @@ function showImportStatus(type, html) {
   el.innerHTML = html;
 }
 
-function renderImportPreview(questions) {
-  const el = document.getElementById('importPreview');
-  if (!questions.length) { el.innerHTML=''; return; }
-  const startNum = startingStepNumber();
-  el.innerHTML = `
+/* ── Group MCQ rows by chapter (Learning Section) and resolve new/existing ── */
+function buildRawChapterGroups(mcqRows) {
+  const groups = new Map(); // lowercased key -> { displayName, rows }
+  mcqRows.forEach(r => {
+    const key = r.learningSection.toLowerCase();
+    if (!groups.has(key)) groups.set(key, { displayName: r.learningSection, rows: [] });
+    groups.get(key).rows.push(r);
+  });
+  return [...groups.values()];
+}
+
+function resolveChapterGroups(rawGroups) {
+  const existingByTitle = new Map();
+  state.existingModules.forEach(m => { if (m.Title) existingByTitle.set(String(m.Title).trim().toLowerCase(), m); });
+  const prefix = subjectPrefix(state.selectedSubject.Subject);
+  const pendingIds = state.existingModules.map(m => m['Module ID']);
+
+  return rawGroups.map(g => {
+    const match = existingByTitle.get(g.displayName.trim().toLowerCase());
+    if (match) {
+      const maxStep = state.existingSteps.filter(s => s['Module ID'] === match['Module ID'])
+        .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
+      return { ...g, mode:'existing', moduleId: match['Module ID'], startStep: maxStep + 1 };
+    }
+    const serial = nextSerial(pendingIds, prefix);
+    const moduleId = `${prefix}_${serial}`;
+    pendingIds.push(moduleId); // reserve, so the next new chapter in this batch increments further
+    return { ...g, mode:'new', moduleId, startStep: 1 };
+  });
+}
+
+/* ── Resolve Match The Following rows into Module IDs ─────────────────── */
+// Follows the sheet's existing convention, e.g. "MTF_EN_01" for English Grammar.
+function resolveMatchSets(rows) {
+  const prefix = 'MTF_' + subjectPrefix(state.selectedSubject.Subject);
+  const pendingIds = state.existingMatchSets.map(m => m['Module ID']);
+  return rows.map(m => {
+    const serial = nextSerial(pendingIds, prefix);
+    const moduleId = `${prefix}_${serial}`;
+    pendingIds.push(moduleId);
+    return { ...m, moduleId };
+  });
+}
+
+/* ── Rendering: detected chapters (step 2, excel mode) ─────────────────── */
+function renderChapterGroups() {
+  const host = document.getElementById('chapterGroupsHost');
+  const defaultsWrap = document.getElementById('newChapterDefaultsWrap');
+  if (!state.chapterGroups.length) { host.innerHTML=''; defaultsWrap.classList.add('hidden'); return; }
+  const hasNew = state.chapterGroups.some(g => g.mode === 'new');
+  defaultsWrap.classList.toggle('hidden', !hasNew);
+  if (hasNew && !document.getElementById('autoModIcon').value) prefillAutoChapterDefaults();
+
+  host.innerHTML = `
     <div style="margin-top:16px;">
       <table class="preview">
-        <tr><th>Step</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>✓</th><th>Active</th></tr>
-        ${questions.map((q,i) => `<tr>
-          <td>${startNum+i}</td>
-          <td>${esc(q.question)}</td>
-          <td>${esc(q.optA)}</td>
-          <td>${esc(q.optB)}</td>
-          <td>${esc(q.optC)}</td>
-          <td>${esc(q.optD)}</td>
-          <td><strong style="color:var(--teal)">${esc(q.correct)}</strong></td>
-          <td>${q.active?'✓':'—'}</td>
+        <tr><th>Chapter (Learning Section)</th><th>Status</th><th>Module ID</th><th>Questions</th></tr>
+        ${state.chapterGroups.map(g => `<tr>
+          <td>${esc(g.displayName)}</td>
+          <td>${g.mode==='existing' ? '<span class="chip">Existing — appending</span>' : '<span class="chip id">New — auto-created</span>'}</td>
+          <td><span class="chip id">${esc(g.moduleId)}</span></td>
+          <td>${g.rows.length}</td>
         </tr>`).join('')}
       </table>
     </div>`;
+}
+
+function prefillAutoChapterDefaults() {
+  document.getElementById('autoModIcon').value = state.selectedSubject['Icon (FontAwesome solid)'] || '';
+  document.getElementById('autoModEmoji').value = state.selectedSubject['Emoji'] || '';
+  const color = state.selectedSubject['Color (Hex)'] || '#0ea5e9';
+  document.getElementById('autoModColorHex').value = color;
+  document.getElementById('autoModColorPicker').value = /^#[0-9a-f]{6}$/i.test(color) ? color : '#0ea5e9';
+  updateAutoIconPreview();
+}
+function updateAutoIconPreview() {
+  const val = (document.getElementById('autoModIcon').value || 'fa-shapes').trim();
+  document.getElementById('autoModIconPrev').className = 'fa-solid ' + (val || 'fa-shapes');
+}
+document.getElementById('autoModIcon').addEventListener('input', updateAutoIconPreview);
+document.getElementById('autoModColorPicker').addEventListener('input', e => { document.getElementById('autoModColorHex').value = e.target.value; });
+document.getElementById('autoModColorHex').addEventListener('input', e => {
+  if (/^#[0-9a-f]{6}$/i.test(e.target.value)) document.getElementById('autoModColorPicker').value = e.target.value;
+});
+
+function renderMatchSets() {
+  const host = document.getElementById('matchSetsHost');
+  if (!state.matchSets.length) { host.innerHTML=''; return; }
+  host.innerHTML = `
+    <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--line);">
+      <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:10px;">Match The Following sets detected</h3>
+      <table class="preview">
+        <tr><th>Set Title</th><th>Module ID</th><th>Pairs</th></tr>
+        ${state.matchSets.map(m => `<tr>
+          <td>${esc(m.setTitle)}</td>
+          <td><span class="chip id">${esc(m.moduleId)}</span></td>
+          <td>${m.pairs.length}</td>
+        </tr>`).join('')}
+      </table>
+    </div>`;
+}
+
+/* ── Rendering: read-only preview (step 3, excel mode) ─────────────────── */
+function renderExcelSummaryStep3() {
+  const host = document.getElementById('excelSummaryHost');
+  const parts = [];
+  state.chapterGroups.forEach(g => {
+    parts.push(`
+      <div style="margin-bottom:20px;">
+        <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:8px;">
+          ${esc(g.displayName)} — <span class="chip id">${esc(g.moduleId)}</span>
+          ${g.mode==='existing' ? '<span class="chip">existing</span>' : '<span class="chip id">new</span>'}
+        </h3>
+        <table class="preview">
+          <tr><th>Step</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>✓</th><th>Active</th></tr>
+          ${g.rows.map((q,i) => `<tr>
+            <td>${g.startStep+i}</td>
+            <td>${esc(q.question)}</td>
+            <td>${esc(q.optA)}</td><td>${esc(q.optB)}</td><td>${esc(q.optC)}</td><td>${esc(q.optD)}</td>
+            <td><strong style="color:var(--teal)">${esc(q.correct)}</strong></td>
+            <td>${q.active?'✓':'—'}</td>
+          </tr>`).join('')}
+        </table>
+      </div>`);
+  });
+  if (state.matchSets.length) {
+    parts.push(`
+      <div>
+        <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:8px;">Match The Following sets</h3>
+        <table class="preview">
+          <tr><th>Set Title</th><th>Module ID</th><th>Pairs</th></tr>
+          ${state.matchSets.map(m => `<tr><td>${esc(m.setTitle)}</td><td>${esc(m.moduleId)}</td><td>${m.pairs.length}</td></tr>`).join('')}
+        </table>
+      </div>`);
+  }
+  host.innerHTML = parts.join('') || '<p class="sub">Nothing parsed yet — go back to Chapter step and upload a file.</p>';
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1141,8 +1350,7 @@ document.getElementById('btnAddQuestion').addEventListener('click', addQuestionB
 
 function validateStep3() {
   if (inputMode === 'excel') {
-    if (!importedQuestions.length) { toast('err', 'Upload an Excel file with at least one question first.'); return false; }
-    return true;
+    return state.chapterGroups.length > 0 || state.matchSets.length > 0;
   }
   if (!state.questions.length) { toast('err', 'Add at least one question.'); return false; }
   for (const q of state.questions) {
@@ -1155,11 +1363,11 @@ function validateStep3() {
 /* ════════════════════════════════════════════════════════════════════════
    STEP 4 — Review & submit
    ════════════════════════════════════════════════════════════════════════ */
+// Manual-mode-only: single chapter's worth of steps (unchanged behaviour).
 function buildStepsPayload() {
   const moduleId = currentModuleIdForSteps();
   const startNum = startingStepNumber();
-  const questions = inputMode === 'excel' ? importedQuestions : state.questions;
-  return questions.map((q, idx) => ({
+  return state.questions.map((q, idx) => ({
     'Module ID': moduleId,
     'Class': state.selectedClass,
     'Step Number': startNum + idx,
@@ -1176,27 +1384,100 @@ function buildStepsPayload() {
     'Active': q.active ? 'TRUE' : 'FALSE',
   }));
 }
+
+// Excel-mode: one chapter group's steps.
+function buildStepsForGroup(g) {
+  return g.rows.map((q, idx) => ({
+    'Module ID': g.moduleId,
+    'Class': state.selectedClass,
+    'Step Number': g.startStep + idx,
+    'Learning Section': q.learningSection,
+    'Learning Section Body': q.learningSectionBody,
+    'Teaching': q.teaching,
+    'Step Image URL': q.stepImageUrl,
+    'Question': q.question,
+    'Option A': q.optA, 'Option B': q.optB, 'Option C': q.optC, 'Option D': q.optD,
+    'Correct Option': q.correct,
+    'Explanation': q.explanation,
+    'Learn More URL': q.learnMoreUrl,
+    'Learn More Label': q.learnMoreLabel,
+    'Active': q.active ? 'TRUE' : 'FALSE',
+  }));
+}
+
+// Excel-mode: new-chapter row for an auto-detected group, using the shared defaults form.
+function buildAutoModulePayload(g, orderBase, idx) {
+  const introTemplate = document.getElementById('autoModIntro').value.trim() || 'Learn about {chapter}.';
+  return {
+    'Module ID': g.moduleId,
+    'Title': g.displayName,
+    'Subject': state.selectedSubject.Subject,
+    'Class': state.selectedClass,
+    'Subtopics': '',
+    'Icon (FontAwesome solid)': document.getElementById('autoModIcon').value.trim(),
+    'Emoji': document.getElementById('autoModEmoji').value.trim(),
+    'Color (Hex)': document.getElementById('autoModColorHex').value.trim(),
+    'Introduction': introTemplate.replace(/\{chapter\}/gi, g.displayName),
+    'Now You Try': '',
+    'Intro Image URL': '',
+    'Display Order': orderBase + idx,
+    'Active': document.getElementById('autoModActive').checked ? 'TRUE' : 'FALSE',
+  };
+}
+
+// Excel-mode: one Match The Following set → a row for the master sheet's tab.
+function buildMatchSetPayload(m) {
+  const row = {
+    'Module ID': m.moduleId,
+    'Class': state.selectedClass,
+    'Subject': state.selectedSubject.Subject,
+    'Set Title': m.setTitle,
+    'Instructions': m.instructions,
+    'Active': m.active ? 'TRUE' : 'FALSE',
+  };
+  m.pairs.forEach((p, i) => { row[`Left ${i+1}`] = p.left; row[`Right ${i+1}`] = p.right; });
+  return row;
+}
+
 function renderReview() {
   const host = document.getElementById('reviewHost');
-  const moduleId = currentModuleIdForSteps();
-  const steps = buildStepsPayload();
   let html = `
     <div class="kv"><span class="k">Class</span><strong>${esc(state.selectedClass)}</strong></div>
     <div class="kv"><span class="k">Subject</span><strong>${esc(state.selectedSubject.Subject)}</strong></div>
     <div class="kv"><span class="k">Target sheet</span><span class="chip">${esc(state.selectedSubject['Sheet ID'])}</span></div>
-    <div class="kv"><span class="k">Chapter</span><strong>${state.chapterMode==='existing' ? '(existing) ' : '(new) '}${esc(moduleId)}</strong></div>
-    <hr style="border-color:var(--line);margin:16px 0;">
   `;
-  if (state.chapterMode === 'new') {
-    const m = buildNewModulePayload();
-    html += `<h3 style="font-family:var(--fd);font-size:14px;">New chapter row</h3>`;
-    html += Object.entries(m).map(([k,v]) => `<div class="kv"><span class="k">${esc(k)}</span>${esc(String(v))}</div>`).join('');
-    html += `<hr style="border-color:var(--line);margin:16px 0;">`;
+
+  if (inputMode === 'manual') {
+    const moduleId = currentModuleIdForSteps();
+    const steps = buildStepsPayload();
+    html += `<div class="kv"><span class="k">Chapter</span><strong>${state.chapterMode==='existing' ? '(existing) ' : '(new) '}${esc(moduleId)}</strong></div>
+      <hr style="border-color:var(--line);margin:16px 0;">`;
+    if (state.chapterMode === 'new') {
+      const m = buildNewModulePayload();
+      html += `<h3 style="font-family:var(--fd);font-size:14px;">New chapter row</h3>`;
+      html += Object.entries(m).map(([k,v]) => `<div class="kv"><span class="k">${esc(k)}</span>${esc(String(v))}</div>`).join('');
+      html += `<hr style="border-color:var(--line);margin:16px 0;">`;
+    }
+    html += `<h3 style="font-family:var(--fd);font-size:14px;">${steps.length} question${steps.length===1?'':'s'} to add</h3>`;
+    html += `<table class="preview"><tr><th>Step</th><th>Question</th><th>Correct</th></tr>` +
+      steps.map(s => `<tr><td>${s['Step Number']}</td><td>${esc(s.Question)}</td><td>${esc(s['Correct Option'])}</td></tr>`).join('') +
+      `</table>`;
+  } else {
+    const totalQ = state.chapterGroups.reduce((n,g)=>n+g.rows.length, 0);
+    html += `<hr style="border-color:var(--line);margin:16px 0;">
+      <h3 style="font-family:var(--fd);font-size:14px;">${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'}, ${totalQ} question${totalQ===1?'':'s'}</h3>
+      <table class="preview"><tr><th>Chapter</th><th>Status</th><th>Module ID</th><th>Questions</th></tr>
+      ${state.chapterGroups.map(g => `<tr><td>${esc(g.displayName)}</td><td>${g.mode==='existing'?'Existing':'New'}</td><td>${esc(g.moduleId)}</td><td>${g.rows.length}</td></tr>`).join('')}
+      </table>`;
+    if (state.matchSets.length) {
+      html += `<hr style="border-color:var(--line);margin:16px 0;">
+        <h3 style="font-family:var(--fd);font-size:14px;">${state.matchSets.length} Match The Following set${state.matchSets.length===1?'':'s'}
+        <span style="font-weight:400;color:var(--muted);font-size:12px;">— written to the master config sheet, not ${esc(state.selectedSubject.Subject)}'s own sheet</span></h3>
+        <table class="preview"><tr><th>Set Title</th><th>Module ID</th><th>Pairs</th></tr>
+        ${state.matchSets.map(m => `<tr><td>${esc(m.setTitle)}</td><td>${esc(m.moduleId)}</td><td>${m.pairs.length}</td></tr>`).join('')}
+        </table>`;
+    }
   }
-  html += `<h3 style="font-family:var(--fd);font-size:14px;">${steps.length} question${steps.length===1?'':'s'} to add</h3>`;
-  html += `<table class="preview"><tr><th>Step</th><th>Question</th><th>Correct</th></tr>` +
-    steps.map(s => `<tr><td>${s['Step Number']}</td><td>${esc(s.Question)}</td><td>${esc(s['Correct Option'])}</td></tr>`).join('') +
-    `</table>`;
   host.innerHTML = html;
 }
 
@@ -1210,40 +1491,80 @@ async function submitAll() {
   const original = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span> Submitting…';
-
-  const payload = {
-    secret: cfg.secret,
-    sheetId: state.selectedSubject['Sheet ID'],
-    newModule: state.chapterMode === 'new' ? buildNewModulePayload() : null,
-    existingModuleId: state.chapterMode === 'existing' ? state.selectedExistingModuleId : null,
-    newSteps: buildStepsPayload(),
-  };
-
   const resultHost = document.getElementById('submitResult');
+
   try {
-    const res = await fetch(cfg.scriptUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (data.success) {
+    if (inputMode === 'manual') {
+      const payload = {
+        secret: cfg.secret,
+        sheetId: state.selectedSubject['Sheet ID'],
+        newModule: state.chapterMode === 'new' ? buildNewModulePayload() : null,
+        existingModuleId: state.chapterMode === 'existing' ? state.selectedExistingModuleId : null,
+        newSteps: buildStepsPayload(),
+      };
+      const data = await postToScript(payload);
+      if (!data.success) throw new Error(data.message || 'Unknown error from the Apps Script.');
       callout(resultHost, 'ok', 'fa-circle-check',
         `Added chapter <strong>${esc(data.moduleId || payload.existingModuleId)}</strong> with <strong>${data.stepsAdded}</strong> question(s) to ${esc(state.selectedSubject.Subject)} / ${esc(state.selectedClass)}.`);
-      toast('ok', 'Saved to Google Sheets.');
-      document.getElementById('btnBack').classList.add('hidden');
-      btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Add another chapter';
-      btn.disabled = false;
-      btn.onclick = () => location.reload();
     } else {
-      throw new Error(data.message || 'Unknown error from the Apps Script.');
+      // Excel mode: one request per chapter group, then one request for match sets.
+      const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
+      const doneChapters = [];
+      for (let i=0; i<state.chapterGroups.length; i++) {
+        const g = state.chapterGroups[i];
+        const payload = {
+          secret: cfg.secret,
+          sheetId: state.selectedSubject['Sheet ID'],
+          newModule: g.mode === 'new' ? buildAutoModulePayload(g, maxOrder+1, i) : null,
+          existingModuleId: g.mode === 'existing' ? g.moduleId : null,
+          newSteps: buildStepsForGroup(g),
+        };
+        const data = await postToScript(payload);
+        if (!data.success) {
+          throw new Error(`Stopped at chapter "${g.displayName}": ${data.message || 'Unknown error'}. ` +
+            `${doneChapters.length ? `Already added: ${doneChapters.join(', ')}.` : 'Nothing was added yet.'}`);
+        }
+        doneChapters.push(`${g.displayName} (${data.stepsAdded} q)`);
+      }
+
+      let matchResultMsg = '';
+      if (state.matchSets.length) {
+        const matchPayload = {
+          secret: cfg.secret,
+          matchSheetId: cfg.masterSheetId,
+          newMatchSets: state.matchSets.map(buildMatchSetPayload),
+        };
+        const data = await postToScript(matchPayload);
+        if (!data.success) {
+          throw new Error(`Chapters were added successfully (${doneChapters.join(', ')}), but Match The Following sets failed: ${data.message || 'Unknown error'}.`);
+        }
+        matchResultMsg = ` Also added <strong>${data.matchSetsAdded}</strong> Match-the-Following set(s) to the master sheet.`;
+      }
+
+      callout(resultHost, 'ok', 'fa-circle-check',
+        `Added ${doneChapters.length} chapter${doneChapters.length===1?'':'s'} to ${esc(state.selectedSubject.Subject)} / ${esc(state.selectedClass)}: ${doneChapters.map(esc).join(', ')}.${matchResultMsg}`);
     }
+
+    toast('ok', 'Saved to Google Sheets.');
+    document.getElementById('btnBack').classList.add('hidden');
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Add another chapter';
+    btn.disabled = false;
+    btn.onclick = () => location.reload();
   } catch (err) {
-    callout(resultHost, 'err', 'fa-triangle-exclamation', `Submit failed: ${esc(err.message)}. Nothing was changed — fix and try again.`);
+    callout(resultHost, 'err', 'fa-triangle-exclamation', `Submit failed: ${esc(err.message)}`);
     toast('err', 'Submit failed — see details below.');
     btn.disabled = false;
     btn.innerHTML = original;
   }
+}
+
+async function postToScript(payload) {
+  const res = await fetch(cfg.scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+    body: JSON.stringify(payload),
+  });
+  return res.json();
 }
 
 /* ════════════════════════════════════════════════════════════════════════
