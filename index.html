@@ -382,7 +382,7 @@
         <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
           <i class="fa-solid fa-download"></i> Download blank template (.xlsx)
         </a>
-        <span style="font-size:12px;color:var(--muted);">Required columns: Learning Section · Learning Section Body · Teaching · Image URL · Question · Option A–D · Correct Option · Explanation · Learn More URL · Learn More Label · Active</span>
+        <span style="font-size:12px;color:var(--muted);">Columns matched by name, in any order: Learning Section · Learning Section Body · Teaching · Image URL (or "Step Image URL") · Question · Option A–D · Correct Option (or "Answer") · Explanation · Learn More URL · Learn More Label · Active</span>
       </div>
       <div id="importStatus"></div>
       <div id="importPreview"></div>
@@ -817,6 +817,85 @@ const EXCEL_COLUMNS = [
   'Correct Option','Explanation','Learn More URL','Learn More Label','Active'
 ];
 
+/* ── Header mapping (name-based, not position-based) ─────────────────────
+   Maps ANY of a field's accepted header spellings — the friendly template
+   name, the actual Google Sheet "Learning Steps" column name, or common
+   variants — to one internal field key. Uploaded files are matched to
+   these by name (trimmed, case/space/punctuation-insensitive), never by
+   column position, so column order in the uploaded file doesn't matter
+   and near-miss headers ("Image Url", "correct option ") still resolve. */
+const HEADER_ALIASES = {
+  learningSection:     ['Learning Section', 'Section', 'Chapter Section'],
+  learningSectionBody: ['Learning Section Body', 'Section Body'],
+  teaching:            ['Teaching', 'Teaching Step'],
+  stepImageUrl:        ['Image URL', 'Step Image URL', 'Image Url', 'Picture URL'],
+  question:            ['Question', 'Question Text'],
+  optA:                ['Option A', 'Option 1'],
+  optB:                ['Option B', 'Option 2'],
+  optC:                ['Option C', 'Option 3'],
+  optD:                ['Option D', 'Option 4'],
+  correct:             ['Correct Option', 'Correct Answer', 'Answer'],
+  explanation:         ['Explanation'],
+  learnMoreUrl:        ['Learn More URL', 'Learn More Url'],
+  learnMoreLabel:      ['Learn More Label'],
+  active:              ['Active'],
+};
+// Which internal fields MUST resolve to a column before import can proceed.
+// (Mirrors the previous EXCEL_COLUMNS requirement — every field the sheet
+// needs — but matched by name/alias instead of an exact header string.)
+const REQUIRED_FIELDS = [
+  'learningSection','learningSectionBody','teaching','stepImageUrl','question',
+  'optA','optB','optC','optD','correct','explanation','learnMoreUrl','learnMoreLabel','active',
+];
+function normalizeHeader(h) {
+  return String(h || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ').replace(/[^\w ]+/g, '');
+}
+// Builds { field -> actual header string found in the uploaded file } by
+// matching each uploaded header against every field's alias list. Also
+// returns which uploaded headers didn't match anything known (kept around
+// for informational display — e.g. a future "Question Type" or Match The
+// Following column dropped into the same file — never blocks import).
+function buildHeaderMapping(fileHeaders) {
+  const normToOriginal = new Map();
+  fileHeaders.forEach(h => normToOriginal.set(normalizeHeader(h), h));
+
+  const mapping = {};
+  Object.keys(HEADER_ALIASES).forEach(field => {
+    const aliases = HEADER_ALIASES[field].map(normalizeHeader);
+    const foundNorm = [...normToOriginal.keys()].find(n => aliases.includes(n));
+    mapping[field] = foundNorm ? normToOriginal.get(foundNorm) : null;
+  });
+
+  const mappedOriginals = new Set(Object.values(mapping).filter(Boolean));
+  const unmatchedHeaders = fileHeaders.filter(h => !mappedOriginals.has(h));
+
+  return { mapping, unmatchedHeaders };
+}
+function renderMappingReport(mapping, unmatchedHeaders) {
+  const rows = Object.keys(HEADER_ALIASES).map(field => {
+    const found = mapping[field];
+    const required = REQUIRED_FIELDS.includes(field);
+    return `<tr>
+      <td>${esc(HEADER_ALIASES[field][0])}${required ? '' : ' <span class="opt">(optional)</span>'}</td>
+      <td>${found ? `<span style="color:var(--teal);"><i class="fa-solid fa-arrow-left"></i> ${esc(found)}</span>` : `<span style="color:${required?'var(--red)':'var(--muted2)'};">— not found —</span>`}</td>
+    </tr>`;
+  }).join('');
+  const unmatchedNote = unmatchedHeaders.length
+    ? `<div style="margin-top:8px;font-size:12px;color:var(--muted);">Columns in your file not used: <strong>${unmatchedHeaders.map(esc).join(', ')}</strong></div>`
+    : '';
+  return `
+    <details style="margin-top:10px;">
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--muted);">
+        <i class="fa-solid fa-diagram-project"></i> Header mapping — how your columns were matched
+      </summary>
+      <table class="preview" style="margin-top:8px;">
+        <tr><th>Sheet field</th><th>Matched to your column</th></tr>
+        ${rows}
+      </table>
+      ${unmatchedNote}
+    </details>`;
+}
+
 let inputMode = 'manual'; // 'manual' | 'excel'
 let importedQuestions = []; // parsed from excel, ready to use
 
@@ -878,52 +957,67 @@ function handleExcelFile(file) {
   else reader.readAsArrayBuffer(file);
 }
 
+let lastHeaderMapping = null; // kept so renderImportPreview can show the report again on Step 3 re-render
+
 function validateAndPreviewImport(rows) {
   if (!rows.length) { showImportStatus('err','The file is empty.'); importedQuestions=[]; return; }
 
-  // normalise headers: trim + lowercase for checking
-  const headers = Object.keys(rows[0]);
-  const missing = EXCEL_COLUMNS.filter(col => !headers.some(h => h.trim() === col));
-  if (missing.length) {
-    showImportStatus('err', `Missing column${missing.length>1?'s':''}: <strong>${missing.join(', ')}</strong>. Download the template to see the exact headers.`);
+  // Map the uploaded file's own headers (whatever order/spelling) to our
+  // internal fields BY NAME — not by column position. This is what lets a
+  // sheet with reordered or slightly-renamed columns still import cleanly.
+  const fileHeaders = Object.keys(rows[0]);
+  const { mapping, unmatchedHeaders } = buildHeaderMapping(fileHeaders);
+  lastHeaderMapping = { mapping, unmatchedHeaders };
+
+  const missingRequired = REQUIRED_FIELDS.filter(f => !mapping[f]);
+  if (missingRequired.length) {
+    const missingLabels = missingRequired.map(f => HEADER_ALIASES[f][0]);
+    showImportStatus('err',
+      `Couldn't find a column for: <strong>${missingLabels.join(', ')}</strong>. ` +
+      `Rename the column(s) in your file to match, or download the template to see accepted headers.` +
+      renderMappingReport(mapping, unmatchedHeaders));
     importedQuestions=[]; renderImportPreview([]); return;
   }
 
+  // Small helper: read a row's value for an internal field via the header
+  // that was actually matched for it in THIS file.
+  const val = (row, field) => {
+    const header = mapping[field];
+    return header && row[header] !== undefined ? String(row[header]).trim() : '';
+  };
+
   const errs = [];
   const parsed = rows.map((row, i) => {
-    const q = row['Question'] ? String(row['Question']).trim() : '';
-    const a = row['Option A'] ? String(row['Option A']).trim() : '';
-    const b = row['Option B'] ? String(row['Option B']).trim() : '';
-    const c = row['Option C'] ? String(row['Option C']).trim() : '';
-    const d = row['Option D'] ? String(row['Option D']).trim() : '';
-    const correct = row['Correct Option'] ? String(row['Correct Option']).trim().toUpperCase() : '';
+    const q = val(row, 'question');
+    const a = val(row, 'optA'), b = val(row, 'optB'), c = val(row, 'optC'), d = val(row, 'optD');
+    const correctRaw = val(row, 'correct').toUpperCase();
     if (!q) errs.push(`Row ${i+2}: Question is blank.`);
     if (!a||!b||!c||!d) errs.push(`Row ${i+2}: One or more options are blank.`);
-    if (!['A','B','C','D'].includes(correct)) errs.push(`Row ${i+2}: Correct Option must be A, B, C, or D (got "${row['Correct Option']}").`);
-    const activeRaw = String(row['Active']||'').trim().toUpperCase();
+    if (!['A','B','C','D'].includes(correctRaw)) errs.push(`Row ${i+2}: Correct Option must be A, B, C, or D (got "${val(row,'correct')}").`);
+    const activeRaw = val(row, 'active').toUpperCase();
     return {
       _id: i+1,
-      learningSection:     String(row['Learning Section']||'').trim(),
-      learningSectionBody: String(row['Learning Section Body']||'').trim(),
-      teaching:            String(row['Teaching']||row['Teaching Step']||'').trim(),
-      stepImageUrl:        String(row['Image URL']||'').trim(),
+      learningSection:     val(row, 'learningSection'),
+      learningSectionBody: val(row, 'learningSectionBody'),
+      teaching:            val(row, 'teaching'),
+      stepImageUrl:        val(row, 'stepImageUrl'),
       question:        q,
       optA: a, optB: b, optC: c, optD: d,
-      correct: ['A','B','C','D'].includes(correct) ? correct : 'A',
-      explanation:   String(row['Explanation']||'').trim(),
-      learnMoreUrl:  String(row['Learn More URL']||'').trim(),
-      learnMoreLabel:String(row['Learn More Label']||'').trim(),
+      correct: ['A','B','C','D'].includes(correctRaw) ? correctRaw : 'A',
+      explanation:   val(row, 'explanation'),
+      learnMoreUrl:  val(row, 'learnMoreUrl'),
+      learnMoreLabel:val(row, 'learnMoreLabel'),
       active: activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES',
     };
   });
 
   if (errs.length) {
-    showImportStatus('err', errs.slice(0,5).join('<br>') + (errs.length>5 ? `<br>…and ${errs.length-5} more` : ''));
+    showImportStatus('err', errs.slice(0,5).join('<br>') + (errs.length>5 ? `<br>…and ${errs.length-5} more` : '') + renderMappingReport(mapping, unmatchedHeaders));
     importedQuestions=[]; renderImportPreview([]); return;
   }
 
   importedQuestions = parsed;
-  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;<strong>${parsed.length} question${parsed.length===1?'':'s'}</strong> ready to import. Review below, then click <strong>Continue</strong>.`);
+  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;<strong>${parsed.length} question${parsed.length===1?'':'s'}</strong> ready to import. Review below, then click <strong>Continue</strong>.` + renderMappingReport(mapping, unmatchedHeaders));
   renderImportPreview(parsed);
 }
 
