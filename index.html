@@ -367,7 +367,7 @@
         <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv">
         <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
         <p><strong>Click to choose</strong> or drag &amp; drop your spreadsheet here</p>
-        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; A "Learning Steps" sheet (Module ID or Learning Section required), optionally a "Learning Modules" sheet for new-chapter metadata</p>
+        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; Chapter matching goes by title — any Module ID in the file is for grouping only; new chapters always get the next ID in this sheet's own sequence</p>
       </label>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
@@ -1206,7 +1206,6 @@ function buildRawChapterGroups(rows, moduleRowsById) {
 }
 
 function resolveChapterGroups(rawGroups) {
-  const existingIds = new Set(state.existingModules.map(m => m['Module ID']));
   const existingByTitle = new Map();
   state.existingModules.forEach(m => { if (m.Title) existingByTitle.set(String(m.Title).trim().toLowerCase(), m); });
   const prefix = subjectPrefix(state.selectedSubject.Subject);
@@ -1215,36 +1214,25 @@ function resolveChapterGroups(rawGroups) {
   let newIdx = 0;
 
   return rawGroups.map(g => {
-    // ── Rows carried an explicit Module ID ──
-    if (g.explicitModuleId) {
-      const moduleId = g.explicitModuleId;
-      if (existingIds.has(moduleId)) {
-        const maxStep = state.existingSteps.filter(s => s['Module ID'] === moduleId)
-          .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
-        return { ...g, moduleId, mode:'existing', startStep: maxStep + 1 };
-      }
-      if (g.lmRow) {
-        newIdx++;
-        return { ...g, moduleId, mode:'new', startStep: 1,
-          newModuleRow: buildModuleRowFromUpload(g.lmRow, moduleId, maxOrder + newIdx) };
-      }
-      // No "Learning Modules" row for this Module ID — use the shared defaults
-      // panel instead of blocking (Title comes from the Chapter/Learning Section
-      // text if the file had one, otherwise falls back to the Module ID itself).
-      newIdx++;
-      return { ...g, moduleId, mode:'new', startStep: 1, needsSharedDefaults: true };
-    }
-    // ── Fallback: group/matched by chapter title text (no Module ID given) ──
+    // Match by chapter TITLE against what's already in the target sheet — the
+    // upload's own Module ID (if any) is only used internally, to group rows and
+    // look up "Learning Modules" metadata. It is never written to the sheet.
     const match = existingByTitle.get(g.displayName.trim().toLowerCase());
     if (match) {
       const maxStep = state.existingSteps.filter(s => s['Module ID'] === match['Module ID'])
         .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
       return { ...g, moduleId: match['Module ID'], mode:'existing', startStep: maxStep + 1 };
     }
+    // New chapter — always assign the next sequential ID from the target sheet's
+    // own numbering, regardless of what Module ID (if any) the upload used.
     const serial = nextSerial(pendingIds, prefix);
     const moduleId = `${prefix}_${serial}`;
     pendingIds.push(moduleId);
     newIdx++;
+    if (g.lmRow) {
+      return { ...g, moduleId, mode:'new', startStep: 1,
+        newModuleRow: buildModuleRowFromUpload(g.lmRow, moduleId, maxOrder + newIdx) };
+    }
     return { ...g, moduleId, mode:'new', startStep: 1, needsSharedDefaults: true };
   });
 }
@@ -1284,8 +1272,8 @@ function renderChapterGroups() {
           <td>${esc(g.displayName)}</td>
           <td>${g.mode==='existing' ? '<span class="chip">Existing — appending</span>' :
                g.mode==='error' ? '<span class="chip" style="border-color:var(--red);color:var(--red);">Blocked</span>' :
-               g.needsSharedDefaults ? '<span class="chip id">New — using defaults below</span>' : '<span class="chip id">New — from upload</span>'}</td>
-          <td><span class="chip id">${esc(g.moduleId||'—')}</span></td>
+               g.needsSharedDefaults ? '<span class="chip id">New — using defaults below</span>' : '<span class="chip id">New — details from upload</span>'}</td>
+          <td><span class="chip id">${esc(g.moduleId||'—')}</span> ${g.mode==='new' ? '<span style="font-size:11px;color:var(--muted2);">auto-assigned</span>' : ''}</td>
           <td>${g.rows.length}</td>
         </tr>${g.mode==='error' ? `<tr><td colspan="4" style="color:var(--red);font-size:12px;">${esc(g.error)}</td></tr>` : ''}`).join('')}
       </table>
