@@ -998,6 +998,30 @@ function downloadTemplate() {
 function findSheetName(workbook, patterns) {
   return workbook.SheetNames.find(name => patterns.some(p => p.test(name)));
 }
+const IGNORED_SHEET_PATTERN = /^(read ?me|instructions?|notes?|about|help|guide|cover|assignment subjects)$/i;
+
+// Scores a sheet by how many recognizable "Learning Steps" columns it has —
+// far more reliable than guessing from the sheet's name or position. A sheet
+// only qualifies if it has a recognizable "Question" column at minimum.
+function scoreAsStepsSheet(workbook, sheetName) {
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval:'' });
+  if (!rows.length) return { score: -1, rows: [] };
+  const headerMap = buildHeaderMap(Object.keys(rows[0]), STEP_CORE_COLUMNS, STEP_HEADER_ALIASES);
+  if (!headerMap['Question']) return { score: -1, rows: [], headerMap };
+  let score = 5; // has Question — qualifies
+  STEP_CORE_COLUMNS.forEach(c => { if (headerMap[c]) score += 1; });
+  return { score, rows, headerMap };
+}
+
+function pickStepsSheet(workbook, excludeName) {
+  let best = null;
+  workbook.SheetNames.forEach(name => {
+    if (name === excludeName || IGNORED_SHEET_PATTERN.test(name.trim())) return;
+    const candidate = scoreAsStepsSheet(workbook, name);
+    if (candidate.score > (best ? best.score : -1)) best = { name, ...candidate };
+  });
+  return best; // null if nothing in the workbook has a recognizable Question column
+}
 
 function handleExcelFile(file) {
   if (typeof XLSX === 'undefined') { showImportStatus('err','SheetJS not loaded — reload the page and try again.'); return; }
@@ -1009,20 +1033,23 @@ function handleExcelFile(file) {
         ? XLSX.read(e.target.result, { type:'string' })
         : XLSX.read(new Uint8Array(e.target.result), { type:'array' });
 
-      // "Learning Steps" (or "Questions"/"MCQ Questions" as a simpler fallback) holds
-      // the actual question rows. "Learning Modules" (optional) supplies full chapter
-      // metadata for any brand-new Module ID referenced by those rows.
-      const stepsSheetName =
-        findSheetName(wb, [/^learning steps$/i, /learning steps/i]) ||
-        findSheetName(wb, [/^mcq/i, /^questions$/i, /question/i]) ||
-        wb.SheetNames[0];
+      // "Learning Modules" (optional) supplies full chapter metadata for any brand-new
+      // Module ID referenced by the question rows.
       const modulesSheetName = findSheetName(wb, [/learning modules/i]);
 
-      const stepRawRows = stepsSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[stepsSheetName], { defval:'' }) : [];
-      const moduleRawRows = modulesSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[modulesSheetName], { defval:'' }) : [];
+      // Question data: any sheet whose headers actually look like question columns —
+      // regardless of its name or position (so "Biology", "MCQ Questions", "Learning
+      // Steps", etc. are all recognized the same way; a README/notes sheet never wins).
+      const stepsPick = pickStepsSheet(wb, modulesSheetName);
+      if (!stepsPick) {
+        showImportStatus('err', `Couldn't find a sheet with a recognizable "Question" column. Sheets in this file: ${wb.SheetNames.map(esc).join(', ')}.`);
+        resetImportState(); return;
+      }
 
-      processImport(stepRawRows, moduleRawRows);
+      const moduleRawRows = modulesSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[modulesSheetName], { defval:'' }) : [];
+      processImport(stepsPick.rows, moduleRawRows);
     } catch(err) {
+
       showImportStatus('err', 'Could not read file: ' + err.message);
     }
   };
@@ -1163,10 +1190,12 @@ function buildRawChapterGroups(rows, moduleRowsById) {
   rows.forEach(r => {
     const key = r.moduleId ? `id:${r.moduleId}` : `sec:${r.learningSection.toLowerCase()}`;
     if (!groups.has(key)) {
+      const lmTitle = r.moduleId && moduleRowsById[r.moduleId] ? moduleRowsById[r.moduleId].Title : '';
       groups.set(key, {
         key,
         explicitModuleId: r.moduleId || '',
-        displayName: r.moduleId ? (moduleRowsById[r.moduleId] ? moduleRowsById[r.moduleId].Title || r.moduleId : r.moduleId) : r.learningSection,
+        // Prefer: Learning Modules title → the row's own Chapter/Learning Section text → the Module ID itself.
+        displayName: lmTitle || r.learningSection || r.moduleId,
         lmRow: r.moduleId ? moduleRowsById[r.moduleId] : null,
         rows: [],
       });
@@ -1194,13 +1223,16 @@ function resolveChapterGroups(rawGroups) {
           .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
         return { ...g, moduleId, mode:'existing', startStep: maxStep + 1 };
       }
-      if (!g.lmRow) {
-        return { ...g, moduleId, mode:'error',
-          error: `Module ID "${moduleId}" isn't in the target sheet's "Learning Modules" tab, and no matching row was found in the uploaded "Learning Modules" sheet — add one so the tool knows this chapter's title/icon/intro.` };
+      if (g.lmRow) {
+        newIdx++;
+        return { ...g, moduleId, mode:'new', startStep: 1,
+          newModuleRow: buildModuleRowFromUpload(g.lmRow, moduleId, maxOrder + newIdx) };
       }
+      // No "Learning Modules" row for this Module ID — use the shared defaults
+      // panel instead of blocking (Title comes from the Chapter/Learning Section
+      // text if the file had one, otherwise falls back to the Module ID itself).
       newIdx++;
-      return { ...g, moduleId, mode:'new', startStep: 1,
-        newModuleRow: buildModuleRowFromUpload(g.lmRow, moduleId, maxOrder + newIdx) };
+      return { ...g, moduleId, mode:'new', startStep: 1, needsSharedDefaults: true };
     }
     // ── Fallback: group/matched by chapter title text (no Module ID given) ──
     const match = existingByTitle.get(g.displayName.trim().toLowerCase());
