@@ -367,13 +367,13 @@
         <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv">
         <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
         <p><strong>Click to choose</strong> or drag &amp; drop your spreadsheet here</p>
-        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; One sheet of MCQ questions, optionally a second "Match The Following" sheet</p>
+        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; A "Learning Steps" sheet (Module ID or Learning Section required), optionally a "Learning Modules" sheet for new-chapter metadata</p>
       </label>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
           <i class="fa-solid fa-download"></i> Download blank template (.xlsx)
         </a>
-        <span style="font-size:12px;color:var(--muted);">Required: Learning Section (used as the chapter name) · Question · Option A–D · Correct Option</span>
+        <span style="font-size:12px;color:var(--muted);">Works with files shaped like the real sheet tabs — "Question Type" (MCQ / MatchTheFollowing) and Left 1–10 / Right 1–10 columns are read automatically if present</span>
       </div>
       <div id="importStatus"></div>
       <div id="chapterGroupsHost"></div>
@@ -409,7 +409,6 @@
         <div class="checkrow"><input type="checkbox" id="autoModActive" checked> <label for="autoModActive" style="margin:0;">Active (visible to students immediately)</label></div>
       </div>
 
-      <div id="matchSetsHost"></div>
     </div>
   </section>
 
@@ -822,8 +821,12 @@ document.getElementById('modColorHex').addEventListener('input', e => {
 
 function validateStep2() {
   if (inputMode === 'excel') {
-    if (!state.chapterGroups.length && !state.matchSets.length) {
-      toast('err', 'Upload a spreadsheet with at least one question or Match-the-Following set first.');
+    if (!state.chapterGroups.length) {
+      toast('err', 'Upload a spreadsheet with at least one question first.');
+      return false;
+    }
+    if (state.chapterGroups.some(g => g.mode === 'error')) {
+      toast('err', 'Fix the blocked chapter(s) shown below before continuing.');
       return false;
     }
     return true;
@@ -864,21 +867,34 @@ function buildNewModulePayload() {
 /* ════════════════════════════════════════════════════════════════════════
    STEP 3 — Input mode (manual vs excel)
    ════════════════════════════════════════════════════════════════════════ */
-// Canonical MCQ columns — matches "Learning Steps" tab headers exactly.
-const MCQ_COLUMNS = [
-  'Learning Section','Learning Section Body','Teaching','Image URL','Question',
-  'Option A','Option B','Option C','Option D',
-  'Correct Option','Explanation','Learn More URL','Learn More Label','Active'
+// Canonical columns for the "Learning Steps" tab — matches the real sheet header
+// row exactly, including "Question Type" and up to 10 Match-the-Following pairs.
+// A single sheet/row format now covers BOTH question types; "Question Type"
+// (MCQ | MatchTheFollowing) picks which of the two field-groups apply.
+const STEP_PAIR_COUNT = 10;
+const STEP_CORE_COLUMNS = [
+  'Module ID','Class','Step Number','Learning Section','Learning Section Body','Teaching','Step Image URL',
+  'Question','Option A','Option B','Option C','Option D','Correct Option','Explanation',
+  'Learn More URL','Learn More Label','Active','Question Type',
 ];
-const MCQ_REQUIRED = ['Learning Section','Question','Option A','Option B','Option C','Option D','Correct Option'];
+const STEP_PAIR_COLUMNS = [];
+for (let n=1;n<=STEP_PAIR_COUNT;n++) STEP_PAIR_COLUMNS.push(`Left ${n}`, `Right ${n}`);
+const STEP_COLUMNS = STEP_CORE_COLUMNS.concat(STEP_PAIR_COLUMNS);
+const STEP_REQUIRED_COMMON = ['Question'];
+
+const LM_COLUMNS = [
+  'Module ID','Title','Subject','Class','Subtopics','Icon (FontAwesome solid)','Emoji',
+  'Color (Hex)','Introduction','Now You Try','Intro Image URL','Display Order','Active'
+];
 
 // Header aliases: normalized (trimmed/lowercased/collapsed-space) synonyms → canonical column.
-// This is what makes header mapping order-independent and typo/rename tolerant.
-const MCQ_HEADER_ALIASES = {
+// Makes header mapping order-independent and tolerant of your own export naming.
+const STEP_HEADER_ALIASES = {
+  'Module ID':             ['module id','moduleid','chapter id'],
   'Learning Section':      ['learning section','section','chapter','chapter name','topic'],
   'Learning Section Body': ['learning section body','section body','section text','section content'],
   'Teaching':              ['teaching','teaching step','teaching text','teaching content'],
-  'Image URL':             ['image url','step image url','image','picture url'],
+  'Step Image URL':        ['step image url','image url','image','picture url'],
   'Question':              ['question','question text','quiz question'],
   'Option A':              ['option a','opt a','a','choice a'],
   'Option B':              ['option b','opt b','b','choice b'],
@@ -889,25 +905,25 @@ const MCQ_HEADER_ALIASES = {
   'Learn More URL':        ['learn more url','more url','reference url','further reading url'],
   'Learn More Label':      ['learn more label','more label','reference label'],
   'Active':                ['active','is active','enabled'],
+  'Question Type':         ['question type','type','qtype','q type'],
 };
-
-// Real "Match The Following" tab currently has 3 pairs of columns (Left 1/Right 1 … Left 3/Right 3).
-// Template offers up to this many — if you extend the sheet's header row with more Left N/Right N
-// columns later, bump MATCH_PAIR_COUNT and the tool will pick them up automatically.
-const MATCH_PAIR_COUNT = 3;
-const MATCH_TAB_NAME = 'Match The Following';
-const MATCH_HEADER_ALIASES = {
-  'Set Title':    ['set title','title','name'],
-  'Instructions': ['instructions','instruction','prompt'],
-  'Active':       ['active','is active','enabled'],
+const LM_HEADER_ALIASES = {
+  'Module ID':                ['module id','moduleid','id'],
+  'Title':                    ['title','chapter title','name'],
+  'Subtopics':                ['subtopics'],
+  'Icon (FontAwesome solid)': ['icon','icon (fontawesome solid)','fontawesome icon'],
+  'Emoji':                    ['emoji'],
+  'Color (Hex)':               ['color','color (hex)','colour','colour (hex)'],
+  'Introduction':             ['introduction','intro'],
+  'Now You Try':              ['now you try','now you try prompt'],
+  'Intro Image URL':          ['intro image url'],
+  'Display Order':            ['display order','order'],
+  'Active':                   ['active'],
 };
 
 let inputMode = 'manual'; // 'manual' | 'excel'
-let importedQuestions = []; // flat list, used only by legacy helpers (kept for manual-mode compatibility)
 
-state.chapterGroups = [];   // [{ displayName, rows, mode:'existing'|'new', moduleId, startStep }]
-state.matchSets = [];       // [{ setTitle, instructions, active, pairs:[{left,right}], moduleId }]
-state.existingMatchSets = [];
+state.chapterGroups = [];   // [{ moduleId, displayName, rows, mode:'existing'|'new'|'error', startStep, newModuleRow, error }]
 
 function setInputMode(mode) {
   inputMode = mode;
@@ -937,22 +953,28 @@ function getCell(row, headerMap, canon) {
   const raw = headerMap[canon];
   return raw !== undefined && row[raw] !== undefined ? String(row[raw]).trim() : '';
 }
+function getPairCell(row, n, side) {
+  // "Left N" / "Right N" matched by normalized name directly (there are too many of
+  // these to alias individually — exact-ish naming is expected for pair columns).
+  const key = Object.keys(row).find(k => normalizeHeader(k) === `${side} ${n}`);
+  return key ? String(row[key]).trim() : '';
+}
 
-/* ── Template download (two sheets: MCQ + Match The Following) ───────── */
+/* ── Template download ───────────────────────────────────────────────── */
+// Mirrors the real "Learning Modules" + "Learning Steps" tab shapes exactly, so a
+// file exported straight from those tabs (or built to match them, like your own
+// generation scripts already do) can be re-uploaded with zero reformatting.
 function downloadTemplate() {
   if (typeof XLSX === 'undefined') { toast('err','SheetJS library not loaded yet. Try again in a moment.'); return; }
   const wb = XLSX.utils.book_new();
 
-  const mcqWs = XLSX.utils.aoa_to_sheet([MCQ_COLUMNS]);
-  mcqWs['!cols'] = MCQ_COLUMNS.map(h => ({ wch: Math.max(h.length + 4, 14) }));
-  XLSX.utils.book_append_sheet(wb, mcqWs, 'MCQ Questions');
+  const lmWs = XLSX.utils.aoa_to_sheet([LM_COLUMNS]);
+  lmWs['!cols'] = LM_COLUMNS.map(h => ({ wch: Math.max(h.length + 4, 14) }));
+  XLSX.utils.book_append_sheet(wb, lmWs, 'Learning Modules');
 
-  const matchCols = ['Set Title','Instructions'];
-  for (let n=1; n<=MATCH_PAIR_COUNT; n++) matchCols.push(`Left ${n}`, `Right ${n}`);
-  matchCols.push('Active');
-  const matchWs = XLSX.utils.aoa_to_sheet([matchCols]);
-  matchWs['!cols'] = matchCols.map(h => ({ wch: Math.max(h.length + 4, 12) }));
-  XLSX.utils.book_append_sheet(wb, matchWs, 'Match The Following');
+  const lsWs = XLSX.utils.aoa_to_sheet([STEP_COLUMNS]);
+  lsWs['!cols'] = STEP_COLUMNS.map(h => ({ wch: Math.max(h.length + 2, 12) }));
+  XLSX.utils.book_append_sheet(wb, lsWs, 'Learning Steps');
 
   XLSX.writeFile(wb, 'content-import-template.xlsx');
 }
@@ -973,9 +995,8 @@ function downloadTemplate() {
 })();
 
 /* ── Parse uploaded file ─────────────────────────────────────────────── */
-function findSheetName(workbook, patterns, exclude) {
-  return workbook.SheetNames.find(name =>
-    patterns.some(p => p.test(name)) && !(exclude && exclude.test(name)));
+function findSheetName(workbook, patterns) {
+  return workbook.SheetNames.find(name => patterns.some(p => p.test(name)));
 }
 
 function handleExcelFile(file) {
@@ -988,16 +1009,19 @@ function handleExcelFile(file) {
         ? XLSX.read(e.target.result, { type:'string' })
         : XLSX.read(new Uint8Array(e.target.result), { type:'array' });
 
-      const matchSheetName = findSheetName(wb, [/match/i]);
-      const mcqSheetName = findSheetName(wb, [/^mcq/i, /question/i], /match/i) ||
-        wb.SheetNames.find(n => n !== matchSheetName) || wb.SheetNames[0];
+      // "Learning Steps" (or "Questions"/"MCQ Questions" as a simpler fallback) holds
+      // the actual question rows. "Learning Modules" (optional) supplies full chapter
+      // metadata for any brand-new Module ID referenced by those rows.
+      const stepsSheetName =
+        findSheetName(wb, [/^learning steps$/i, /learning steps/i]) ||
+        findSheetName(wb, [/^mcq/i, /^questions$/i, /question/i]) ||
+        wb.SheetNames[0];
+      const modulesSheetName = findSheetName(wb, [/learning modules/i]);
 
-      const mcqRawRows = mcqSheetName && mcqSheetName !== matchSheetName
-        ? XLSX.utils.sheet_to_json(wb.Sheets[mcqSheetName], { defval:'' }) : [];
-      const matchRawRows = matchSheetName
-        ? XLSX.utils.sheet_to_json(wb.Sheets[matchSheetName], { defval:'' }) : [];
+      const stepRawRows = stepsSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[stepsSheetName], { defval:'' }) : [];
+      const moduleRawRows = modulesSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[modulesSheetName], { defval:'' }) : [];
 
-      processImport(mcqRawRows, matchRawRows);
+      processImport(stepRawRows, moduleRawRows);
     } catch(err) {
       showImportStatus('err', 'Could not read file: ' + err.message);
     }
@@ -1006,112 +1030,122 @@ function handleExcelFile(file) {
   else reader.readAsArrayBuffer(file);
 }
 
-async function processImport(mcqRawRows, matchRawRows) {
-  const errs = [];
-  let mcqParsedRows = [];
-
-  // ── MCQ sheet ──
-  if (mcqRawRows.length) {
-    const headerMap = buildHeaderMap(Object.keys(mcqRawRows[0]), MCQ_COLUMNS, MCQ_HEADER_ALIASES);
-    const missing = MCQ_REQUIRED.filter(col => !headerMap[col]);
-    if (missing.length) {
-      errs.push(`MCQ sheet is missing column${missing.length>1?'s':''}: <strong>${missing.join(', ')}</strong> (or a recognizable equivalent).`);
-    } else {
-      mcqParsedRows = mcqRawRows.map((row, i) => {
-        const q = getCell(row, headerMap, 'Question');
-        const a = getCell(row, headerMap, 'Option A'), b = getCell(row, headerMap, 'Option B');
-        const c = getCell(row, headerMap, 'Option C'), d = getCell(row, headerMap, 'Option D');
-        const correct = getCell(row, headerMap, 'Correct Option').toUpperCase();
-        const chapter = getCell(row, headerMap, 'Learning Section');
-        if (!chapter) errs.push(`MCQ row ${i+2}: Learning Section (chapter name) is blank.`);
-        if (!q) errs.push(`MCQ row ${i+2}: Question is blank.`);
-        if (!a||!b||!c||!d) errs.push(`MCQ row ${i+2}: One or more options are blank.`);
-        if (!['A','B','C','D'].includes(correct)) errs.push(`MCQ row ${i+2}: Correct Option must be A, B, C, or D.`);
-        const activeRaw = getCell(row, headerMap, 'Active').toUpperCase();
-        return {
-          learningSection: chapter,
-          learningSectionBody: getCell(row, headerMap, 'Learning Section Body'),
-          teaching: getCell(row, headerMap, 'Teaching'),
-          stepImageUrl: getCell(row, headerMap, 'Image URL'),
-          question: q, optA: a, optB: b, optC: c, optD: d,
-          correct: ['A','B','C','D'].includes(correct) ? correct : 'A',
-          explanation: getCell(row, headerMap, 'Explanation'),
-          learnMoreUrl: getCell(row, headerMap, 'Learn More URL'),
-          learnMoreLabel: getCell(row, headerMap, 'Learn More Label'),
-          active: activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES',
-        };
-      });
-    }
-  }
-
-  // ── Match The Following sheet ──
-  let matchParsedRows = [];
-  if (matchRawRows.length) {
-    const headerMap = buildHeaderMap(Object.keys(matchRawRows[0]), ['Set Title','Instructions','Active'], MATCH_HEADER_ALIASES);
-    if (!headerMap['Set Title']) {
-      errs.push(`Match The Following sheet is missing a "Set Title" column.`);
-    } else {
-      matchRawRows.forEach((row, i) => {
-        const setTitle = getCell(row, headerMap, 'Set Title');
-        const pairs = [];
-        for (let n=1; n<=MATCH_PAIR_COUNT; n++) {
-          const leftKey = Object.keys(row).find(k => normalizeHeader(k) === `left ${n}`);
-          const rightKey = Object.keys(row).find(k => normalizeHeader(k) === `right ${n}`);
-          const left = leftKey ? String(row[leftKey]).trim() : '';
-          const right = rightKey ? String(row[rightKey]).trim() : '';
-          if (left || right) pairs.push({ left, right });
-        }
-        if (!setTitle && !pairs.length) return; // fully blank row, skip silently
-        if (!setTitle) { errs.push(`Match sheet row ${i+2}: Set Title is blank.`); return; }
-        if (pairs.length < 2) { errs.push(`Match sheet row ${i+2} ("${setTitle}"): need at least 2 Left/Right pairs.`); return; }
-        const activeRaw = getCell(row, headerMap, 'Active').toUpperCase();
-        matchParsedRows.push({
-          setTitle,
-          instructions: getCell(row, headerMap, 'Instructions'),
-          active: activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES',
-          pairs,
-        });
-      });
-    }
-  }
-
-  if (!mcqRawRows.length && !matchRawRows.length) {
-    showImportStatus('err', 'The file is empty, or no sheet matching "MCQ Questions" / "Match The Following" was found.');
+function processImport(stepRawRows, moduleRawRows) {
+  if (!stepRawRows.length) {
+    showImportStatus('err', 'The file is empty, or no "Learning Steps" (or "Questions") sheet was found.');
     resetImportState(); return;
   }
+
+  const errs = [];
+  const stepHeaderMap = buildHeaderMap(Object.keys(stepRawRows[0]), STEP_CORE_COLUMNS, STEP_HEADER_ALIASES);
+  const missingCommon = STEP_REQUIRED_COMMON.filter(col => !stepHeaderMap[col]);
+  if (missingCommon.length) {
+    showImportStatus('err', `Missing column${missingCommon.length>1?'s':''}: <strong>${missingCommon.join(', ')}</strong> (or a recognizable equivalent).`);
+    resetImportState(); return;
+  }
+  const hasModuleIdCol = !!stepHeaderMap['Module ID'];
+  const hasSectionCol = !!stepHeaderMap['Learning Section'];
+  if (!hasModuleIdCol && !hasSectionCol) {
+    showImportStatus('err', `Need either a "Module ID" column (to append to / create specific chapters) or a "Learning Section" column (used as the chapter name for auto-detection).`);
+    resetImportState(); return;
+  }
+
+  // ── Parse question rows ──
+  const parsedRows = stepRawRows.map((row, i) => {
+    const qTypeRaw = getCell(row, stepHeaderMap, 'Question Type').toLowerCase();
+    const qType = qTypeRaw.startsWith('match') ? 'MatchTheFollowing' : 'MCQ';
+    const moduleId = getCell(row, stepHeaderMap, 'Module ID');
+    const learningSection = getCell(row, stepHeaderMap, 'Learning Section');
+    const question = getCell(row, stepHeaderMap, 'Question');
+    if (!question) errs.push(`Row ${i+2}: Question is blank.`);
+    if (!moduleId && !learningSection) errs.push(`Row ${i+2}: need either Module ID or Learning Section to know which chapter this belongs to.`);
+
+    const parsed = {
+      moduleId, learningSection,
+      learningSectionBody: getCell(row, stepHeaderMap, 'Learning Section Body'),
+      teaching: getCell(row, stepHeaderMap, 'Teaching'),
+      stepImageUrl: getCell(row, stepHeaderMap, 'Step Image URL'),
+      question, questionType: qType,
+      optA:'', optB:'', optC:'', optD:'', correct:'A', pairs: [],
+      explanation: getCell(row, stepHeaderMap, 'Explanation'),
+      learnMoreUrl: getCell(row, stepHeaderMap, 'Learn More URL'),
+      learnMoreLabel: getCell(row, stepHeaderMap, 'Learn More Label'),
+      active: true,
+    };
+    const activeRaw = getCell(row, stepHeaderMap, 'Active').toUpperCase();
+    parsed.active = activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES';
+
+    if (qType === 'MatchTheFollowing') {
+      for (let n=1; n<=STEP_PAIR_COUNT; n++) {
+        const left = getPairCell(row, n, 'left'), right = getPairCell(row, n, 'right');
+        if (left || right) parsed.pairs.push({ left, right });
+      }
+      if (parsed.pairs.length < 2) errs.push(`Row ${i+2} (${moduleId||learningSection}): Match The Following needs at least 2 Left/Right pairs.`);
+    } else {
+      parsed.optA = getCell(row, stepHeaderMap, 'Option A');
+      parsed.optB = getCell(row, stepHeaderMap, 'Option B');
+      parsed.optC = getCell(row, stepHeaderMap, 'Option C');
+      parsed.optD = getCell(row, stepHeaderMap, 'Option D');
+      const correct = getCell(row, stepHeaderMap, 'Correct Option').toUpperCase();
+      if (!parsed.optA||!parsed.optB||!parsed.optC||!parsed.optD) errs.push(`Row ${i+2} (${moduleId||learningSection}): One or more MCQ options are blank.`);
+      if (!['A','B','C','D'].includes(correct)) errs.push(`Row ${i+2} (${moduleId||learningSection}): Correct Option must be A, B, C, or D.`);
+      parsed.correct = ['A','B','C','D'].includes(correct) ? correct : 'A';
+    }
+    return parsed;
+  });
+
   if (errs.length) {
     showImportStatus('err', errs.slice(0,6).join('<br>') + (errs.length>6 ? `<br>…and ${errs.length-6} more` : ''));
     resetImportState(); return;
   }
 
-  // Resolve MCQ rows into chapter groups (existing vs auto-created), matched against
-  // "Learning Modules" already loaded for this Class/Subject in loadModulesAndSteps().
-  state.chapterGroups = resolveChapterGroups(buildRawChapterGroups(mcqParsedRows));
-
-  // Resolve match sets — fetch existing "Match The Following" rows (for Module ID numbering)
-  // only if this upload actually contains any.
-  if (matchParsedRows.length) {
-    try { state.existingMatchSets = await fetchTab(cfg.masterSheetId, MATCH_TAB_NAME); }
-    catch (err) { state.existingMatchSets = []; }
-    state.matchSets = resolveMatchSets(matchParsedRows);
-  } else {
-    state.matchSets = [];
+  // ── Parse Learning Modules metadata rows (optional) ──
+  const moduleRowsById = {};
+  if (moduleRawRows.length) {
+    const lmHeaderMap = buildHeaderMap(Object.keys(moduleRawRows[0]), LM_COLUMNS, LM_HEADER_ALIASES);
+    if (lmHeaderMap['Module ID']) {
+      moduleRawRows.forEach(row => {
+        const id = getCell(row, lmHeaderMap, 'Module ID');
+        if (!id) return;
+        moduleRowsById[id] = {
+          'Title': getCell(row, lmHeaderMap, 'Title'),
+          'Subtopics': getCell(row, lmHeaderMap, 'Subtopics'),
+          'Icon (FontAwesome solid)': getCell(row, lmHeaderMap, 'Icon (FontAwesome solid)'),
+          'Emoji': getCell(row, lmHeaderMap, 'Emoji'),
+          'Color (Hex)': getCell(row, lmHeaderMap, 'Color (Hex)'),
+          'Introduction': getCell(row, lmHeaderMap, 'Introduction'),
+          'Now You Try': getCell(row, lmHeaderMap, 'Now You Try'),
+          'Intro Image URL': getCell(row, lmHeaderMap, 'Intro Image URL'),
+          'Display Order': getCell(row, lmHeaderMap, 'Display Order'),
+          'Active': getCell(row, lmHeaderMap, 'Active'),
+        };
+      });
+    }
   }
 
-  importedQuestions = mcqParsedRows; // kept for any legacy references
+  state.chapterGroups = resolveChapterGroups(buildRawChapterGroups(parsedRows, moduleRowsById));
 
-  const chapterSummary = state.chapterGroups.length
-    ? `${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'} (${state.chapterGroups.filter(g=>g.mode==='existing').length} existing, ${state.chapterGroups.filter(g=>g.mode==='new').length} new), ${mcqParsedRows.length} question${mcqParsedRows.length===1?'':'s'}`
-    : '';
-  const matchSummary = state.matchSets.length ? `${state.matchSets.length} Match-the-Following set${state.matchSets.length===1?'':'s'}` : '';
-  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;${[chapterSummary, matchSummary].filter(Boolean).join(' · ') || 'Nothing to import yet'} — review below, then click <strong>Continue</strong>.`);
+  const errorGroups = state.chapterGroups.filter(g => g.mode === 'error');
+  if (errorGroups.length) {
+    showImportStatus('err', errorGroups.map(g => esc(g.error)).join('<br>'));
+    renderChapterGroups();
+    return;
+  }
+
+  const totalQ = parsedRows.length;
+  const mcqCount = parsedRows.filter(r=>r.questionType==='MCQ').length;
+  const mtfCount = totalQ - mcqCount;
+  const newCount = state.chapterGroups.filter(g=>g.mode==='new').length;
+  const existingCount = state.chapterGroups.filter(g=>g.mode==='existing').length;
+  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'} ` +
+    `(${existingCount} existing, ${newCount} new) · ${totalQ} question${totalQ===1?'':'s'} (${mcqCount} MCQ, ${mtfCount} Match The Following) — ` +
+    `review below, then click <strong>Continue</strong>.`);
   renderChapterGroups();
-  renderMatchSets();
 }
 
 function resetImportState() {
-  state.chapterGroups = []; state.matchSets = []; importedQuestions = [];
-  renderChapterGroups(); renderMatchSets();
+  state.chapterGroups = [];
+  renderChapterGroups();
 }
 
 function showImportStatus(type, html) {
@@ -1120,48 +1154,85 @@ function showImportStatus(type, html) {
   el.innerHTML = html;
 }
 
-/* ── Group MCQ rows by chapter (Learning Section) and resolve new/existing ── */
-function buildRawChapterGroups(mcqRows) {
-  const groups = new Map(); // lowercased key -> { displayName, rows }
-  mcqRows.forEach(r => {
-    const key = r.learningSection.toLowerCase();
-    if (!groups.has(key)) groups.set(key, { displayName: r.learningSection, rows: [] });
+/* ── Group rows by chapter and resolve new/existing ─────────────────────
+   Preferred key: explicit "Module ID" column (matches your native export
+   format exactly). Falls back to grouping by "Learning Section" text when
+   no Module ID is given, auto-generating an ID (Phase-1 behaviour). ──── */
+function buildRawChapterGroups(rows, moduleRowsById) {
+  const groups = new Map();
+  rows.forEach(r => {
+    const key = r.moduleId ? `id:${r.moduleId}` : `sec:${r.learningSection.toLowerCase()}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        explicitModuleId: r.moduleId || '',
+        displayName: r.moduleId ? (moduleRowsById[r.moduleId] ? moduleRowsById[r.moduleId].Title || r.moduleId : r.moduleId) : r.learningSection,
+        lmRow: r.moduleId ? moduleRowsById[r.moduleId] : null,
+        rows: [],
+      });
+    }
     groups.get(key).rows.push(r);
   });
   return [...groups.values()];
 }
 
 function resolveChapterGroups(rawGroups) {
+  const existingIds = new Set(state.existingModules.map(m => m['Module ID']));
   const existingByTitle = new Map();
   state.existingModules.forEach(m => { if (m.Title) existingByTitle.set(String(m.Title).trim().toLowerCase(), m); });
   const prefix = subjectPrefix(state.selectedSubject.Subject);
   const pendingIds = state.existingModules.map(m => m['Module ID']);
+  const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
+  let newIdx = 0;
 
   return rawGroups.map(g => {
+    // ── Rows carried an explicit Module ID ──
+    if (g.explicitModuleId) {
+      const moduleId = g.explicitModuleId;
+      if (existingIds.has(moduleId)) {
+        const maxStep = state.existingSteps.filter(s => s['Module ID'] === moduleId)
+          .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
+        return { ...g, moduleId, mode:'existing', startStep: maxStep + 1 };
+      }
+      if (!g.lmRow) {
+        return { ...g, moduleId, mode:'error',
+          error: `Module ID "${moduleId}" isn't in the target sheet's "Learning Modules" tab, and no matching row was found in the uploaded "Learning Modules" sheet — add one so the tool knows this chapter's title/icon/intro.` };
+      }
+      newIdx++;
+      return { ...g, moduleId, mode:'new', startStep: 1,
+        newModuleRow: buildModuleRowFromUpload(g.lmRow, moduleId, maxOrder + newIdx) };
+    }
+    // ── Fallback: group/matched by chapter title text (no Module ID given) ──
     const match = existingByTitle.get(g.displayName.trim().toLowerCase());
     if (match) {
       const maxStep = state.existingSteps.filter(s => s['Module ID'] === match['Module ID'])
         .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
-      return { ...g, mode:'existing', moduleId: match['Module ID'], startStep: maxStep + 1 };
+      return { ...g, moduleId: match['Module ID'], mode:'existing', startStep: maxStep + 1 };
     }
     const serial = nextSerial(pendingIds, prefix);
     const moduleId = `${prefix}_${serial}`;
-    pendingIds.push(moduleId); // reserve, so the next new chapter in this batch increments further
-    return { ...g, mode:'new', moduleId, startStep: 1 };
+    pendingIds.push(moduleId);
+    newIdx++;
+    return { ...g, moduleId, mode:'new', startStep: 1, needsSharedDefaults: true };
   });
 }
 
-/* ── Resolve Match The Following rows into Module IDs ─────────────────── */
-// Follows the sheet's existing convention, e.g. "MTF_EN_01" for English Grammar.
-function resolveMatchSets(rows) {
-  const prefix = 'MTF_' + subjectPrefix(state.selectedSubject.Subject);
-  const pendingIds = state.existingMatchSets.map(m => m['Module ID']);
-  return rows.map(m => {
-    const serial = nextSerial(pendingIds, prefix);
-    const moduleId = `${prefix}_${serial}`;
-    pendingIds.push(moduleId);
-    return { ...m, moduleId };
-  });
+function buildModuleRowFromUpload(lmRow, moduleId, displayOrder) {
+  return {
+    'Module ID': moduleId,
+    'Title': lmRow.Title || moduleId,
+    'Subject': state.selectedSubject.Subject,
+    'Class': state.selectedClass,
+    'Subtopics': lmRow.Subtopics || '',
+    'Icon (FontAwesome solid)': lmRow['Icon (FontAwesome solid)'] || '',
+    'Emoji': lmRow.Emoji || '',
+    'Color (Hex)': lmRow['Color (Hex)'] || '',
+    'Introduction': lmRow.Introduction || '',
+    'Now You Try': lmRow['Now You Try'] || '',
+    'Intro Image URL': lmRow['Intro Image URL'] || '',
+    'Display Order': Number(lmRow['Display Order']) || displayOrder,
+    'Active': (lmRow.Active || '').toUpperCase() === 'FALSE' ? 'FALSE' : 'TRUE',
+  };
 }
 
 /* ── Rendering: detected chapters (step 2, excel mode) ─────────────────── */
@@ -1169,20 +1240,22 @@ function renderChapterGroups() {
   const host = document.getElementById('chapterGroupsHost');
   const defaultsWrap = document.getElementById('newChapterDefaultsWrap');
   if (!state.chapterGroups.length) { host.innerHTML=''; defaultsWrap.classList.add('hidden'); return; }
-  const hasNew = state.chapterGroups.some(g => g.mode === 'new');
-  defaultsWrap.classList.toggle('hidden', !hasNew);
-  if (hasNew && !document.getElementById('autoModIcon').value) prefillAutoChapterDefaults();
+  const needsDefaults = state.chapterGroups.some(g => g.mode === 'new' && g.needsSharedDefaults);
+  defaultsWrap.classList.toggle('hidden', !needsDefaults);
+  if (needsDefaults && !document.getElementById('autoModIcon').value) prefillAutoChapterDefaults();
 
   host.innerHTML = `
     <div style="margin-top:16px;">
       <table class="preview">
-        <tr><th>Chapter (Learning Section)</th><th>Status</th><th>Module ID</th><th>Questions</th></tr>
+        <tr><th>Chapter</th><th>Status</th><th>Module ID</th><th>Questions</th></tr>
         ${state.chapterGroups.map(g => `<tr>
           <td>${esc(g.displayName)}</td>
-          <td>${g.mode==='existing' ? '<span class="chip">Existing — appending</span>' : '<span class="chip id">New — auto-created</span>'}</td>
-          <td><span class="chip id">${esc(g.moduleId)}</span></td>
+          <td>${g.mode==='existing' ? '<span class="chip">Existing — appending</span>' :
+               g.mode==='error' ? '<span class="chip" style="border-color:var(--red);color:var(--red);">Blocked</span>' :
+               g.needsSharedDefaults ? '<span class="chip id">New — using defaults below</span>' : '<span class="chip id">New — from upload</span>'}</td>
+          <td><span class="chip id">${esc(g.moduleId||'—')}</span></td>
           <td>${g.rows.length}</td>
-        </tr>`).join('')}
+        </tr>${g.mode==='error' ? `<tr><td colspan="4" style="color:var(--red);font-size:12px;">${esc(g.error)}</td></tr>` : ''}`).join('')}
       </table>
     </div>`;
 }
@@ -1205,56 +1278,28 @@ document.getElementById('autoModColorHex').addEventListener('input', e => {
   if (/^#[0-9a-f]{6}$/i.test(e.target.value)) document.getElementById('autoModColorPicker').value = e.target.value;
 });
 
-function renderMatchSets() {
-  const host = document.getElementById('matchSetsHost');
-  if (!state.matchSets.length) { host.innerHTML=''; return; }
-  host.innerHTML = `
-    <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--line);">
-      <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:10px;">Match The Following sets detected</h3>
-      <table class="preview">
-        <tr><th>Set Title</th><th>Module ID</th><th>Pairs</th></tr>
-        ${state.matchSets.map(m => `<tr>
-          <td>${esc(m.setTitle)}</td>
-          <td><span class="chip id">${esc(m.moduleId)}</span></td>
-          <td>${m.pairs.length}</td>
-        </tr>`).join('')}
-      </table>
-    </div>`;
-}
-
 /* ── Rendering: read-only preview (step 3, excel mode) ─────────────────── */
 function renderExcelSummaryStep3() {
   const host = document.getElementById('excelSummaryHost');
-  const parts = [];
-  state.chapterGroups.forEach(g => {
-    parts.push(`
+  const parts = state.chapterGroups.filter(g => g.mode !== 'error').map(g => `
       <div style="margin-bottom:20px;">
         <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:8px;">
           ${esc(g.displayName)} — <span class="chip id">${esc(g.moduleId)}</span>
           ${g.mode==='existing' ? '<span class="chip">existing</span>' : '<span class="chip id">new</span>'}
         </h3>
         <table class="preview">
-          <tr><th>Step</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>✓</th><th>Active</th></tr>
+          <tr><th>Step</th><th>Type</th><th>Question</th><th>Detail</th><th>Active</th></tr>
           ${g.rows.map((q,i) => `<tr>
             <td>${g.startStep+i}</td>
+            <td>${q.questionType==='MatchTheFollowing' ? 'Match' : 'MCQ'}</td>
             <td>${esc(q.question)}</td>
-            <td>${esc(q.optA)}</td><td>${esc(q.optB)}</td><td>${esc(q.optC)}</td><td>${esc(q.optD)}</td>
-            <td><strong style="color:var(--teal)">${esc(q.correct)}</strong></td>
+            <td>${q.questionType==='MatchTheFollowing'
+                ? esc(q.pairs.length + ' pairs')
+                : `A:${esc(q.optA)} B:${esc(q.optB)} C:${esc(q.optC)} D:${esc(q.optD)} <strong style="color:var(--teal)">(${esc(q.correct)})</strong>`}</td>
             <td>${q.active?'✓':'—'}</td>
           </tr>`).join('')}
         </table>
       </div>`);
-  });
-  if (state.matchSets.length) {
-    parts.push(`
-      <div>
-        <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:8px;">Match The Following sets</h3>
-        <table class="preview">
-          <tr><th>Set Title</th><th>Module ID</th><th>Pairs</th></tr>
-          ${state.matchSets.map(m => `<tr><td>${esc(m.setTitle)}</td><td>${esc(m.moduleId)}</td><td>${m.pairs.length}</td></tr>`).join('')}
-        </table>
-      </div>`);
-  }
   host.innerHTML = parts.join('') || '<p class="sub">Nothing parsed yet — go back to Chapter step and upload a file.</p>';
 }
 
@@ -1350,7 +1395,7 @@ document.getElementById('btnAddQuestion').addEventListener('click', addQuestionB
 
 function validateStep3() {
   if (inputMode === 'excel') {
-    return state.chapterGroups.length > 0 || state.matchSets.length > 0;
+    return state.chapterGroups.length > 0 && !state.chapterGroups.some(g => g.mode === 'error');
   }
   if (!state.questions.length) { toast('err', 'Add at least one question.'); return false; }
   for (const q of state.questions) {
@@ -1385,29 +1430,39 @@ function buildStepsPayload() {
   }));
 }
 
-// Excel-mode: one chapter group's steps.
+// Excel-mode: one chapter group's steps — includes Question Type and, for
+// MatchTheFollowing rows, the Left N/Right N pair columns.
 function buildStepsForGroup(g) {
-  return g.rows.map((q, idx) => ({
-    'Module ID': g.moduleId,
-    'Class': state.selectedClass,
-    'Step Number': g.startStep + idx,
-    'Learning Section': q.learningSection,
-    'Learning Section Body': q.learningSectionBody,
-    'Teaching': q.teaching,
-    'Step Image URL': q.stepImageUrl,
-    'Question': q.question,
-    'Option A': q.optA, 'Option B': q.optB, 'Option C': q.optC, 'Option D': q.optD,
-    'Correct Option': q.correct,
-    'Explanation': q.explanation,
-    'Learn More URL': q.learnMoreUrl,
-    'Learn More Label': q.learnMoreLabel,
-    'Active': q.active ? 'TRUE' : 'FALSE',
-  }));
+  return g.rows.map((q, idx) => {
+    const row = {
+      'Module ID': g.moduleId,
+      'Class': state.selectedClass,
+      'Step Number': g.startStep + idx,
+      'Learning Section': q.learningSection,
+      'Learning Section Body': q.learningSectionBody,
+      'Teaching': q.teaching,
+      'Step Image URL': q.stepImageUrl,
+      'Question': q.question,
+      'Question Type': q.questionType,
+      'Option A': q.optA, 'Option B': q.optB, 'Option C': q.optC, 'Option D': q.optD,
+      'Correct Option': q.correct,
+      'Explanation': q.explanation,
+      'Learn More URL': q.learnMoreUrl,
+      'Learn More Label': q.learnMoreLabel,
+      'Active': q.active ? 'TRUE' : 'FALSE',
+    };
+    q.pairs.forEach((p, i) => { row[`Left ${i+1}`] = p.left; row[`Right ${i+1}`] = p.right; });
+    return row;
+  });
 }
 
-// Excel-mode: new-chapter row for an auto-detected group, using the shared defaults form.
-function buildAutoModulePayload(g, orderBase, idx) {
+// Excel-mode: new-chapter row. Uses the uploaded "Learning Modules" row if the
+// group came with an explicit Module ID; otherwise falls back to the shared
+// defaults form (chapter detected purely from "Learning Section" text).
+function buildAutoModulePayload(g) {
+  if (g.newModuleRow) return g.newModuleRow;
   const introTemplate = document.getElementById('autoModIntro').value.trim() || 'Learn about {chapter}.';
+  const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
   return {
     'Module ID': g.moduleId,
     'Title': g.displayName,
@@ -1420,23 +1475,9 @@ function buildAutoModulePayload(g, orderBase, idx) {
     'Introduction': introTemplate.replace(/\{chapter\}/gi, g.displayName),
     'Now You Try': '',
     'Intro Image URL': '',
-    'Display Order': orderBase + idx,
+    'Display Order': maxOrder + 1,
     'Active': document.getElementById('autoModActive').checked ? 'TRUE' : 'FALSE',
   };
-}
-
-// Excel-mode: one Match The Following set → a row for the master sheet's tab.
-function buildMatchSetPayload(m) {
-  const row = {
-    'Module ID': m.moduleId,
-    'Class': state.selectedClass,
-    'Subject': state.selectedSubject.Subject,
-    'Set Title': m.setTitle,
-    'Instructions': m.instructions,
-    'Active': m.active ? 'TRUE' : 'FALSE',
-  };
-  m.pairs.forEach((p, i) => { row[`Left ${i+1}`] = p.left; row[`Right ${i+1}`] = p.right; });
-  return row;
 }
 
 function renderReview() {
@@ -1464,19 +1505,12 @@ function renderReview() {
       `</table>`;
   } else {
     const totalQ = state.chapterGroups.reduce((n,g)=>n+g.rows.length, 0);
+    const mtfCount = state.chapterGroups.reduce((n,g)=>n+g.rows.filter(r=>r.questionType==='MatchTheFollowing').length, 0);
     html += `<hr style="border-color:var(--line);margin:16px 0;">
-      <h3 style="font-family:var(--fd);font-size:14px;">${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'}, ${totalQ} question${totalQ===1?'':'s'}</h3>
+      <h3 style="font-family:var(--fd);font-size:14px;">${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'}, ${totalQ} question${totalQ===1?'':'s'}${mtfCount ? ` (${mtfCount} Match The Following)` : ''}</h3>
       <table class="preview"><tr><th>Chapter</th><th>Status</th><th>Module ID</th><th>Questions</th></tr>
       ${state.chapterGroups.map(g => `<tr><td>${esc(g.displayName)}</td><td>${g.mode==='existing'?'Existing':'New'}</td><td>${esc(g.moduleId)}</td><td>${g.rows.length}</td></tr>`).join('')}
       </table>`;
-    if (state.matchSets.length) {
-      html += `<hr style="border-color:var(--line);margin:16px 0;">
-        <h3 style="font-family:var(--fd);font-size:14px;">${state.matchSets.length} Match The Following set${state.matchSets.length===1?'':'s'}
-        <span style="font-weight:400;color:var(--muted);font-size:12px;">— written to the master config sheet, not ${esc(state.selectedSubject.Subject)}'s own sheet</span></h3>
-        <table class="preview"><tr><th>Set Title</th><th>Module ID</th><th>Pairs</th></tr>
-        ${state.matchSets.map(m => `<tr><td>${esc(m.setTitle)}</td><td>${esc(m.moduleId)}</td><td>${m.pairs.length}</td></tr>`).join('')}
-        </table>`;
-    }
   }
   host.innerHTML = html;
 }
@@ -1507,15 +1541,14 @@ async function submitAll() {
       callout(resultHost, 'ok', 'fa-circle-check',
         `Added chapter <strong>${esc(data.moduleId || payload.existingModuleId)}</strong> with <strong>${data.stepsAdded}</strong> question(s) to ${esc(state.selectedSubject.Subject)} / ${esc(state.selectedClass)}.`);
     } else {
-      // Excel mode: one request per chapter group, then one request for match sets.
-      const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
+      // Excel mode: one request per chapter group (new-chapter row + its steps together).
       const doneChapters = [];
       for (let i=0; i<state.chapterGroups.length; i++) {
         const g = state.chapterGroups[i];
         const payload = {
           secret: cfg.secret,
           sheetId: state.selectedSubject['Sheet ID'],
-          newModule: g.mode === 'new' ? buildAutoModulePayload(g, maxOrder+1, i) : null,
+          newModule: g.mode === 'new' ? buildAutoModulePayload(g) : null,
           existingModuleId: g.mode === 'existing' ? g.moduleId : null,
           newSteps: buildStepsForGroup(g),
         };
@@ -1526,23 +1559,8 @@ async function submitAll() {
         }
         doneChapters.push(`${g.displayName} (${data.stepsAdded} q)`);
       }
-
-      let matchResultMsg = '';
-      if (state.matchSets.length) {
-        const matchPayload = {
-          secret: cfg.secret,
-          matchSheetId: cfg.masterSheetId,
-          newMatchSets: state.matchSets.map(buildMatchSetPayload),
-        };
-        const data = await postToScript(matchPayload);
-        if (!data.success) {
-          throw new Error(`Chapters were added successfully (${doneChapters.join(', ')}), but Match The Following sets failed: ${data.message || 'Unknown error'}.`);
-        }
-        matchResultMsg = ` Also added <strong>${data.matchSetsAdded}</strong> Match-the-Following set(s) to the master sheet.`;
-      }
-
       callout(resultHost, 'ok', 'fa-circle-check',
-        `Added ${doneChapters.length} chapter${doneChapters.length===1?'':'s'} to ${esc(state.selectedSubject.Subject)} / ${esc(state.selectedClass)}: ${doneChapters.map(esc).join(', ')}.${matchResultMsg}`);
+        `Added ${doneChapters.length} chapter${doneChapters.length===1?'':'s'} to ${esc(state.selectedSubject.Subject)} / ${esc(state.selectedClass)}: ${doneChapters.map(esc).join(', ')}.`);
     }
 
     toast('ok', 'Saved to Google Sheets.');
