@@ -1791,15 +1791,38 @@ async function proceedWithReorganise() {
       <div style="background:var(--green-dim);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:16px;">
         <div style="display:flex;align-items:flex-start;gap:12px;color:#86e7ab;">
           <i class="fa-solid fa-circle-check" style="margin-top:2px;flex-shrink:0;font-size:20px;"></i>
-          <div>
-            <strong style="font-size:15px;display:block;margin-bottom:10px;">✓ Reorganisation Complete!</strong>
-            <div style="font-size:13px;line-height:1.8;">
-              <div>📚 <strong>${esc(selectedOption.text)}</strong></div>
-              <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(34,197,94,.3);">
-                <div>✓ <strong>${data.modulesReorganized}</strong> modules regenerated (IDs: 01, 02, 03...)</div>
-                <div>✓ <strong>${data.stepsReorganized}</strong> questions reorganized</div>
-                ${data.duplicatesRemoved > 0 ? `<div>✓ <strong>${data.duplicatesRemoved}</strong> duplicate questions removed</div>` : ''}
+          <div style="flex:1;">
+            <strong style="font-size:15px;display:block;margin-bottom:12px;">✓ Reorganisation Complete!</strong>
+            
+            <div style="font-size:13px;line-height:2;background:rgba(0,0,0,.1);padding:12px;border-radius:6px;margin-bottom:12px;">
+              📚 <strong>${esc(selectedOption.text)}</strong>
+            </div>
+            
+            <div style="font-size:13px;line-height:1.9;border-top:1px solid rgba(34,197,94,.3);padding-top:12px;">
+              <div style="margin-bottom:8px;"><strong>Changes Made:</strong></div>
+              
+              <div style="padding-left:16px;border-left:2px solid rgba(34,197,94,.5);">
+                <div>✓ <strong>${data.modulesReorganized || 0}</strong> modules reorganized</div>
+                <div>✓ <strong>${data.stepsReorganized || 0}</strong> questions reorganized</div>
+                <div>✓ <strong>${data.duplicatesRemoved || 0}</strong> duplicate questions removed</div>
+                <div>✓ <strong>${data.questionsShuffled || 0}</strong> questions shuffled (predictable patterns)</div>
               </div>
+            </div>
+            
+            ${data.moduleIdChanges && data.moduleIdChanges.length > 0 ? `
+              <div style="font-size:12px;margin-top:14px;border-top:1px solid rgba(34,197,94,.3);padding-top:12px;">
+                <div style="margin-bottom:8px;"><strong>Module ID Changes:</strong></div>
+                <div style="padding:8px;background:rgba(0,0,0,.1);border-radius:4px;font-family:monospace;font-size:11px;max-height:150px;overflow-y:auto;">
+                  ${data.moduleIdChanges.map(c => `<div>${c.oldId} → <strong>${c.newId}</strong></div>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+            
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(34,197,94,.3);font-size:11px;color:rgba(255,255,255,.7);">
+              ℹ All changes have been written to your Google Sheets:<br/>
+              • Module IDs regenerated in Learning_Modules<br/>
+              • Step Numbers renumbered in Learning_Steps<br/>
+              • Duplicates removed from Learning_Steps
             </div>
           </div>
         </div>
@@ -1818,6 +1841,7 @@ async function proceedWithReorganise() {
     resultsDialog.removeAttribute('hidden');
     
     toast('ok', 'Subject reorganized successfully!');
+    
     
   } catch (err) {
     progressDialog.classList.add('hidden');
