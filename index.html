@@ -1167,7 +1167,23 @@ function processImport(stepRawRows, moduleRawRows) {
   // ── Parse question rows ──
   const parsedRows = stepRawRows.map((row, i) => {
     const qTypeRaw = getCell(row, stepHeaderMap, 'Question Type').toLowerCase();
-    const qType = qTypeRaw.startsWith('match') ? 'MatchTheFollowing' : 'MCQ';
+    let qType = qTypeRaw.startsWith('match') ? 'MatchTheFollowing' : 'MCQ';
+    
+    // Auto-detect MTF if Left/Right pairs exist (even if Question Type is empty)
+    if (qType === 'MCQ' && (!qTypeRaw || qTypeRaw.trim() === '')) {
+      // Check if there are any Left/Right pairs
+      let hasLeftRightPairs = false;
+      for (let n=1; n<=10; n++) {
+        const leftVal = getPairCell(row, n, 'left');
+        const rightVal = getPairCell(row, n, 'right');
+        if (leftVal || rightVal) {
+          hasLeftRightPairs = true;
+          break;
+        }
+      }
+      if (hasLeftRightPairs) qType = 'MatchTheFollowing';
+    }
+    
     const moduleId = getCell(row, stepHeaderMap, 'Module ID');
     const learningSection = getCell(row, stepHeaderMap, 'Learning Section');
     const question = getCell(row, stepHeaderMap, 'Question');
