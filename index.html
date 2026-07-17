@@ -176,6 +176,246 @@
   }
 </style>
 </head>
+
+<!-- ═════════════════════════════════════════════════════════════════════════════
+     ADD THIS CARD SECTION TO YOUR HTML
+     Place this after the existing main functionality cards in your interface
+     ═════════════════════════════════════════════════════════════════════════════ -->
+
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div>
+      <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Reorganise Questions</h2>
+      <p class="sub">Automatically reorganize Learning Modules and Steps sheets</p>
+    </div>
+  </div>
+  
+  <div class="callout info">
+    <i class="fa-solid fa-circle-info"></i>
+    <div>
+      <strong>What this does:</strong>
+      <ul style="margin:8px 0 0;padding-left:20px;">
+        <li>Regenerates Module IDs in series (Math01, Math02, etc.)</li>
+        <li>Renumbers Step Numbers sequentially for each module</li>
+        <li>Detects and removes duplicate questions (same correct answer)</li>
+        <li>Shuffles questions with predictable answer patterns (A,B,C,D...)</li>
+        <li>Updates both Learning_Modules and Learning_Steps sheets</li>
+      </ul>
+    </div>
+  </div>
+  
+  <div style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:16px;">
+    <label style="display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:10px;">
+      Reorganisation Details
+    </label>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:4px;">Source Sheets</div>
+        <div style="font-size:13.5px;font-weight:600;">
+          Learning_Modules + Learning_Steps
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:4px;">Subject Grouping</div>
+        <div style="font-size:13.5px;font-weight:600;">
+          Auto-detected from subject prefix
+        </div>
+      </div>
+    </div>
+    
+    <div style="border-top:1px solid var(--line);padding-top:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input type="checkbox" id="confirmReorg" style="width:18px;height:18px;cursor:pointer;accent-color:var(--teal);">
+        <label for="confirmReorg" style="color:var(--muted);font-size:12.5px;cursor:pointer;">
+          I understand this will reorganize both sheets and remove duplicates
+        </label>
+      </div>
+    </div>
+  </div>
+  
+  <div style="display:flex;gap:10px;">
+    <button id="btnOrganise" onclick="startReorganise()" 
+      style="flex:1;padding:11px 16px;background:var(--teal);border:none;border-radius:8px;color:var(--bg);font-weight:600;font-family:var(--fd);cursor:pointer;transition:all .15s;font-size:13.5px;">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Start Reorganisation
+    </button>
+  </div>
+  
+  <!-- Result area -->
+  <div id="organiseResult" style="margin-top:18px;"></div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════════════════
+     ADD THIS JAVASCRIPT TO YOUR SCRIPT SECTION
+     Place in the main <script> tag before closing </script>
+     ═════════════════════════════════════════════════════════════════════════════ -->
+
+<script>
+/**
+ * REORGANISE FUNCTION - Trigger reorganization
+ */
+async function startReorganise() {
+  const confirmed = document.getElementById('confirmReorg').checked;
+  if (!confirmed) {
+    toast('warn', 'Please check the confirmation box first.');
+    return;
+  }
+  
+  if (!cfg.scriptUrl) {
+    toast('err', 'Apps Script URL not configured. Set it in Connection settings.');
+    return;
+  }
+  
+  const btn = document.getElementById('btnOrganise');
+  const resultHost = document.getElementById('organiseResult');
+  const original = btn.innerHTML;
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Processing...';
+  
+  try {
+    const payload = {
+      action: 'reorganiseQuestions',
+      secret: cfg.secret
+    };
+    
+    const response = await fetch(cfg.scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Unknown error');
+    }
+    
+    // Success - show results
+    let summaryHtml = `
+      <div style="background:var(--green-dim);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:16px;margin-top:12px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;color:#86e7ab;">
+          <i class="fa-solid fa-circle-check" style="margin-top:2px;flex-shrink:0;"></i>
+          <div>
+            <strong>Reorganisation Complete!</strong>
+            <div style="font-size:12.5px;margin-top:8px;line-height:1.6;">
+              <div>✓ <strong>${data.modulesReorganized}</strong> modules regenerated with new series IDs</div>
+              <div>✓ <strong>${data.stepsReorganized}</strong> questions reorganized</div>
+              ${data.duplicatesRemoved > 0 ? `<div>✓ <strong>${data.duplicatesRemoved}</strong> duplicate questions removed</div>` : ''}
+              ${data.answersShuffled > 0 ? `<div>✓ <strong>${data.answersShuffled}</strong> questions shuffled (predictable pattern detected)</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    if (data.summary && data.summary.length > 0) {
+      summaryHtml += `
+        <div style="margin-top:14px;padding:12px;background:var(--surface2);border-radius:8px;max-height:300px;overflow-y:auto;">
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;font-weight:600;">Module Summary</div>
+      `;
+      data.summary.slice(0, 20).forEach(function(item) {
+        summaryHtml += `<div style="font-size:12px;color:var(--ink);margin-bottom:4px;font-family:var(--fm);">${esc(item)}</div>`;
+      });
+      if (data.summary.length > 20) {
+        summaryHtml += `<div style="font-size:11.5px;color:var(--muted);margin-top:8px;">+ ${data.summary.length - 20} more...</div>`;
+      }
+      summaryHtml += `</div>`;
+    }
+    
+    resultHost.innerHTML = summaryHtml;
+    toast('ok', 'Sheets reorganised successfully!');
+    
+    // Reset button
+    btn.innerHTML = original;
+    btn.disabled = false;
+    document.getElementById('confirmReorg').checked = false;
+    
+  } catch (err) {
+    callout(resultHost, 'err', 'fa-triangle-exclamation', 
+      `Reorganisation failed: ${esc(err.message)}`);
+    toast('err', err.message);
+    btn.innerHTML = original;
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Helper function to escape HTML (if not already present in your script)
+ */
+if (typeof esc !== 'function') {
+  function esc(s) { 
+    return String(s==null?'':s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c])); 
+  }
+}
+
+/**
+ * Helper function for callout messages (if not already present)
+ */
+if (typeof callout !== 'function') {
+  function callout(host, type, icon, text) {
+    if (!host) return;
+    var classes = { ok: 'ok', err: 'err', warn: 'warn', info: 'info' };
+    var bg = classes[type] || 'info';
+    host.innerHTML = `
+      <div class="callout ${bg}">
+        <i class="fa-solid ${icon}"></i>
+        <div>${text}</div>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Helper function for toast notifications (if not already present)
+ */
+if (typeof toast !== 'function') {
+  function toast(type, message) {
+    console.log(`[${type}] ${message}`);
+    // You can enhance this to show an actual toast notification
+  }
+}
+</script>
+
+<!-- ═════════════════════════════════════════════════════════════════════════════
+     CSS ADDITIONS (if needed)
+     Add to your <style> section if not already present
+     ═════════════════════════════════════════════════════════════════════════════ -->
+
+<style>
+  .spin {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  #organiseResult {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
 <body>
 
 <div class="wrap">
