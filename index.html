@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%2300c6a7'>📚</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
@@ -169,6 +170,37 @@
   @keyframes rot{to{transform:rotate(360deg);}}
 
   ::placeholder{color:var(--muted2);}
+  
+  /* ── Loading Spinner ───────────────────────────────────────────────── */
+  .spin {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  #organiseResult {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   @media(max-width:760px){
     .grid2,.grid3,.opt4,.settings-body{grid-template-columns:1fr;}
@@ -677,6 +709,70 @@ if (typeof toast !== 'function') {
     <div id="submitResult"></div>
   </section>
 
+  <!-- ───────────────────────── REORGANISE QUESTIONS ───────────────────────── -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Reorganise Questions</h2>
+        <p class="sub">Automatically reorganize Learning Modules and Steps sheets</p>
+      </div>
+    </div>
+    
+    <div class="callout info">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <strong>What this does:</strong>
+        <ul style="margin:8px 0 0;padding-left:20px;">
+          <li>Regenerates Module IDs in series (Math01, Math02, etc.)</li>
+          <li>Renumbers Step Numbers sequentially for each module</li>
+          <li>Detects and removes duplicate questions (same correct answer)</li>
+          <li>Shuffles questions with predictable answer patterns (A,B,C,D...)</li>
+          <li>Updates both Learning_Modules and Learning_Steps sheets</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <label style="display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:10px;">
+        Reorganisation Details
+      </label>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:4px;">Source Sheets</div>
+          <div style="font-size:13.5px;font-weight:600;">
+            Learning_Modules + Learning_Steps
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:4px;">Subject Grouping</div>
+          <div style="font-size:13.5px;font-weight:600;">
+            Auto-detected from subject prefix
+          </div>
+        </div>
+      </div>
+      
+      <div style="border-top:1px solid var(--line);padding-top:12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <input type="checkbox" id="confirmReorg" style="width:18px;height:18px;cursor:pointer;accent-color:var(--teal);">
+          <label for="confirmReorg" style="color:var(--muted);font-size:12.5px;cursor:pointer;">
+            I understand this will reorganize both sheets and remove duplicates
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:10px;">
+      <button id="btnOrganise" onclick="startReorganise()" 
+        style="flex:1;padding:11px 16px;background:var(--teal);border:none;border-radius:8px;color:var(--bg);font-weight:600;font-family:var(--fd);cursor:pointer;transition:all .15s;font-size:13.5px;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Start Reorganisation
+      </button>
+    </div>
+    
+    <!-- Result area -->
+    <div id="organiseResult" style="margin-top:18px;"></div>
+  </div>
+
 </div>
 
 <div class="actionbar">
@@ -701,10 +797,30 @@ const DEFAULT_CLASS_LEVELS = [
   {Class:'Class 9',Label:'Class 9'},{Class:'Class 10',Label:'Class 10'},{Class:'Adult',Label:'Adult'},
 ];
 
+/* Storage Helper Functions - Safe access with error handling */
+function getStorageItem(key) {
+  try {
+    return localStorage.getItem(key) || '';
+  } catch (e) {
+    console.warn('Storage access blocked by browser privacy settings for key:', key);
+    return '';
+  }
+}
+
+function setStorageItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    console.warn('Cannot save to storage - browser privacy settings may block it for key:', key);
+    return false;
+  }
+}
+
 const cfg = {
-  masterSheetId: localStorage.getItem('scm_masterSheetId') || DEFAULT_MASTER_SHEET_ID,
-  scriptUrl:     localStorage.getItem('scm_scriptUrl')     || '',
-  secret:        localStorage.getItem('scm_secret')        || '',
+  masterSheetId: getStorageItem('scm_masterSheetId') || DEFAULT_MASTER_SHEET_ID,
+  scriptUrl:     getStorageItem('scm_scriptUrl')     || '',
+  secret:        getStorageItem('scm_secret')        || '',
 };
 document.getElementById('cfgMasterSheetId').value = cfg.masterSheetId;
 document.getElementById('cfgScriptUrl').value      = cfg.scriptUrl;
@@ -715,9 +831,9 @@ document.getElementById('btnSaveSettings').addEventListener('click', () => {
   cfg.masterSheetId = document.getElementById('cfgMasterSheetId').value.trim() || DEFAULT_MASTER_SHEET_ID;
   cfg.scriptUrl     = document.getElementById('cfgScriptUrl').value.trim();
   cfg.secret        = document.getElementById('cfgSecret').value;
-  localStorage.setItem('scm_masterSheetId', cfg.masterSheetId);
-  localStorage.setItem('scm_scriptUrl', cfg.scriptUrl);
-  localStorage.setItem('scm_secret', cfg.secret);
+  setStorageItem('scm_masterSheetId', cfg.masterSheetId);
+  setStorageItem('scm_scriptUrl', cfg.scriptUrl);
+  setStorageItem('scm_secret', cfg.secret);
   toast('ok', 'Settings saved to this browser.');
   document.getElementById('lnkOpenMaster').href = `https://docs.google.com/spreadsheets/d/${cfg.masterSheetId}/edit`;
 });
@@ -1843,6 +1959,98 @@ async function postToScript(payload) {
     body: JSON.stringify(payload),
   });
   return res.json();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   REORGANISE QUESTIONS FEATURE
+   ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Start the reorganization process
+ */
+async function startReorganise() {
+  const confirmed = document.getElementById('confirmReorg').checked;
+  if (!confirmed) {
+    toast('warn', 'Please check the confirmation box first.');
+    return;
+  }
+  
+  if (!cfg.scriptUrl) {
+    toast('err', 'Apps Script URL not configured. Set it in Connection settings.');
+    return;
+  }
+  
+  const btn = document.getElementById('btnOrganise');
+  const resultHost = document.getElementById('organiseResult');
+  const original = btn.innerHTML;
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Processing...';
+  
+  try {
+    const payload = {
+      action: 'reorganiseQuestions',
+      secret: cfg.secret
+    };
+    
+    const response = await fetch(cfg.scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Unknown error');
+    }
+    
+    // Success - show results
+    let summaryHtml = `
+      <div style="background:var(--green-dim);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:16px;margin-top:12px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;color:#86e7ab;">
+          <i class="fa-solid fa-circle-check" style="margin-top:2px;flex-shrink:0;"></i>
+          <div>
+            <strong>Reorganisation Complete!</strong>
+            <div style="font-size:12.5px;margin-top:8px;line-height:1.6;">
+              <div>✓ <strong>${data.modulesReorganized}</strong> modules regenerated with new series IDs</div>
+              <div>✓ <strong>${data.stepsReorganized}</strong> questions reorganized</div>
+              ${data.duplicatesRemoved > 0 ? `<div>✓ <strong>${data.duplicatesRemoved}</strong> duplicate questions removed</div>` : ''}
+              ${data.answersShuffled > 0 ? `<div>✓ <strong>${data.answersShuffled}</strong> questions shuffled (predictable pattern detected)</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    if (data.summary && data.summary.length > 0) {
+      summaryHtml += `
+        <div style="margin-top:14px;padding:12px;background:var(--surface2);border-radius:8px;max-height:300px;overflow-y:auto;">
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;font-weight:600;">Module Summary</div>
+      `;
+      data.summary.slice(0, 20).forEach(function(item) {
+        summaryHtml += `<div style="font-size:12px;color:var(--ink);margin-bottom:4px;font-family:var(--fm);">${esc(item)}</div>`;
+      });
+      if (data.summary.length > 20) {
+        summaryHtml += `<div style="font-size:11.5px;color:var(--muted);margin-top:8px;">+ ${data.summary.length - 20} more...</div>`;
+      }
+      summaryHtml += `</div>`;
+    }
+    
+    resultHost.innerHTML = summaryHtml;
+    toast('ok', 'Sheets reorganised successfully!');
+    
+    // Reset button
+    btn.innerHTML = original;
+    btn.disabled = false;
+    document.getElementById('confirmReorg').checked = false;
+    
+  } catch (err) {
+    callout(resultHost, 'err', 'fa-triangle-exclamation', 
+      `Reorganisation failed: ${esc(err.message)}`);
+    toast('err', err.message);
+    btn.innerHTML = original;
+    btn.disabled = false;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════
