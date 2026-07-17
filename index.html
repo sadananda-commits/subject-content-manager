@@ -833,14 +833,35 @@ document.getElementById('selExistingModule').addEventListener('change', e => {
     <div class="kv"><span class="k">Existing questions</span>${stepCount}</div>`;
 });
 
-// ── Module ID auto-generation ───────────────────────────────────────────
+// ── Module ID auto-generation (MATCHES Apps Script logic) ───────────────────────────────────────────
 function subjectPrefix(subject) {
-  const words = subject.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
-  return subject.trim().slice(0,2).toUpperCase();
+  // Same logic as Apps Script extractSubjectPrefix()
+  const patterns = {
+    'math': 'MATH',
+    'english': 'ENG',
+    'science': 'SCI',
+    'history': 'HIST',
+    'geography': 'GEO',
+    'computer': 'COMP',
+    'art': 'ART',
+    'music': 'MUS',
+    'pe': 'PE',
+    'social': 'SOCIAL'
+  };
+  
+  const lower = subject.toLowerCase();
+  for (const key in patterns) {
+    if (lower.indexOf(key) !== -1) {
+      return patterns[key];
+    }
+  }
+  
+  // Fallback: first word, first 4 letters, uppercase
+  return subject.split(' ')[0].substring(0, 4).toUpperCase();
 }
 function nextSerial(existingIds, prefix) {
-  const re = new RegExp('^' + prefix + '_(\\d+)$', 'i');
+  // Match format: PREFIX01, PREFIX02 (no underscore, 2-digit number)
+  const re = new RegExp('^' + prefix + '(\\d+)$', 'i');
   let max = 0, width = 2;
   existingIds.forEach(id => {
     const m = String(id||'').trim().match(re);
@@ -872,7 +893,7 @@ function updateModuleIdPreview() {
   const existingIds = state.existingModules.map(m => m['Module ID']);
   const serial = nextSerial(existingIds, prefix || 'XX');
   document.getElementById('modSerialChip').textContent = serial;
-  document.getElementById('modIdFull').textContent = `Module ID: ${prefix||'—'}_${serial}`;
+  document.getElementById('modIdFull').textContent = `Module ID: ${prefix||'—'}${serial}`;
 }
 document.getElementById('modPrefix').addEventListener('input', updateModuleIdPreview);
 function updateIconPreview() {
@@ -914,7 +935,7 @@ function buildNewModulePayload() {
   const prefix = document.getElementById('modPrefix').value.toUpperCase().trim();
   const serial = document.getElementById('modSerialChip').textContent;
   return {
-    'Module ID': `${prefix}_${serial}`,
+    'Module ID': `${prefix}${serial}`,
     'Title': document.getElementById('modTitle').value.trim(),
     'Subject': state.selectedSubject.Subject,
     'Class': state.selectedClass,
