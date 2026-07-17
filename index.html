@@ -39,9 +39,6 @@
   details.settings[open] summary i{transform:rotate(90deg);}
   .settings-body{padding:4px 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .settings-body .full{grid-column:1/-1;}
-  .settings-note{grid-column:1/-1;background:var(--surface2);border-radius:8px;padding:10px 12px;color:var(--muted);font-size:12.5px;}
-  .settings-actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;}
-  #connTestResult{font-size:12.5px;font-family:var(--fm);}
 
   /* ── Progress rail ───────────────────────────────────────────────── */
   .rail{display:flex;gap:6px;margin-bottom:24px;}
@@ -62,46 +59,13 @@
   .card .sub{color:var(--muted);font-size:13px;margin:0 0 18px;}
   .hidden{display:none !important;}
 
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;}
-  .field label .opt{color:var(--muted2);font-weight:400;}
   input[type=text],input[type=url],input[type=number],input[type=password],select,textarea{
     width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:8px;color:var(--ink);
     padding:10px 12px;font-family:var(--fb);font-size:13.5px;transition:border-color .15s;
   }
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);}
-  textarea{resize:vertical;min-height:64px;}
-  input[type=color]{width:44px;height:38px;padding:2px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);cursor:pointer;}
-  .colorrow{display:flex;gap:8px;}
-  .colorrow input[type=text]{font-family:var(--fm);}
-  .checkrow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
-  .checkrow input{width:auto;}
-
-  .pillgroup{display:flex;gap:10px;flex-wrap:wrap;}
-  .pillgroup label{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--line);
-    border-radius:10px;padding:13px 14px;cursor:pointer;font-size:13.5px;font-weight:500;transition:all .15s;}
-  .pillgroup input{width:auto;accent-color:var(--teal);}
-  .pillgroup label:has(input:checked){border-color:var(--teal);background:var(--teal-dim);}
-
-  .iconprev{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;background:var(--surface2);
-    border:1px solid var(--line);flex-shrink:0;}
-  .iconrow{display:flex;gap:8px;align-items:flex-start;}
-  .iconrow .field{flex:1;margin-bottom:0;}
-
-  .callout{border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
-  .callout i{margin-top:1px;}
-  .callout.warn{background:var(--amber-dim);border:1px solid rgba(245,166,35,.3);color:#f5c777;}
-  .callout.err{background:var(--red-dim);border:1px solid rgba(239,91,91,.3);color:#f59b9b;}
-  .callout.ok{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:#86e7ab;}
-  .callout.info{background:var(--surface2);border:1px solid var(--line);color:var(--muted);}
-  .callout a{font-weight:600;}
-
-  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);
-    border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:12.5px;}
-  .chip.id{background:var(--teal-dim);border-color:rgba(0,198,167,.35);color:var(--teal);font-weight:600;}
-  .prefix-hi{background:rgba(0,198,167,.3);border-radius:3px;padding:0 2px;color:#fff;}
 
   /* ── Multi-class selection ────────────────────────────────────────── */
   .class-selector{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
@@ -116,36 +80,17 @@
   .selected-classes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
   .selected-classes .chip{background:var(--teal-dim);border-color:rgba(0,198,167,.35);}
 
-  /* ── Question blocks ─────────────────────────────────────────────── */
-  .qblock{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;background:var(--surface2);position:relative;}
-  .qblock .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .qblock .qhead .step-chip{font-family:var(--fm);font-size:11.5px;color:var(--teal);background:var(--teal-dim);
-    border-radius:999px;padding:3px 10px;font-weight:600;}
-  .qblock .rm{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;}
-  .qblock .rm:hover{color:var(--red);background:var(--red-dim);}
-  .opt4{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .opt-label{display:flex;align-items:center;gap:8px;}
-  .opt-letter{width:24px;height:24px;border-radius:6px;background:var(--surface);border:1px solid var(--line);
-    display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:11.5px;font-weight:700;flex-shrink:0;}
+  .callout{border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+  .callout i{margin-top:1px;}
+  .callout.warn{background:var(--amber-dim);border:1px solid rgba(245,166,35,.3);color:#f5c777;}
+  .callout.err{background:var(--red-dim);border:1px solid rgba(239,91,91,.3);color:#f59b9b;}
+  .callout.ok{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:#86e7ab;}
+  .callout.info{background:var(--surface2);border:1px solid var(--line);color:var(--muted);}
+  .callout.debug{background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);color:#ffb84d;}
 
-  /* ── Excel upload ──────────────────────────────────────────────────── */
-  .upload-zone{border:2px dashed var(--line);border-radius:12px;padding:32px 24px;text-align:center;cursor:pointer;
-    transition:border-color .2s,background .2s;background:var(--surface2);}
-  .upload-zone:hover,.upload-zone.drag-over{border-color:var(--teal);background:var(--teal-dim);}
-  .upload-zone input[type=file]{display:none;}
-  .upload-zone .uz-icon{font-size:28px;color:var(--teal);margin-bottom:10px;}
-  .upload-zone p{margin:4px 0;font-size:13.5px;}
-  .upload-zone .uz-hint{font-size:12px;color:var(--muted);}
-  .upload-toggle{display:flex;gap:10px;margin-bottom:16px;}
-  .upload-toggle button{flex:1;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);
-    color:var(--muted);font-family:var(--fd);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
-  .upload-toggle button.active{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
-  .import-status{font-size:13px;padding:10px 14px;border-radius:8px;margin-top:10px;}
-  .import-status.ok{background:rgba(34,197,94,.1);color:#86e7ab;border:1px solid rgba(34,197,94,.25);}
-  .import-status.err{background:var(--red-dim);color:#f59b9b;border:1px solid rgba(239,91,91,.25);}
-  .import-status.warn{background:var(--amber-dim);color:#fcd57a;border:1px solid rgba(245,166,35,.25);}
-  .dl-template{font-size:12.5px;color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-top:10px;}
-  .dl-template:hover{text-decoration:underline;}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);
+    border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:12.5px;}
+  .chip.id{background:var(--teal-dim);border-color:rgba(0,198,167,.35);color:var(--teal);font-weight:600;}
 
   /* ── Buttons ──────────────────────────────────────────────────────── */
   .btn{font-family:var(--fd);font-weight:600;font-size:13.5px;border-radius:9px;padding:11px 20px;border:1px solid transparent;
@@ -157,19 +102,9 @@
   .btn-ghost:hover{border-color:var(--muted2);}
   .btn-sm{padding:7px 13px;font-size:12.5px;}
   .btn-group{display:flex;gap:8px;margin-top:14px;}
-  .btn-group .btn{flex:1;}
 
-  /* ── Modal dialogs ─────────────────────────────────────────────────── */
-  .dialog-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center;}
-  .dialog-overlay.show{display:flex;}
-  .dialog-box{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;}
-  .dialog-box h2{margin-top:0;}
-
-  /* ── Tooltips ──────────────────────────────────────────────────────── */
-  .tooltip{position:relative;display:inline-block;cursor:help;}
-  .tooltip .tip{visibility:hidden;background:var(--surface2);color:var(--ink);text-align:center;border-radius:6px;padding:6px 8px;
-    position:absolute;z-index:1;bottom:125%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11.5px;border:1px solid var(--line);}
-  .tooltip:hover .tip{visibility:visible;}
+  .manual-input{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .manual-input textarea{font-size:12px;font-family:var(--fm);}
 
   [hidden]{display:none !important;}
 </style>
@@ -180,9 +115,37 @@
   <div class="hdr">
     <div>
       <h1><i class="fa-solid fa-book-open"></i> Content Manager</h1>
-      <p>Upload questions to multiple classes with the same subject in one go</p>
+      <p>Upload questions to multiple classes with the same subject</p>
     </div>
   </div>
+
+  <!-- Debug Info -->
+  <details class="settings">
+    <summary>
+      <i class="fa-solid fa-bug"></i> Debug & Setup Info
+    </summary>
+    <div class="settings-body">
+      <div class="full">
+        <div class="callout debug">
+          <i class="fa-solid fa-info-circle"></i>
+          <div>
+            <strong>GAS_URL Status:</strong>
+            <div style="font-family:monospace;font-size:11px;margin-top:6px;word-break:break-all;" id="gasUrlDisplay">Loading...</div>
+            <div style="margin-top:8px;font-size:12px;">
+              <strong>How to fix if classes don't load:</strong>
+              <ol style="margin:8px 0;padding-left:20px;">
+                <li>Check your deployment URL is correct</li>
+                <li>Replace YOUR_DEPLOYMENT_ID with actual ID</li>
+                <li>Check browser console (F12 → Console tab) for errors</li>
+                <li>Check Apps Script logs for failed requests</li>
+                <li>Use "Manual Class Input" below to test</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
 
   <!-- Progress Rail -->
   <div class="rail">
@@ -205,17 +168,32 @@
     <h2><i class="fa-solid fa-list-check"></i> Select Classes & Subject</h2>
     <p class="sub">Choose one or more classes and the subject to upload questions to</p>
 
-    <!-- Multi-class Selection -->
+    <!-- Auto-load Classes Section -->
     <div class="field">
       <label><i class="fa-solid fa-sitemap"></i> Classes (select multiple)</label>
-      <div class="class-selector" id="classSelector">
-        <div class="group-label">Available Classes</div>
-        <div class="class-list" id="classList"></div>
+      <div id="autoLoadSection">
+        <div class="callout info">
+          <i class="fa-solid fa-spinner fa-spin"></i> Loading classes from your master sheet...
+        </div>
       </div>
       <div id="selectedClassesDisplay" style="display:none;">
         <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;font-weight:600;">Selected:</div>
         <div id="selectedClassesChips" class="selected-classes"></div>
       </div>
+    </div>
+
+    <!-- Manual Class Input (Fallback) -->
+    <div class="manual-input">
+      <div style="margin-bottom:10px;">
+        <strong style="font-size:13.5px;">💡 Classes not loading? Use manual input:</strong>
+      </div>
+      <div class="field">
+        <label>Enter class names (one per line)</label>
+        <textarea id="manualClassInput" placeholder="Example:&#10;Class 6&#10;Class 7&#10;Class 8&#10;Class 9" style="font-family:monospace;min-height:100px;"></textarea>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="loadManualClasses()">
+        <i class="fa-solid fa-upload"></i> Load These Classes
+      </button>
     </div>
 
     <!-- Subject Selection -->
@@ -249,31 +227,12 @@
       <div id="classListDisplay" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
     </div>
 
-    <div class="upload-toggle">
-      <button class="active" onclick="setUploadMode('manual')">Manual Entry</button>
-      <button onclick="setUploadMode('file')">Upload File</button>
+    <div class="field">
+      <label><i class="fa-solid fa-book"></i> Selected Subject: <strong id="subjectDisplay"></strong></label>
     </div>
 
-    <!-- Manual Entry Mode -->
-    <div id="manualMode">
-      <div id="questionContainer"></div>
-      <button class="btn btn-ghost" onclick="addQuestionBlock()">
-        <i class="fa-solid fa-plus"></i> Add Question
-      </button>
-    </div>
-
-    <!-- File Upload Mode -->
-    <div id="fileMode" class="hidden">
-      <div class="upload-zone" onclick="document.getElementById('excelFile').click()">
-        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
-        <div class="uz-icon"><i class="fa-solid fa-file-excel"></i></div>
-        <p><strong>Click to upload</strong> or drag and drop</p>
-        <p class="uz-hint">Excel file (.xlsx, .xls) or CSV</p>
-      </div>
-      <a href="#" class="dl-template" onclick="downloadTemplate(event)">
-        <i class="fa-solid fa-download"></i> Download template
-      </a>
-      <div id="fileStatus"></div>
+    <div style="margin-bottom:16px;padding:12px;background:var(--green-dim);border:1px solid rgba(34,197,94,.3);border-radius:8px;color:#86e7ab;">
+      <i class="fa-solid fa-check-circle"></i> Ready to upload to <strong id="classCountDisplay">0</strong> classes
     </div>
 
     <div class="btn-group">
@@ -281,20 +240,24 @@
         <i class="fa-solid fa-arrow-left"></i> Back
       </button>
       <button class="btn btn-primary" onclick="proceedToReview()" id="reviewBtn">
-        <i class="fa-solid fa-arrow-right"></i> Review & Submit
+        <i class="fa-solid fa-arrow-right"></i> Proceed to Upload
       </button>
     </div>
   </div>
 
-  <!-- STEP 3: Review & Submit -->
+  <!-- STEP 3: Quick Question Entry -->
   <div id="step3" class="card hidden">
-    <h2><i class="fa-solid fa-check-double"></i> Review & Submit</h2>
-    <p class="sub">Verify your questions before submitting to all selected classes</p>
+    <h2><i class="fa-solid fa-pencil"></i> Add Questions</h2>
+    <p class="sub">Enter your questions (minimum 1 required)</p>
 
-    <div id="reviewSection"></div>
+    <div id="questionContainer"></div>
+    
+    <button class="btn btn-ghost" onclick="addQuestionBlock()">
+      <i class="fa-solid fa-plus"></i> Add Another Question
+    </button>
 
-    <div class="btn-group">
-      <button class="btn btn-ghost" onclick="backToUpload()">
+    <div class="btn-group" style="margin-top:24px;">
+      <button class="btn btn-ghost" onclick="backToStep2()">
         <i class="fa-solid fa-arrow-left"></i> Back
       </button>
       <button class="btn btn-primary" onclick="submitQuestions()" id="submitBtn">
@@ -304,13 +267,13 @@
   </div>
 
   <!-- Results Dialog -->
-  <div class="dialog-overlay" id="resultsOverlay">
-    <div class="dialog-box" id="resultsDialog"></div>
+  <div id="resultsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center;">
+    <div id="resultsDialog" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;"></div>
   </div>
 </div>
 
 <script>
-const GAS_URL = 'https://script.google.com/macros/d/YOUR_DEPLOYMENT_ID/usercontent';
+const GAS_URL = 'https://script.google.com/macros/d/1W_PcxVdbGlR6otgXXkJpvKVgKrtbUHNk2coAXX5tj9UbmrZDKZjiipsr/usercontent';
 const SHARED_SECRET = '123456';
 
 let appState = {
@@ -322,45 +285,161 @@ let appState = {
 };
 
 // ════════════════════════════════════════════════════════════════════════
-// CLASS SELECTION - MULTI-CLASS
+// INITIALIZATION & DEBUG
+// ════════════════════════════════════════════════════════════════════════
+function debugLog(title, message) {
+  console.log(`[${title}] ${message}`);
+  console.log(message);
+}
+
+(function init() {
+  debugLog('INIT', 'Checking GAS_URL...');
+  console.log('GAS_URL:', GAS_URL);
+  
+  if (GAS_URL.includes('YOUR_DEPLOYMENT_ID')) {
+    document.getElementById('gasUrlDisplay').innerHTML = `
+      <span style="color:#ff6b6b;">❌ GAS_URL NOT CONFIGURED</span><br/>
+      <span style="color:var(--muted);">${GAS_URL}</span><br/>
+      <strong style="color:#ffb84d;">Action Required:</strong> Replace YOUR_DEPLOYMENT_ID with your actual deployment ID
+    `;
+    console.error('❌ GAS_URL not configured! Replace YOUR_DEPLOYMENT_ID');
+  } else {
+    document.getElementById('gasUrlDisplay').innerHTML = `
+      <span style="color:#86e7ab;">✓ GAS_URL configured</span><br/>
+      <span style="color:var(--muted);">${GAS_URL}</span>
+    `;
+    debugLog('INIT', 'GAS_URL is configured, attempting to load classes...');
+    loadClassLevels();
+  }
+  
+  addQuestionBlock();
+  loadSubjectMap();
+})();
+
+// ════════════════════════════════════════════════════════════════════════
+// LOAD CLASSES FROM BACKEND
 // ════════════════════════════════════════════════════════════════════════
 async function loadClassLevels() {
   try {
-    const response = await fetch(`${GAS_URL}?action=getClassLevels&secret=${SHARED_SECRET}`);
+    debugLog('LOAD_CLASSES', 'Fetching from ' + GAS_URL + '?action=getClassLevels');
+    
+    const url = `${GAS_URL}?action=getClassLevels&secret=${SHARED_SECRET}`;
+    console.log('Fetch URL:', url);
+    
+    const response = await fetch(url);
+    console.log('Response status:', response.status);
+    
     const data = await response.json();
-    appState.classLevels = data.classes || [];
-    renderClassSelector();
+    console.log('Response data:', data);
+    
+    if (data.success && data.classes && data.classes.length > 0) {
+      appState.classLevels = data.classes;
+      debugLog('LOAD_CLASSES', 'Loaded ' + data.classes.length + ' classes: ' + data.classes.join(', '));
+      renderClassSelector();
+    } else {
+      throw new Error('No classes returned or request failed: ' + (data.message || 'Unknown error'));
+    }
   } catch (err) {
-    console.error('Error loading classes:', err);
-    toast('err', 'Failed to load classes');
+    debugLog('LOAD_CLASSES', '❌ Error: ' + err.message);
+    console.error('Full error:', err);
+    
+    // Show error and fallback
+    document.getElementById('autoLoadSection').innerHTML = `
+      <div class="callout err">
+        <i class="fa-solid fa-exclamation-circle"></i>
+        <div>
+          <strong>Error loading classes:</strong><br/>
+          ${err.message}<br/><br/>
+          <strong>Quick fix:</strong>
+          <ol style="margin:8px 0;padding-left:20px;font-size:12px;">
+            <li>Check your GAS_URL is correct above</li>
+            <li>Make sure Apps Script is deployed</li>
+            <li>Or use "Manual Class Input" below</li>
+          </ol>
+        </div>
+      </div>
+    `;
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// MANUAL CLASS INPUT (Fallback)
+// ════════════════════════════════════════════════════════════════════════
+function loadManualClasses() {
+  const input = document.getElementById('manualClassInput').value;
+  if (!input.trim()) {
+    alert('Please enter class names');
+    return;
+  }
+  
+  const classes = input.split('\n')
+    .map(c => c.trim())
+    .filter(c => c.length > 0);
+  
+  if (classes.length === 0) {
+    alert('No valid classes entered');
+    return;
+  }
+  
+  appState.classLevels = classes;
+  debugLog('MANUAL_CLASSES', 'Loaded ' + classes.length + ' classes manually: ' + classes.join(', '));
+  
+  document.getElementById('autoLoadSection').innerHTML = `
+    <div class="callout ok">
+      <i class="fa-solid fa-check-circle"></i>
+      <div>Loaded <strong>${classes.length}</strong> classes manually. Click checkboxes below to select.</div>
+    </div>
+  `;
+  
+  renderClassSelector();
+  
+  // Hide manual input section
+  document.querySelector('.manual-input').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CLASS SELECTION
+// ════════════════════════════════════════════════════════════════════════
 function renderClassSelector() {
   const classList = document.getElementById('classList');
-  classList.innerHTML = '';
+  
+  // Create the class list if it doesn't exist
+  if (!classList) {
+    const container = document.getElementById('autoLoadSection');
+    container.innerHTML = `
+      <div class="class-selector" id="classSelector">
+        <div class="group-label">Available Classes - Click to select:</div>
+        <div class="class-list" id="classList"></div>
+      </div>
+    `;
+  }
+  
+  const list = document.getElementById('classList');
+  list.innerHTML = '';
   
   appState.classLevels.forEach((cls, idx) => {
     const isChecked = appState.selectedClasses.includes(cls);
     const html = `
-      <label class="class-item">
+      <label class="class-item" key="${idx}">
         <input type="checkbox" value="${cls}" ${isChecked ? 'checked' : ''} onchange="toggleClass('${cls}')">
-        <label style="flex:1;cursor:pointer;margin:0;font-size:13.5px;">${cls}</label>
+        <span style="flex:1;cursor:pointer;font-size:13.5px;font-weight:500;">${cls}</span>
       </label>
     `;
-    classList.innerHTML += html;
+    list.innerHTML += html;
   });
   
+  debugLog('RENDER', 'Rendered ' + appState.classLevels.length + ' class checkboxes');
   updateSelectedClassesDisplay();
 }
 
 function toggleClass(cls) {
   if (appState.selectedClasses.includes(cls)) {
     appState.selectedClasses = appState.selectedClasses.filter(c => c !== cls);
+    debugLog('TOGGLE', 'Removed: ' + cls);
   } else {
     appState.selectedClasses.push(cls);
+    debugLog('TOGGLE', 'Added: ' + cls);
   }
-  renderClassSelector();
   updateSelectedClassesDisplay();
 }
 
@@ -376,9 +455,45 @@ function updateSelectedClassesDisplay() {
     chips.innerHTML = appState.selectedClasses.map(cls => 
       `<div class="chip"><i class="fa-solid fa-check"></i> ${cls}</div>`
     ).join('');
+    debugLog('DISPLAY', 'Selected: ' + appState.selectedClasses.join(', '));
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SUBJECT SELECTION
+// ════════════════════════════════════════════════════════════════════════
+async function loadSubjectMap() {
+  try {
+    const url = `${GAS_URL}?action=getSubjectMap&secret=${SHARED_SECRET}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.success && data.subjectMap) {
+      appState.subjectMap = data.subjectMap;
+      renderSubjectOptions();
+      debugLog('LOAD_SUBJECTS', 'Loaded ' + Object.keys(data.subjectMap).length + ' subjects');
+    }
+  } catch (err) {
+    debugLog('LOAD_SUBJECTS', '⚠️ Could not load subjects: ' + err.message);
+  }
+}
+
+function renderSubjectOptions() {
+  const select = document.getElementById('selSubject');
+  const subjects = Object.keys(appState.subjectMap).sort();
   
-  updateProceedButton();
+  subjects.forEach(subject => {
+    const option = document.createElement('option');
+    option.value = subject;
+    option.textContent = subject;
+    select.appendChild(option);
+  });
+  
+  select.addEventListener('change', (e) => {
+    appState.selectedSubject = e.target.value;
+    document.getElementById('subjectDisplay').textContent = e.target.value || 'None selected';
+    updateProceedButton();
+  });
 }
 
 function updateProceedButton() {
@@ -389,37 +504,7 @@ function updateProceedButton() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// SUBJECT SELECTION
-// ════════════════════════════════════════════════════════════════════════
-async function loadSubjectMap() {
-  try {
-    const response = await fetch(`${GAS_URL}?action=getSubjectMap&secret=${SHARED_SECRET}`);
-    const data = await response.json();
-    appState.subjectMap = data.subjectMap || {};
-    renderSubjectOptions();
-  } catch (err) {
-    console.error('Error loading subjects:', err);
-  }
-}
-
-function renderSubjectOptions() {
-  const select = document.getElementById('selSubject');
-  const subjects = Object.keys(appState.subjectMap).sort();
-  subjects.forEach(subject => {
-    const option = document.createElement('option');
-    option.value = subject;
-    option.textContent = subject;
-    select.appendChild(option);
-  });
-  
-  select.addEventListener('change', (e) => {
-    appState.selectedSubject = e.target.value;
-    updateProceedButton();
-  });
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// STEP NAVIGATION
+// NAVIGATION
 // ════════════════════════════════════════════════════════════════════════
 function showStep(step) {
   document.getElementById('step1').classList.toggle('hidden', step !== 1);
@@ -435,20 +520,23 @@ function showStep(step) {
 
 function proceedToUpload() {
   if (appState.selectedClasses.length === 0) {
-    toast('err', 'Please select at least one class');
+    alert('Please select at least one class');
     return;
   }
   if (!appState.selectedSubject) {
-    toast('err', 'Please select a subject');
+    alert('Please select a subject');
     return;
   }
   
-  // Display selected classes in step 2
   const classListDisplay = document.getElementById('classListDisplay');
   classListDisplay.innerHTML = appState.selectedClasses.map(cls => 
     `<div class="chip" style="background:var(--teal-dim);border-color:rgba(0,198,167,.35);"><strong>${cls}</strong></div>`
   ).join('');
   
+  document.getElementById('subjectDisplay').textContent = appState.selectedSubject;
+  document.getElementById('classCountDisplay').textContent = appState.selectedClasses.length;
+  
+  debugLog('PROCEED', 'Moving to step 2 with ' + appState.selectedClasses.length + ' classes');
   showStep(2);
 }
 
@@ -456,32 +544,12 @@ function backToSelection() {
   showStep(1);
 }
 
-function proceedToReview() {
-  if (appState.questionData.length === 0) {
-    toast('err', 'Please add at least one question');
-    return;
-  }
-  renderReview();
-  showStep(3);
-}
-
-function backToUpload() {
+function backToStep2() {
   showStep(2);
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// UPLOAD MODE TOGGLE
-// ════════════════════════════════════════════════════════════════════════
-function setUploadMode(mode) {
-  document.getElementById('manualMode').classList.toggle('hidden', mode !== 'manual');
-  document.getElementById('fileMode').classList.toggle('hidden', mode !== 'file');
-  document.querySelectorAll('.upload-toggle button').forEach((btn, i) => {
-    btn.classList.toggle('active', (mode === 'manual' && i === 0) || (mode === 'file' && i === 1));
-  });
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// MANUAL QUESTION ENTRY
+// QUESTIONS
 // ════════════════════════════════════════════════════════════════════════
 function addQuestionBlock() {
   const container = document.getElementById('questionContainer');
@@ -492,11 +560,12 @@ function addQuestionBlock() {
   appState.questionData[idx] = qData;
   
   const html = `
-    <div class="qblock" id="qblock${idx}">
-      <div class="qhead">
-        <span class="step-chip">Q${idx + 1}</span>
-        <button class="rm" onclick="removeQuestionBlock(${idx})"><i class="fa-solid fa-trash"></i></button>
+    <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;" id="qblock${idx}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="background:var(--teal-dim);color:var(--teal);border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;">Q${idx + 1}</span>
+        <button class="btn btn-ghost btn-sm" onclick="removeQuestionBlock(${idx})"><i class="fa-solid fa-trash"></i></button>
       </div>
+      
       <div class="field">
         <label>Module ID</label>
         <input type="text" value="${qData.moduleId}" onchange="updateQuestion(${idx}, 'moduleId', this.value)">
@@ -509,7 +578,8 @@ function addQuestionBlock() {
         <label>Question</label>
         <textarea onchange="updateQuestion(${idx}, 'question', this.value)">${qData.question}</textarea>
       </div>
-      <div class="opt4">
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="field">
           <label>A)</label>
           <input type="text" value="${qData.optA}" onchange="updateQuestion(${idx}, 'optA', this.value)">
@@ -527,6 +597,7 @@ function addQuestionBlock() {
           <input type="text" value="${qData.optD}" onchange="updateQuestion(${idx}, 'optD', this.value)">
         </div>
       </div>
+      
       <div class="field">
         <label>Correct Answer</label>
         <select onchange="updateQuestion(${idx}, 'correct', this.value)">
@@ -547,6 +618,7 @@ function addQuestionBlock() {
 function updateQuestion(idx, field, value) {
   if (!appState.questionData[idx]) appState.questionData[idx] = {};
   appState.questionData[idx][field] = value;
+  debugLog('UPDATE_Q', 'Question ' + (idx+1) + ' field ' + field + ' = ' + value);
 }
 
 function removeQuestionBlock(idx) {
@@ -558,102 +630,30 @@ function removeQuestionBlock(idx) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// FILE UPLOAD
-// ════════════════════════════════════════════════════════════════════════
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    try {
-      const data = new Uint8Array(event.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(worksheet);
-      
-      appState.questionData = rows.map(row => ({
-        moduleId: row['Module ID'] || '',
-        stepNum: row['Step Number'] || '',
-        question: row['Question'] || '',
-        optA: row['Option A'] || '',
-        optB: row['Option B'] || '',
-        optC: row['Option C'] || '',
-        optD: row['Option D'] || '',
-        correct: row['Correct Answer'] || 'A'
-      }));
-      
-      document.getElementById('fileStatus').innerHTML = 
-        `<div class="import-status ok"><i class="fa-solid fa-check-circle"></i> ${appState.questionData.length} questions imported</div>`;
-      
-      toast('ok', `Imported ${appState.questionData.length} questions`);
-    } catch (err) {
-      document.getElementById('fileStatus').innerHTML = 
-        `<div class="import-status err"><i class="fa-solid fa-exclamation-circle"></i> Error: ${err.message}</div>`;
-      toast('err', 'Failed to parse file');
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function downloadTemplate() {
-  const ws = XLSX.utils.aoa_to_sheet([
-    ['Module ID', 'Step Number', 'Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer'],
-    ['MOD001', '1', 'Sample question?', 'Answer A', 'Answer B', 'Answer C', 'Answer D', 'A']
-  ]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Questions');
-  XLSX.writeFile(wb, 'questions_template.xlsx');
-  return false;
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// REVIEW
-// ════════════════════════════════════════════════════════════════════════
-function renderReview() {
-  const section = document.getElementById('reviewSection');
-  let html = `
-    <div class="callout ok" style="margin-bottom:14px;">
-      <i class="fa-solid fa-circle-check"></i>
-      <div>
-        <strong>Uploading to ${appState.selectedClasses.length} class(es):</strong>
-        ${appState.selectedClasses.map(c => `<div><span class="chip">${c}</span></div>`).join('')}
-      </div>
-    </div>
-    <div style="margin-bottom:14px;">
-      <strong>${appState.questionData.length} Questions to Upload:</strong>
-    </div>
-  `;
-  
-  appState.questionData.forEach((q, i) => {
-    html += `
-      <div class="qblock" style="margin-bottom:10px;">
-        <div style="font-weight:600;margin-bottom:8px;">Q${i + 1}: ${q.question.substring(0, 60)}...</div>
-        <div style="font-size:12.5px;color:var(--muted);">
-          <div>Module: ${q.moduleId} | Step: ${q.stepNum}</div>
-          <div>Answer: ${q.correct}</div>
-        </div>
-      </div>
-    `;
-  });
-  
-  section.innerHTML = html;
-}
-
-// ════════════════════════════════════════════════════════════════════════
 // SUBMIT
 // ════════════════════════════════════════════════════════════════════════
+async function proceedToReview() {
+  if (appState.questionData.length === 0) {
+    alert('Please add at least one question');
+    return;
+  }
+  debugLog('PROCEED', 'Moving to step 3 (question entry)');
+  showStep(3);
+}
+
 async function submitQuestions() {
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
   
   try {
+    debugLog('SUBMIT', 'Starting submission to ' + appState.selectedClasses.length + ' classes');
     const results = [];
     
-    // Upload to each selected class
     for (const className of appState.selectedClasses) {
       try {
+        debugLog('SUBMIT', 'Uploading to class: ' + className);
+        
         const response = await fetch(GAS_URL, {
           method: 'POST',
           body: JSON.stringify({
@@ -666,13 +666,16 @@ async function submitQuestions() {
         });
         
         const data = await response.json();
+        debugLog('SUBMIT', 'Response for ' + className + ':', data);
+        
         results.push({
           class: className,
           success: data.success,
           message: data.message,
-          stepsAdded: data.stepsAdded
+          stepsAdded: data.stepsAdded || 0
         });
       } catch (err) {
+        debugLog('SUBMIT', '❌ Error uploading to ' + className + ': ' + err.message);
         results.push({
           class: className,
           success: false,
@@ -684,7 +687,8 @@ async function submitQuestions() {
     showResultsDialog(results);
     
   } catch (err) {
-    toast('err', 'Submission failed: ' + err.message);
+    debugLog('SUBMIT', '❌ Fatal error: ' + err.message);
+    alert('Submission failed: ' + err.message);
   } finally {
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit to All Classes';
@@ -730,11 +734,11 @@ function showResultsDialog(results) {
   `;
   
   dialog.innerHTML = html;
-  overlay.classList.add('show');
+  overlay.style.display = 'flex';
 }
 
 function resetApp() {
-  document.getElementById('resultsOverlay').classList.remove('show');
+  document.getElementById('resultsOverlay').style.display = 'none';
   appState = {
     selectedClasses: [],
     selectedSubject: '',
@@ -744,33 +748,10 @@ function resetApp() {
   };
   document.getElementById('selSubject').value = '';
   document.getElementById('questionContainer').innerHTML = '';
-  document.getElementById('fileStatus').innerHTML = '';
   renderClassSelector();
-  setUploadMode('manual');
   addQuestionBlock();
   showStep(1);
 }
-
-// ════════════════════════════════════════════════════════════════════════
-// UTILITIES
-// ════════════════════════════════════════════════════════════════════════
-function toast(type, msg) {
-  console.log(`[${type.toUpperCase()}] ${msg}`);
-}
-
-function esc(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// INIT
-// ════════════════════════════════════════════════════════════════════════
-(async function init() {
-  addQuestionBlock();
-  await Promise.all([loadClassLevels(), loadSubjectMap()]);
-})();
 </script>
 </body>
 </html>
