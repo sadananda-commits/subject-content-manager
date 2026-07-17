@@ -1313,7 +1313,7 @@ function resolveChapterGroups(rawGroups) {
     // New chapter — always assign the next sequential ID from the target sheet's
     // own numbering, regardless of what Module ID (if any) the upload used.
     const serial = nextSerial(pendingIds, prefix);
-    const moduleId = `${prefix}_${serial}`;
+    const moduleId = `${prefix}${serial}`;
     pendingIds.push(moduleId);
     newIdx++;
     if (g.lmRow) {
