@@ -1750,7 +1750,12 @@ async function proceedWithReorganise() {
   const resultsDialog = document.getElementById('reorganiseResultsDialog');
   const subjectSelect = document.getElementById('selSubject');
   
-  if (!state.selectedSubject || !state.selectedSubject['Sheet ID']) {
+  if (!state.selectedClass) {
+    toast('err', 'No class selected');
+    return;
+  }
+  
+  if (!state.selectedSubject) {
     toast('err', 'No subject selected');
     return;
   }
@@ -1767,9 +1772,11 @@ async function proceedWithReorganise() {
     const selectedOption = subjectSelect.options[subjectSelect.selectedIndex];
     document.getElementById('reorganiseProgressSubject').textContent = selectedOption.text;
     
+    // Send class and subject names (not sheet ID) - Apps Script will look it up
     const payload = {
       action: 'reorganiseSubject',
-      sheetId: state.selectedSubject['Sheet ID'],
+      class: state.selectedClass,
+      subject: state.selectedSubject.Subject || selectedOption.text,
       secret: cfg.secret
     };
     
