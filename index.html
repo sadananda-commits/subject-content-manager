@@ -400,14 +400,15 @@
 
                 <div class="field">
                     <label>Apps Script Deployment URL *</label>
-                    <input type="text" id="deploymentUrlInput" placeholder="https://script.google.com/macros/d/YOUR_ID/useweb" 
+                    <input type="text" id="deploymentUrlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" 
                            value="" style="width: 100%;">
                     <small style="color: #94a3b8; margin-top: 10px;">
                         <strong>How to get this URL:</strong>
                         <br>1. Open your Apps Script project
                         <br>2. Click "Deploy" → "All deployments"
-                        <br>3. Copy the URL from the latest deployment
-                        <br>4. Paste it here
+                        <br>3. Copy the URL ending with <strong>/exec</strong> (preferred for API calls)
+                        <br>4. Format: <code>https://script.google.com/macros/s/YOUR_ID/exec</code>
+                        <br>5. Paste it here
                     </small>
                 </div>
 
@@ -697,10 +698,10 @@
                 return;
             }
 
-            if (!url.includes('script.google.com') || !url.includes('/useweb')) {
+            if (!url.includes('script.google.com') || (!url.includes('/exec') && !url.includes('/useweb'))) {
                 document.getElementById('urlStatus').innerHTML = `
                     <div class="alert err">
-                        <i class="fas fa-exclamation-circle"></i> URL doesn't look right. Should contain "script.google.com" and "/useweb"
+                        <i class="fas fa-exclamation-circle"></i> URL doesn't look right. Should contain "script.google.com" and either "/exec" or "/useweb"
                     </div>
                 `;
                 return;
