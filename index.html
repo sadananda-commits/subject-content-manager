@@ -706,13 +706,30 @@
                 </div>
 
                 <!-- ACTION BUTTONS -->
-                <div style="margin-top: 30px; display: flex; gap: 10px;">
-                    <button class="btn btn-ghost" onclick="goToStep2()">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                    <button class="btn btn-primary" onclick="submitQuestions()" id="submitBtn" disabled>
-                        <i class="fas fa-upload"></i> Submit & Upload
-                    </button>
+                <div style="margin-top: 30px;">
+                    <!-- SUBMISSION SUMMARY -->
+                    <div id="submissionSummary" style="display: none; padding: 15px; background: #1e293b; border-radius: 8px; border-left: 4px solid #0ea5e9; margin-bottom: 20px;">
+                        <h3 style="color: #cbd5e1; margin-bottom: 10px;">
+                            <i class="fas fa-check-circle"></i> Ready to Submit
+                        </h3>
+                        <div style="color: #a1a5b3; font-size: 13px;">
+                            <div><strong>Classes:</strong> <span id="summaryClasses"></span></div>
+                            <div><strong>Subject:</strong> <span id="summarySubject"></span></div>
+                            <div><strong>Questions:</strong> <span id="summaryQCount"></span></div>
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #334155;">
+                                <em>Click "Submit & Upload" to proceed</em>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-ghost" onclick="goToStep2()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button class="btn btn-primary" onclick="submitQuestions()" id="submitBtn" disabled>
+                            <i class="fas fa-upload"></i> Submit & Upload
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1423,7 +1440,21 @@
                 </div>
             `).join('');
 
-            document.getElementById('submitBtn').disabled = state.questions.length === 0;
+            // Update submission summary
+            if (state.questions.length > 0) {
+                const selectedClasses = (state.selectedClasses && state.selectedClasses.length > 0) 
+                    ? state.selectedClasses 
+                    : [state.selectedClass];
+                
+                document.getElementById('summaryClasses').textContent = selectedClasses.join(' + ');
+                document.getElementById('summarySubject').textContent = state.selectedSubject || 'Not selected';
+                document.getElementById('summaryQCount').textContent = state.questions.length;
+                document.getElementById('submissionSummary').style.display = 'block';
+                document.getElementById('submitBtn').disabled = false;
+            } else {
+                document.getElementById('submissionSummary').style.display = 'none';
+                document.getElementById('submitBtn').disabled = true;
+            }
         }
 
         function removeQuestion(index) {
@@ -1567,14 +1598,29 @@
 
         function clearExcelPreview() {
             document.getElementById('excelFile').value = '';
-            document.getElementById('excelPreview').innerHTML = '';
+            // Note: Don't clear excelPreview - keep it visible for reference
+            // document.getElementById('excelPreview').innerHTML = '';
             document.getElementById('excelTableContainer').classList.add('hidden');
             document.getElementById('excelButtons').classList.add('hidden');
-            document.getElementById('excelProgress').classList.add('hidden');
-            excelData = [];
+            // Note: Don't clear excelData - in case user wants to retry
+            // excelData = [];
         }
 
+        // ========================================================================
+        // PROCESSING STATE
+        // ========================================================================
+        
+        let isProcessingExcel = false;
+        let isSubmitting = false;
+
         async function confirmExcelUpload() {
+            if (isProcessingExcel) {
+                console.log('⏳ Already processing, please wait...');
+                return;
+            }
+            
+            isProcessingExcel = true;
+            
             const progressStatus = document.getElementById('progressStatus');
             progressStatus.innerHTML = '';
 
@@ -1584,9 +1630,17 @@
             }
 
             try {
+                console.log('📤 Starting Excel upload processing...', excelData.length, 'rows');
                 document.getElementById('excelProgress').classList.remove('hidden');
-
+                
+                // Clear previous questions for fresh import
+                const initialCount = state.questions.length;
+                
                 // Process each row
+                let processedCount = 0;
+                let validCount = 0;
+                let invalidCount = 0;
+
                 for (let i = 0; i < excelData.length; i++) {
                     const row = excelData[i];
                     const percent = Math.round((i / excelData.length) * 100);
@@ -1599,83 +1653,168 @@
                         </div>
                     `;
 
+                    processedCount++;
+                    
+                    // Validate row has required fields
+                    if (!row || Object.keys(row).length === 0) {
+                        console.log('⚠️ Row', i + 1, 'is empty');
+                        continue;
+                    }
+
                     // Determine question type from "Question Type" column
                     let qType = row['Question Type'] || 'MCQ';
                     qType = qType.toUpperCase().trim();
 
-                    if (qType.includes('MCQ') || qType.includes('MULTIPLE')) {
-                        const q = {
-                            type: 'MCQ',
-                            moduleTitle: row['Module Title'] || state.selectedChapter,
-                            question: row['Question'] || '',
-                            optionA: row['Option A'] || row['A'] || '',
-                            optionB: row['Option B'] || row['B'] || '',
-                            optionC: row['Option C'] || row['C'] || '',
-                            optionD: row['Option D'] || row['D'] || '',
-                            correctAnswer: row['Correct Answer'] || row['Correct Option'] || 'A',
-                            explanation: row['Explanation'] || ''
-                        };
+                    console.log('📝 Row', i + 1, '- Type:', qType, 'Title:', row['Module Title']);
 
-                        if (q.question && q.optionA && q.optionB && q.optionC && q.optionD) {
+                    if (qType.includes('MCQ') || qType.includes('MULTIPLE')) {
+                        // MCQ Question
+                        const question = (row['Question'] || '').toString().trim();
+                        const optA = (row['Option A'] || row['A'] || '').toString().trim();
+                        const optB = (row['Option B'] || row['B'] || '').toString().trim();
+                        const optC = (row['Option C'] || row['C'] || '').toString().trim();
+                        const optD = (row['Option D'] || row['D'] || '').toString().trim();
+
+                        if (question && optA && optB && optC && optD) {
+                            const q = {
+                                type: 'MCQ',
+                                moduleTitle: (row['Module Title'] || state.selectedChapter || 'Untitled').toString().trim(),
+                                question: question,
+                                optionA: optA,
+                                optionB: optB,
+                                optionC: optC,
+                                optionD: optD,
+                                correctAnswer: (row['Correct Answer'] || row['Correct Option'] || 'A').toString().toUpperCase(),
+                                explanation: (row['Explanation'] || '').toString().trim(),
+                                teaching: (row['Teaching Notes'] || row['Teaching'] || '').toString().trim()
+                            };
+                            
                             state.questions.push(q);
+                            validCount++;
+                            console.log('✅ Row', i + 1, 'MCQ added');
                         } else {
+                            invalidCount++;
+                            const missing = [];
+                            if (!question) missing.push('Question');
+                            if (!optA) missing.push('Option A');
+                            if (!optB) missing.push('Option B');
+                            if (!optC) missing.push('Option C');
+                            if (!optD) missing.push('Option D');
+                            
                             progressStatus.innerHTML += `
                                 <div class="status-message warning">
-                                    <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: Incomplete MCQ
+                                    <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: Missing ${missing.join(', ')}
                                 </div>
                             `;
+                            console.log('⚠️ Row', i + 1, 'MCQ invalid - missing:', missing.join(', '));
                         }
                     } else if (qType.includes('MATCH')) {
+                        // Match Question
+                        const question = (row['Question'] || '').toString().trim();
                         let pairs = [];
+                        
                         for (let j = 1; j <= 10; j++) {
-                            const left = row[`Left ${j}`] || '';
-                            const right = row[`Right ${j}`] || '';
+                            const left = (row[`Left ${j}`] || '').toString().trim();
+                            const right = (row[`Right ${j}`] || '').toString().trim();
                             if (left && right) {
                                 pairs.push({ left, right });
                             }
                         }
 
-                        if (pairs.length >= 2) {
+                        if (question && pairs.length >= 2) {
                             const q = {
                                 type: 'Match the Following',
-                                moduleTitle: row['Module Title'] || state.selectedChapter,
-                                question: row['Question'] || '',
-                                pairs,
-                                explanation: row['Explanation'] || ''
+                                moduleTitle: (row['Module Title'] || state.selectedChapter || 'Untitled').toString().trim(),
+                                question: question,
+                                pairs: pairs,
+                                explanation: (row['Explanation'] || '').toString().trim(),
+                                teaching: (row['Teaching Notes'] || row['Teaching'] || '').toString().trim()
                             };
+                            
                             state.questions.push(q);
+                            validCount++;
+                            console.log('✅ Row', i + 1, 'Match added with', pairs.length, 'pairs');
                         } else {
+                            invalidCount++;
+                            const issues = [];
+                            if (!question) issues.push('Question');
+                            if (pairs.length < 2) issues.push(`Only ${pairs.length} pairs (need min 2)`);
+                            
                             progressStatus.innerHTML += `
                                 <div class="status-message warning">
-                                    <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: Match needs minimum 2 pairs
+                                    <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: ${issues.join(' - ')}
                                 </div>
                             `;
+                            console.log('⚠️ Row', i + 1, 'Match invalid:', issues.join(' - '));
                         }
+                    } else {
+                        invalidCount++;
+                        progressStatus.innerHTML += `
+                            <div class="status-message warning">
+                                <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: Unknown question type "${qType}"
+                            </div>
+                        `;
+                        console.log('⚠️ Row', i + 1, 'Unknown type:', qType);
                     }
 
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
 
+                // Final status
                 document.getElementById('progressPercent').textContent = '100';
                 document.getElementById('progressFill').style.width = '100%';
-                progressStatus.innerHTML = `
-                    <div class="status-message success">
-                        <i class="fas fa-check-circle"></i> Completed! ${state.questions.length} questions added
-                    </div>
-                `;
+                
+                const newCount = state.questions.length - initialCount;
+                console.log('✅ Excel import complete:', newCount, 'new questions added, Total:', state.questions.length);
 
-                clearExcelPreview();
-                showQuestions();
-                document.getElementById('submitBtn').disabled = false;
+                if (newCount > 0) {
+                    progressStatus.innerHTML = `
+                        <div class="alert ok">
+                            <i class="fas fa-check-circle"></i> 
+                            <strong>Success!</strong> ${newCount} questions added from Excel
+                            <br><small style="color: #94a3b8; margin-top: 8px;">
+                                ${validCount} valid questions loaded, ${invalidCount} skipped due to errors
+                            </small>
+                        </div>
+                    `;
+                    
+                    // Don't clear Excel UI - let user see what was loaded
+                    // clearExcelPreview();
+                    showQuestions();
+                    document.getElementById('submitBtn').disabled = false;
+                    
+                    // Hide the upload buttons and show submit button
+                    document.getElementById('excelButtons').classList.add('hidden');
+                } else {
+                    progressStatus.innerHTML = `
+                        <div class="alert err">
+                            <i class="fas fa-circle-exclamation"></i> 
+                            <strong>No valid questions found!</strong>
+                            <br><small>Check that all required columns exist and data is complete</small>
+                        </div>
+                    `;
+                    console.error('❌ No valid questions loaded from Excel');
+                }
 
             } catch (err) {
-                console.error('Error in confirmExcelUpload:', err);
+                console.error('❌ Error in confirmExcelUpload:', err);
+                console.error('Stack:', err.stack);
                 document.getElementById('progressStatus').innerHTML = `
                     <div class="alert err">
                         <i class="fas fa-circle-exclamation"></i>
-                        <strong>Error:</strong> ${err.message}
+                        <strong>Error Processing File:</strong> ${err.message}
+                        <p style="margin-top: 10px; font-size: 12px;">
+                            Check console (F12) for details. Make sure:
+                            <ul style="margin-left: 20px;">
+                                <li>File is valid Excel (.xlsx)</li>
+                                <li>Column headers match template</li>
+                                <li>All required fields are filled</li>
+                            </ul>
+                        </p>
                     </div>
                 `;
+            } finally {
+                isProcessingExcel = false;
             }
         }
 
@@ -1752,19 +1891,24 @@
         // ========================================================================
 
         async function submitQuestions() {
+            if (isSubmitting) {
+                console.log('⏳ Already submitting, please wait...');
+                alert('Submission already in progress, please wait...');
+                return;
+            }
+
             if (state.questions.length === 0) {
-                alert('Add questions first');
+                alert('❌ No questions to upload. Please add questions first.');
                 return;
             }
 
             if (!state.selectedClass || !state.selectedSubject) {
-                alert('Select class and subject');
+                alert('❌ Please select class and subject');
                 return;
             }
 
-            // Chapter is optional - auto-detected from Excel or manual entry
-            // Chapter selection can be null
-
+            isSubmitting = true;
+            
             try {
                 document.getElementById('submitBtn').disabled = true;
                 
@@ -1773,43 +1917,95 @@
                     ? state.selectedClasses 
                     : [state.selectedClass];
 
-                console.log('📤 Submitting to classes:', selectedClasses);
+                console.log('📤 Starting submission...');
+                console.log('Classes:', selectedClasses);
+                console.log('Subject:', state.selectedSubject);
+                console.log('Questions:', state.questions.length);
                 
                 let totalUploaded = 0;
+                const failedClasses = [];
                 
                 // Upload to each selected class
                 for (const classLevel of selectedClasses) {
-                    const response = await fetch(state.scriptUrl, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'uploadQuestions',
-                            class: classLevel,
-                            subject: state.selectedSubject,
-                            questions: state.questions,
-                            secret: state.secret
-                        })
-                    });
+                    try {
+                        console.log(`📤 Uploading to ${classLevel}...`);
+                        
+                        const response = await fetch(state.scriptUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'uploadQuestions',
+                                class: classLevel,
+                                subject: state.selectedSubject,
+                                questions: state.questions,
+                                secret: state.secret
+                            })
+                        });
 
-                    const result = await response.json();
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
 
-                    if (result.uploadedCount !== undefined) {
-                        totalUploaded += result.uploadedCount;
-                        console.log(`✅ Uploaded ${result.uploadedCount} questions to ${classLevel}`);
-                    } else {
-                        throw new Error(`Upload to ${classLevel} failed: ${JSON.stringify(result)}`);
+                        const result = await response.json();
+
+                        if (result.error) {
+                            // Backend now reports a real reason (missing Class Subject Map
+                            // entry, missing tab/column, etc.) instead of silently
+                            // returning 0 as if nothing were wrong.
+                            throw new Error(result.error);
+                        }
+
+                        const uploaded = result.uploadedCount || 0;
+                        const total = result.totalQuestions !== undefined ? result.totalQuestions : state.questions.length;
+
+                        if (uploaded === 0) {
+                            throw new Error('0 of ' + total + ' questions were uploaded. ' +
+                                (result.errors && result.errors.length ? result.errors.join(' | ') : 'No further detail was returned - check Apps Script Executions log.'));
+                        }
+
+                        totalUploaded += uploaded;
+
+                        if (uploaded < total) {
+                            // Partial success within this single class - still record it
+                            // as a failure so the summary below is accurate, but don't
+                            // lose the count of what DID make it through.
+                            const detail = (result.errors && result.errors.length) ? result.errors.join(' | ') : 'some rows were rejected';
+                            failedClasses.push(`${classLevel}: only ${uploaded}/${total} uploaded - ${detail}`);
+                        } else {
+                            console.log(`✅ Uploaded ${uploaded} questions to ${classLevel}`);
+                        }
+                    } catch (classErr) {
+                        console.error(`❌ Failed to upload to ${classLevel}:`, classErr);
+                        failedClasses.push(`${classLevel}: ${classErr.message}`);
                     }
                 }
 
-                alert(`✅ Successfully uploaded ${totalUploaded} questions to ${selectedClasses.length} class(es)!`);
-                state.questions = [];
-                state.selectedClasses = [];
-                showQuestions();
-                goToStep1();
+                // Show results
+                if (failedClasses.length === 0) {
+                    // All successful
+                    alert(`✅ SUCCESS!\n\n${totalUploaded} questions uploaded to ${selectedClasses.length} class(es)!\n\n${selectedClasses.join(' + ')}`);
+                    console.log('✅ All uploads successful!');
+                    
+                    // Clear and reset
+                    state.questions = [];
+                    state.selectedClasses = [];
+                    excelData = [];
+                    showQuestions();
+                    goToStep1();
+                } else if (failedClasses.length < selectedClasses.length) {
+                    // Partial success
+                    const successCount = selectedClasses.length - failedClasses.length;
+                    alert(`⚠️ PARTIAL SUCCESS\n\n${totalUploaded} questions uploaded to ${successCount} class(es).\n\nFailed:\n${failedClasses.join('\n')}`);
+                    console.log('⚠️ Partial upload completed');
+                } else {
+                    // All failed
+                    throw new Error(`Failed to upload to all classes:\n${failedClasses.join('\n')}`);
+                }
             } catch (err) {
-                console.error('Error submitting:', err);
-                alert('Error: ' + err.message);
+                console.error('❌ Error submitting:', err);
+                alert(`❌ ERROR: ${err.message}\n\nPlease check:\n1. Internet connection\n2. Backend URL (⚙️ Settings)\n3. Browser console (F12) for details`);
             } finally {
                 document.getElementById('submitBtn').disabled = false;
+                isSubmitting = false;
             }
         }
 
