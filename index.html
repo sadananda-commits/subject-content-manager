@@ -78,6 +78,9 @@
     .stat-card { background: #1c2638; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #26324a; }
     .stat-card .number { font-size: 20px; font-weight: 700; color: #00c6a7; }
     .stat-card .label { font-size: 11px; color: #8b97ad; margin-top: 5px; }
+    
+    /* Multi-class badge */
+    .class-badge { background: #00c6a7; color: #06231d; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -117,8 +120,8 @@
 
       <!-- STEP 1: SELECT CLASS & SUBJECT -->
       <div class="card" id="step1">
-        <h1>📚 Step 1: Select Class & Subject</h1>
-        <p class="subtitle">Choose where to upload questions</p>
+        <h1>📚 Step 1: Select Class(es) & Subject</h1>
+        <p class="subtitle">Choose which class(es) and subject to upload questions to</p>
         
         <div class="grid2">
           <div class="field">
@@ -135,9 +138,40 @@
           </div>
         </div>
 
-        <!-- Module Info Panel -->
+        <!-- Selected Classes Display -->
+        <div id="selectedClassesPanel" class="hidden" style="margin-top: 20px;">
+          <h3 style="color: #00c6a7; margin-bottom: 10px;">
+            <i class="fa-solid fa-check-circle"></i> Selected Classes for Upload
+          </h3>
+          <div id="selectedClassesList" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+          <button class="btn btn-ghost btn-small" onclick="addMoreClass()" style="margin-top: 12px;">
+            <i class="fa-solid fa-plus"></i> Add Another Class
+          </button>
+        </div>
+
+        <!-- Add More Classes Dropdown -->
+        <div id="addClassPanel" class="hidden" style="margin-top: 20px;">
+          <div class="field">
+            <label>Add Another Class for Same Subject</label>
+            <div style="display: flex; gap: 8px;">
+              <select id="additionalClass" style="flex: 1;">
+                <option value="">Choose a class...</option>
+              </select>
+              <button class="btn btn-primary btn-small" onclick="confirmAddClass()">Add</button>
+              <button class="btn btn-ghost btn-small" onclick="cancelAddClass()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module Info Panel (Optional/Informational) -->
         <div id="moduleInfoPanel" class="hidden" style="margin-top: 20px;">
-          <h2>📋 Module Information for this Subject</h2>
+          <h2 style="margin-top: 0;">
+            <i class="fa-solid fa-info-circle"></i> Current Module Status
+            <button class="btn btn-ghost btn-small" onclick="toggleModuleInfo()" style="float: right; font-size: 12px;">
+              <i class="fa-solid fa-chevron-down" id="moduleToggleIcon"></i>
+            </button>
+          </h2>
+          <p style="color: #8b97ad; font-size: 12px; margin-top: -5px;">Shows existing modules in this subject (optional reference)</p>
           <div id="moduleInfoContent"></div>
         </div>
 
@@ -449,11 +483,12 @@
     const state = {
       scriptUrl: localStorage.getItem('scriptUrl') || '',
       secret: localStorage.getItem('secret') || '123456',
-      selectedClass: '',
+      selectedClasses: [], // Changed to array for multi-class
       selectedSubject: '',
       questions: [],
       step: 1,
-      matchPairs: []
+      matchPairs: [],
+      allClasses: [] // Store all available classes
     };
 
     let excelData = [];
@@ -533,6 +568,7 @@
         const data = await res.json();
 
         if (data.success && data.classes) {
+          state.allClasses = data.classes; // Store for later use
           const sel = document.getElementById('selClass');
           sel.innerHTML = '<option value="">Select a class</option>' +
             data.classes.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -544,12 +580,22 @@
 
     async function loadSubjects() {
       const cls = document.getElementById('selClass').value;
-      state.selectedClass = cls;
 
       if (!cls) {
         document.getElementById('selSubject').innerHTML = '<option value="">Select class first</option>';
+        document.getElementById('selectedClassesPanel').classList.add('hidden');
+        document.getElementById('addClassPanel').classList.add('hidden');
         return;
       }
+
+      // Add to selected classes if not already there
+      if (!state.selectedClasses.includes(cls)) {
+        state.selectedClasses = [cls]; // Reset and add the first class
+      }
+
+      // Show selected classes panel
+      updateSelectedClassesDisplay();
+      document.getElementById('selectedClassesPanel').classList.remove('hidden');
 
       try {
         const res = await fetch(state.scriptUrl, {
@@ -569,6 +615,78 @@
       }
     }
 
+    // ========== MULTI-CLASS FUNCTIONS ==========
+    
+    function updateSelectedClassesDisplay() {
+      const list = document.getElementById('selectedClassesList');
+      list.innerHTML = state.selectedClasses.map((cls, i) => `
+        <div style="background: #00c6a7; color: #06231d; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+          <strong>${cls}</strong>
+          <button class="btn btn-ghost btn-small" onclick="removeSelectedClass(${i})" style="color: #06231d; border: none; padding: 0 4px;">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function addMoreClass() {
+      const panel = document.getElementById('addClassPanel');
+      const dropdown = document.getElementById('additionalClass');
+      
+      // Get available classes (those not already selected)
+      const availableClasses = state.allClasses.filter(cls => !state.selectedClasses.includes(cls));
+      
+      dropdown.innerHTML = '<option value="">Choose a class...</option>' +
+        availableClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+      
+      panel.classList.remove('hidden');
+    }
+
+    function confirmAddClass() {
+      const cls = document.getElementById('additionalClass').value;
+      
+      if (!cls) {
+        alert('Please select a class');
+        return;
+      }
+
+      if (!state.selectedClasses.includes(cls)) {
+        state.selectedClasses.push(cls);
+      }
+
+      updateSelectedClassesDisplay();
+      document.getElementById('addClassPanel').classList.add('hidden');
+      document.getElementById('additionalClass').value = '';
+    }
+
+    function cancelAddClass() {
+      document.getElementById('addClassPanel').classList.add('hidden');
+      document.getElementById('additionalClass').value = '';
+    }
+
+    function removeSelectedClass(index) {
+      state.selectedClasses.splice(index, 1);
+      
+      if (state.selectedClasses.length === 0) {
+        document.getElementById('selectedClassesPanel').classList.add('hidden');
+        document.getElementById('addClassPanel').classList.add('hidden');
+      } else {
+        updateSelectedClassesDisplay();
+      }
+    }
+
+    function toggleModuleInfo() {
+      const content = document.getElementById('moduleInfoContent');
+      const icon = document.getElementById('moduleToggleIcon');
+      
+      content.classList.toggle('hidden');
+      if (content.classList.contains('hidden')) {
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-right');
+      } else {
+        icon.classList.remove('fa-chevron-right');
+        icon.classList.add('fa-chevron-down');
+      }
+    }
+
     async function loadModuleInfo() {
       const subject = document.getElementById('selSubject').value;
       state.selectedSubject = subject;
@@ -579,12 +697,16 @@
         return;
       }
 
+      // Load module info for first selected class
+      const classToCheck = state.selectedClasses[0] || '';
+      if (!classToCheck) return;
+
       try {
         const res = await fetch(state.scriptUrl, {
           method: 'POST',
           body: JSON.stringify({
             action: 'getModuleInfo',
-            class: state.selectedClass,
+            class: classToCheck,
             subject: subject,
             secret: state.secret
           })
@@ -608,7 +730,7 @@
             `).join('');
             document.getElementById('reorganiseBtn').classList.remove('hidden');
           } else {
-            content.innerHTML = '<div class="alert info"><i class="fa-solid fa-info-circle"></i> No existing modules for this subject</div>';
+            content.innerHTML = '<div style="padding: 12px; background: #1c2638; border-radius: 8px; font-size: 13px; color: #8b97ad;"><i class="fa-solid fa-lightbulb"></i> <strong>No existing modules yet.</strong> New questions will create fresh modules starting from ID #01.</div>';
             document.getElementById('reorganiseBtn').classList.add('hidden');
           }
 
@@ -641,10 +763,16 @@
           alert('Select a subject first');
           return;
         }
+        if (state.selectedClasses.length === 0) {
+          alert('Select at least one class first');
+          return;
+        }
         document.getElementById('step1').classList.add('hidden');
         document.getElementById('step2').classList.remove('hidden');
         document.getElementById('step3').classList.add('hidden');
-        document.getElementById('step2Subtitle').textContent = `Adding to ${state.selectedClass} > ${state.selectedSubject}`;
+        
+        const classesText = state.selectedClasses.join(', ');
+        document.getElementById('step2Subtitle').textContent = `Adding to ${classesText} > ${state.selectedSubject}`;
       } else if (n === 3) {
         if (state.questions.length === 0) {
           alert('Add questions first');
@@ -1151,7 +1279,7 @@
       const statCount = document.getElementById('statCount');
       const statModules = document.getElementById('statModules');
 
-      statClass.textContent = state.selectedClass;
+      statClass.textContent = state.selectedClasses.join(', ');
       statSubject.textContent = state.selectedSubject;
       statCount.textContent = state.questions.length;
 
@@ -1184,54 +1312,66 @@
       const uploadFill = document.getElementById('uploadProgressFill');
 
       uploadProgress.classList.remove('hidden');
-      uploadTotal.textContent = state.questions.length;
+      // Calculate total uploads: questions × number of classes
+      const totalUploads = state.questions.length * state.selectedClasses.length;
+      uploadTotal.textContent = totalUploads;
       uploadStatus.innerHTML = '';
 
       try {
-        const payload = {
-          action: 'uploadQuestions',
-          secret: state.secret,
-          class: state.selectedClass,
-          subject: state.selectedSubject,
-          questions: state.questions
-        };
-
-        // For large batches, send in chunks with progress updates
+        let totalUploaded = 0;
         const chunkSize = 10;
-        let uploaded = 0;
 
-        for (let i = 0; i < state.questions.length; i += chunkSize) {
-          const chunk = state.questions.slice(i, Math.min(i + chunkSize, state.questions.length));
-          const chunkPayload = { ...payload, questions: chunk };
-
-          const res = await fetch(state.scriptUrl, {
-            method: 'POST',
-            body: JSON.stringify(chunkPayload)
-          });
-
-          const data = await res.json();
-
-          uploaded += chunk.length;
-          uploadCurrent.textContent = uploaded;
-          const percent = Math.round((uploaded / state.questions.length) * 100);
-          uploadFill.style.width = percent + '%';
-
+        // Upload to each class
+        for (let classIdx = 0; classIdx < state.selectedClasses.length; classIdx++) {
+          const currentClass = state.selectedClasses[classIdx];
+          
           uploadStatus.innerHTML += `
-            <div class="status-message success">
-              <i class="fa-solid fa-check-circle"></i> Batch ${Math.floor(i / chunkSize) + 1}: ${chunk.length} questions uploaded
+            <div class="status-message info" style="margin-top: 10px;">
+              <i class="fa-solid fa-info-circle"></i> Uploading to <strong>${currentClass}</strong>...
             </div>
           `;
 
-          if (!data.success && i === 0) {
-            throw new Error(data.message || 'Upload failed');
+          // Upload questions in chunks for this class
+          for (let i = 0; i < state.questions.length; i += chunkSize) {
+            const chunk = state.questions.slice(i, Math.min(i + chunkSize, state.questions.length));
+            const chunkPayload = {
+              action: 'uploadQuestions',
+              secret: state.secret,
+              class: currentClass,
+              subject: state.selectedSubject,
+              questions: chunk
+            };
+
+            const res = await fetch(state.scriptUrl, {
+              method: 'POST',
+              body: JSON.stringify(chunkPayload)
+            });
+
+            const data = await res.json();
+
+            totalUploaded += chunk.length;
+            uploadCurrent.textContent = totalUploaded;
+            const percent = Math.round((totalUploaded / totalUploads) * 100);
+            uploadFill.style.width = percent + '%';
+
+            if (!data.success && i === 0 && classIdx === 0) {
+              throw new Error(data.message || 'Upload failed');
+            }
           }
+
+          uploadStatus.innerHTML += `
+            <div class="status-message success">
+              <i class="fa-solid fa-check-circle"></i> <strong>${currentClass}</strong>: ${state.questions.length} questions uploaded ✓
+            </div>
+          `;
         }
 
         document.getElementById('result').innerHTML = `
           <div class="alert ok">
             <i class="fa-solid fa-circle-check"></i>
             <div>
-              <strong>✓ Success!</strong> All ${state.questions.length} questions uploaded successfully
+              <strong>✓ Success!</strong> All ${state.questions.length} questions uploaded to ${state.selectedClasses.length} class(es)
+              <br><strong>Total:</strong> ${totalUploads} question uploads completed
               <br><small>Redirecting in 3 seconds...</small>
             </div>
           </div>
@@ -1255,8 +1395,12 @@
     // ============================================================================
 
     function showReorganiseDialog() {
+      const classesText = state.selectedClasses.join(', ');
       const confirmed = confirm(`
-Reorganise existing questions in ${state.selectedSubject}?
+Reorganise existing questions?
+
+Subject: ${state.selectedSubject}
+Classes: ${classesText}
 
 This will:
 ✓ Reorganise all Learning Steps for this subject
@@ -1278,33 +1422,46 @@ Continue?
       reorganiseBtn.innerHTML = '<span class="spinner"></span> Reorganising...';
 
       try {
-        const payload = {
-          action: 'reorganise',
-          secret: state.secret,
-          class: state.selectedClass,
-          subject: state.selectedSubject
+        let totalResults = {
+          stepsMoved: 0,
+          duplicatesFound: 0,
+          modulesOptimized: 0
         };
 
-        const res = await fetch(state.scriptUrl, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
+        // Reorganise for each selected class
+        for (const selectedClass of state.selectedClasses) {
+          const payload = {
+            action: 'reorganise',
+            secret: state.secret,
+            class: selectedClass,
+            subject: state.selectedSubject
+          };
 
-        const data = await res.json();
+          const res = await fetch(state.scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
 
-        if (data.success) {
-          alert(`✓ Reorganisation Complete!
+          const data = await res.json();
 
-${data.stepsMoved || 0} steps reorganised
-${data.duplicatesFound || 0} duplicates identified
-${data.modulesOptimized || 0} modules optimized
+          if (data.success) {
+            totalResults.stepsMoved += data.stepsMoved || 0;
+            totalResults.duplicatesFound += data.duplicatesFound || 0;
+            totalResults.modulesOptimized += data.modulesOptimized || 0;
+          } else {
+            throw new Error(data.message || 'Reorganisation failed');
+          }
+        }
+
+        alert(`✓ Reorganisation Complete!
+
+${totalResults.stepsMoved} steps reorganised
+${totalResults.duplicatesFound} duplicates identified
+${totalResults.modulesOptimized} modules optimized
 
 Changes have been applied to your Google Sheet.`);
-          
-          loadModuleInfo(); // Reload module info
-        } else {
-          throw new Error(data.message || 'Reorganisation failed');
-        }
+        
+        loadModuleInfo(); // Reload module info
       } catch (err) {
         alert('✗ Error: ' + err.message);
       } finally {
