@@ -6,6 +6,7 @@
   <title>Subject Content Manager</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; padding: 20px; background: #0d1320; color: #e8edf6; font-family: 'Inter', sans-serif; }
@@ -27,6 +28,10 @@
     .hidden { display: none !important; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     textarea { resize: vertical; min-height: 80px; }
+    .tab-btn { background: none; border: none; color: #8b97ad; cursor: pointer; padding: 10px 15px; font-weight: 600; border-bottom: 2px solid transparent; }
+    .tab-btn.active { color: #00c6a7; border-bottom-color: #00c6a7; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
   </style>
 </head>
 <body>
@@ -89,129 +94,163 @@
       <div class="card hidden" id="step2">
         <h1>Step 2: Add Questions</h1>
         
-        <div class="field">
-          <label>Question Type</label>
-          <select id="qType">
-            <option value="MCQ">Multiple Choice (MCQ)</option>
-            <option value="Match">Match the Following</option>
-          </select>
+        <!-- Tabs for Manual vs Excel -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #26324a; padding-bottom: 15px;">
+          <button onclick="switchTab('manual')" class="tab-btn active">
+            <i class="fa-solid fa-pen"></i> Manual Entry
+          </button>
+          <button onclick="switchTab('excel')" class="tab-btn">
+            <i class="fa-solid fa-file-excel"></i> Upload Excel
+          </button>
         </div>
 
-        <!-- MCQ Form -->
-        <div id="mcqForm">
-          <div class="grid2">
-            <div class="field">
-              <label>Module ID</label>
-              <input type="text" id="mcqMod" placeholder="MOD01">
-            </div>
-            <div class="field">
-              <label>Step Number</label>
-              <input type="number" id="mcqStep" placeholder="1">
-            </div>
-          </div>
-
+        <!-- MANUAL TAB -->
+        <div id="tab-manual" class="tab-content" style="display: block;">
           <div class="field">
-            <label>Question</label>
-            <textarea id="mcqQ" placeholder="What is...?"></textarea>
-          </div>
-
-          <div class="grid2">
-            <div class="field">
-              <label>A)</label>
-              <input type="text" id="mcqA" placeholder="Option A">
-            </div>
-            <div class="field">
-              <label>B)</label>
-              <input type="text" id="mcqB" placeholder="Option B">
-            </div>
-            <div class="field">
-              <label>C)</label>
-              <input type="text" id="mcqC" placeholder="Option C">
-            </div>
-            <div class="field">
-              <label>D)</label>
-              <input type="text" id="mcqD" placeholder="Option D">
-            </div>
-          </div>
-
-          <div class="field">
-            <label>Correct Answer</label>
-            <select id="mcqCorrect">
-              <option>A</option>
-              <option>B</option>
-              <option>C</option>
-              <option>D</option>
+            <label>Question Type</label>
+            <select id="qType">
+              <option value="MCQ">Multiple Choice (MCQ)</option>
+              <option value="Match">Match the Following</option>
             </select>
           </div>
 
-          <button class="btn btn-primary" onclick="addMCQ()">+ Add MCQ</button>
+          <!-- MCQ Form -->
+          <div id="mcqForm">
+            <div class="grid2">
+              <div class="field">
+                <label>Module ID (auto-generated or override)</label>
+                <input type="text" id="mcqMod" placeholder="AUTO">
+                <small style="color: #8b97ad; font-size: 11px; margin-top: 5px; display: block;">Leave blank for auto-generation</small>
+              </div>
+              <div class="field">
+                <label>Step Number</label>
+                <input type="number" id="mcqStep" placeholder="1">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Question</label>
+              <textarea id="mcqQ" placeholder="What is...?"></textarea>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label>A)</label>
+                <input type="text" id="mcqA" placeholder="Option A">
+              </div>
+              <div class="field">
+                <label>B)</label>
+                <input type="text" id="mcqB" placeholder="Option B">
+              </div>
+              <div class="field">
+                <label>C)</label>
+                <input type="text" id="mcqC" placeholder="Option C">
+              </div>
+              <div class="field">
+                <label>D)</label>
+                <input type="text" id="mcqD" placeholder="Option D">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Correct Answer</label>
+              <select id="mcqCorrect">
+                <option>A</option>
+                <option>B</option>
+                <option>C</option>
+                <option>D</option>
+              </select>
+            </div>
+
+            <button class="btn btn-primary" onclick="addMCQ()">+ Add MCQ</button>
+          </div>
+
+          <!-- Match Form -->
+          <div id="matchForm" class="hidden">
+            <div class="grid2">
+              <div class="field">
+                <label>Module ID (auto-generated or override)</label>
+                <input type="text" id="matchMod" placeholder="AUTO">
+                <small style="color: #8b97ad; font-size: 11px; margin-top: 5px; display: block;">Leave blank for auto-generation</small>
+              </div>
+              <div class="field">
+                <label>Step Number</label>
+                <input type="number" id="matchStep" placeholder="1">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Question</label>
+              <textarea id="matchQ" placeholder="Match the following..."></textarea>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label>Left 1</label>
+                <input type="text" id="ml1">
+              </div>
+              <div class="field">
+                <label>Right 1</label>
+                <input type="text" id="mr1">
+              </div>
+              <div class="field">
+                <label>Left 2</label>
+                <input type="text" id="ml2">
+              </div>
+              <div class="field">
+                <label>Right 2</label>
+                <input type="text" id="mr2">
+              </div>
+              <div class="field">
+                <label>Left 3</label>
+                <input type="text" id="ml3">
+              </div>
+              <div class="field">
+                <label>Right 3</label>
+                <input type="text" id="mr3">
+              </div>
+              <div class="field">
+                <label>Left 4</label>
+                <input type="text" id="ml4">
+              </div>
+              <div class="field">
+                <label>Right 4</label>
+                <input type="text" id="mr4">
+              </div>
+              <div class="field">
+                <label>Left 5</label>
+                <input type="text" id="ml5">
+              </div>
+              <div class="field">
+                <label>Right 5</label>
+                <input type="text" id="mr5">
+              </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="addMatch()">+ Add Match</button>
+          </div>
+
+          <div id="qList" style="margin-top: 20px;"></div>
         </div>
 
-        <!-- Match Form -->
-        <div id="matchForm" class="hidden">
-          <div class="grid2">
-            <div class="field">
-              <label>Module ID</label>
-              <input type="text" id="matchMod" placeholder="MOD01">
-            </div>
-            <div class="field">
-              <label>Step Number</label>
-              <input type="number" id="matchStep" placeholder="1">
-            </div>
+        <!-- EXCEL TAB -->
+        <div id="tab-excel" class="tab-content" style="display: none;">
+          <div style="background: #1c2638; border: 2px dashed #26324a; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer;" onclick="document.getElementById('excelFile').click()">
+            <div style="font-size: 32px; margin-bottom: 10px;"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <strong>Click to upload Excel file</strong>
+            <p style="color: #8b97ad; margin-top: 10px; font-size: 12px;">
+              Supported formats: .xlsx, .xls, .csv<br>
+              <strong>Column names:</strong> Module ID (optional), Step Number, Question, A, B, C, D, Correct Answer
+            </p>
+            <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)" style="display: none;">
           </div>
 
-          <div class="field">
-            <label>Question</label>
-            <textarea id="matchQ" placeholder="Match the following..."></textarea>
-          </div>
+          <div id="excelPreview" style="margin-top: 20px;"></div>
+          
+          <div id="excelQList" style="margin-top: 20px;"></div>
 
-          <div class="grid2">
-            <div class="field">
-              <label>Left 1</label>
-              <input type="text" id="ml1">
-            </div>
-            <div class="field">
-              <label>Right 1</label>
-              <input type="text" id="mr1">
-            </div>
-            <div class="field">
-              <label>Left 2</label>
-              <input type="text" id="ml2">
-            </div>
-            <div class="field">
-              <label>Right 2</label>
-              <input type="text" id="mr2">
-            </div>
-            <div class="field">
-              <label>Left 3</label>
-              <input type="text" id="ml3">
-            </div>
-            <div class="field">
-              <label>Right 3</label>
-              <input type="text" id="mr3">
-            </div>
-            <div class="field">
-              <label>Left 4</label>
-              <input type="text" id="ml4">
-            </div>
-            <div class="field">
-              <label>Right 4</label>
-              <input type="text" id="mr4">
-            </div>
-            <div class="field">
-              <label>Left 5</label>
-              <input type="text" id="ml5">
-            </div>
-            <div class="field">
-              <label>Right 5</label>
-              <input type="text" id="mr5">
-            </div>
-          </div>
-
-          <button class="btn btn-primary" onclick="addMatch()">+ Add Match</button>
+          <button class="btn btn-primary" onclick="confirmExcelUpload()" style="margin-top: 20px;">✓ Confirm & Load Questions</button>
         </div>
-
-        <div id="qList" style="margin-top: 20px;"></div>
 
         <div style="margin-top: 20px; display: flex; gap: 10px;">
           <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
@@ -325,11 +364,36 @@
       }
     }
 
-    // Add MCQ
+    // Add XLSX library at top
+    let excelData = [];
+
+    // Generate Module ID from subject (first 4 letters + sequential number)
+    function generateModuleId(subject, sequenceNum) {
+      const prefix = subject.substring(0, 4).toUpperCase();
+      return prefix + String(sequenceNum).padStart(2, '0');
+    }
+
+    // Tab switching
+    function switchTab(tab) {
+      if (tab === 'manual') {
+        document.getElementById('tab-manual').style.display = 'block';
+        document.getElementById('tab-excel').style.display = 'none';
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.querySelectorAll('.tab-btn')[1].classList.remove('active');
+      } else {
+        document.getElementById('tab-manual').style.display = 'none';
+        document.getElementById('tab-excel').style.display = 'block';
+        document.querySelectorAll('.tab-btn')[0].classList.remove('active');
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      }
+    }
+
+    // Add MCQ - with auto module ID if left blank
     function addMCQ() {
+      const moduleId = document.getElementById('mcqMod').value.trim() || generateModuleId(state.selectedSubject, state.questions.length + 1);
       const q = {
         type: 'MCQ',
-        moduleId: document.getElementById('mcqMod').value,
+        moduleId: moduleId,
         stepNum: document.getElementById('mcqStep').value,
         question: document.getElementById('mcqQ').value,
         optA: document.getElementById('mcqA').value,
@@ -348,14 +412,19 @@
       document.getElementById('mcqMod').value = '';
       document.getElementById('mcqStep').value = '';
       document.getElementById('mcqQ').value = '';
+      document.getElementById('mcqA').value = '';
+      document.getElementById('mcqB').value = '';
+      document.getElementById('mcqC').value = '';
+      document.getElementById('mcqD').value = '';
       showQuestions();
     }
 
-    // Add Match
+    // Add Match - with auto module ID if left blank
     function addMatch() {
+      const moduleId = document.getElementById('matchMod').value.trim() || generateModuleId(state.selectedSubject, state.questions.length + 1);
       const q = {
         type: 'Match',
-        moduleId: document.getElementById('matchMod').value,
+        moduleId: moduleId,
         stepNum: document.getElementById('matchStep').value,
         question: document.getElementById('matchQ').value,
         left1: document.getElementById('ml1').value,
@@ -374,14 +443,100 @@
       showQuestions();
     }
 
+    // Handle Excel Upload
+    function handleExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const workbook = XLSX.read(e.target.result, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const data = XLSX.utils.sheet_to_json(worksheet);
+
+          excelData = data;
+          
+          // Show preview
+          const preview = document.getElementById('excelPreview');
+          preview.innerHTML = `
+            <div class="alert ok">
+              <i class="fa-solid fa-circle-check"></i>
+              <strong>${data.length} questions loaded from Excel</strong>
+              <br><small>Review below and click Confirm to add to your list</small>
+            </div>
+          `;
+
+          // Show preview of questions
+          const list = document.getElementById('excelQList');
+          list.innerHTML = data.map((q, i) => `
+            <div style="background: #1c2638; padding: 12px; border-radius: 8px; margin-bottom: 8px;">
+              <strong>#${i+1}</strong> ${q['Question'] || 'No question'}<br>
+              <small style="color: #8b97ad;">Step: ${q['Step Number'] || '—'} | Correct: ${q['Correct Answer'] || '—'}</small>
+            </div>
+          `).join('');
+
+        } catch (err) {
+          document.getElementById('excelPreview').innerHTML = `
+            <div class="alert err">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              Error reading file: ${err.message}
+            </div>
+          `;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Confirm Excel Upload
+    function confirmExcelUpload() {
+      if (excelData.length === 0) {
+        alert('Upload a file first');
+        return;
+      }
+
+      excelData.forEach((row, index) => {
+        const moduleId = row['Module ID'] && row['Module ID'].trim() ? row['Module ID'].trim() : generateModuleId(state.selectedSubject, index + 1);
+        
+        const q = {
+          type: 'MCQ',
+          moduleId: moduleId,
+          stepNum: row['Step Number'] || (index + 1),
+          question: row['Question'] || '',
+          optA: row['A'] || '',
+          optB: row['B'] || '',
+          optC: row['C'] || '',
+          optD: row['D'] || '',
+          correct: row['Correct Answer'] || 'A'
+        };
+        
+        if (q.question && q.optA && q.optB && q.optC && q.optD) {
+          state.questions.push(q);
+        }
+      });
+
+      document.getElementById('excelPreview').innerHTML = `
+        <div class="alert ok">
+          <i class="fa-solid fa-circle-check"></i>
+          ✓ ${excelData.length} questions added to your list
+        </div>
+      `;
+
+      excelData = [];
+      document.getElementById('excelFile').value = '';
+      showQuestions();
+      setTimeout(() => switchTab('manual'), 1000);
+    }
+
     function showQuestions() {
       const list = document.getElementById('qList');
       list.innerHTML = state.questions.map((q, i) => `
         <div style="background: #1c2638; padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between;">
-          <div><strong>#${i+1} ${q.type}</strong></div>
+          <div><strong>#${i+1} ${q.type}</strong> | Module: ${q.moduleId}</div>
           <button class="btn btn-ghost" onclick="removeQ(${i})" style="padding: 4px 8px;">✕</button>
         </div>
-      `).join('');
+      `).join('') || '<div class="alert">No questions yet</div>';
     }
 
     function removeQ(i) {
@@ -390,11 +545,13 @@
     }
 
     // Question type toggle
-    document.getElementById('qType').addEventListener('change', (e) => {
-      const isMCQ = e.target.value === 'MCQ';
-      document.getElementById('mcqForm').classList.toggle('hidden', !isMCQ);
-      document.getElementById('matchForm').classList.toggle('hidden', isMCQ);
-    });
+    if (document.getElementById('qType')) {
+      document.getElementById('qType').addEventListener('change', (e) => {
+        const isMCQ = e.target.value === 'MCQ';
+        document.getElementById('mcqForm').classList.toggle('hidden', !isMCQ);
+        document.getElementById('matchForm').classList.toggle('hidden', isMCQ);
+      });
+    }
 
     // Navigation
     function goStep(n) {
