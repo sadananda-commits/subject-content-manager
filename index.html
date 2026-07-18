@@ -1062,25 +1062,60 @@
       reader.onload = (e) => {
         try {
           const workbook = XLSX.read(e.target.result, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const data = XLSX.utils.sheet_to_json(worksheet);
+          let allData = [];
 
-          excelData = data;
+          // Read all sheets except "Instructions"
+          for (const sheetName of workbook.SheetNames) {
+            // Skip Instructions sheet
+            if (sheetName.toLowerCase().includes('instruction')) {
+              continue;
+            }
+
+            const worksheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json(worksheet);
+
+            // Detect question type from sheet name
+            let questionType = 'MCQ';
+            if (sheetName.toLowerCase().includes('match')) {
+              questionType = 'Match';
+            } else if (sheetName.toLowerCase().includes('mcq') || sheetName.toLowerCase().includes('multiple')) {
+              questionType = 'MCQ';
+            }
+
+            // Add question type to each row
+            for (let row of sheetData) {
+              if (row && Object.keys(row).length > 0) {  // Only add non-empty rows
+                row['__questionType'] = questionType;
+                allData.push(row);
+              }
+            }
+
+            Logger.log(`Sheet "${sheetName}" loaded: ${sheetData.length} rows, type: ${questionType}`);
+          }
+
+          excelData = allData;
 
           // Show progress
-          const total = data.length;
+          const total = allData.length;
           for (let i = 0; i <= 100; i += 10) {
             setTimeout(() => {
               document.getElementById('progressPercent').textContent = i;
               document.getElementById('progressFill').style.width = i + '%';
               if (i === 100) {
-                document.getElementById('progressStatus').innerHTML = `
-                  <div class="status-message success">
-                    <i class="fa-solid fa-check-circle"></i> File processed: ${total} questions found
-                  </div>
-                `;
-                showExcelPreview(data);
+                if (total === 0) {
+                  document.getElementById('progressStatus').innerHTML = `
+                    <div class="status-message warning">
+                      <i class="fa-solid fa-exclamation-circle"></i> No questions found in file. Make sure you're using sheets named "MCQ Questions" or "Match Questions"
+                    </div>
+                  `;
+                } else {
+                  document.getElementById('progressStatus').innerHTML = `
+                    <div class="status-message success">
+                      <i class="fa-solid fa-check-circle"></i> File processed: ${total} questions found
+                    </div>
+                  `;
+                }
+                showExcelPreview(allData);
               }
             }, i * 2);
           }
@@ -1113,7 +1148,10 @@
       const thead = document.getElementById('excelTableHead');
       const tbody = document.getElementById('excelTableBody');
 
-      const headers = Object.keys(data[0]);
+      const allHeaders = Object.keys(data[0]);
+      // Filter out internal columns (starting with __)
+      const headers = allHeaders.filter(h => !h.startsWith('__'));
+      
       thead.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
 
       tbody.innerHTML = data.slice(0, 10).map(row => `
@@ -1170,8 +1208,10 @@
           </div>
         `;
 
-        // Determine question type
-        const qType = (row['Question Type'] || 'MCQ').toUpperCase();
+        // Determine question type (from sheet name first, then column, then default)
+        let qType = row['__questionType'] || row['Question Type'] || 'MCQ';
+        qType = qType.toUpperCase();
+        
         let moduleId = row['Module ID'] && row['Module ID'].trim() ? row['Module ID'].trim() : null;
         if (!moduleId) {
           if (!batchGeneratedModuleId) {
