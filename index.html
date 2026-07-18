@@ -211,7 +211,7 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .progress-bar {
@@ -387,7 +387,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-        ">
+        " onclick="closeSettingsOnBackdropClick(event)">
             <div style="
                 background: #0f172a;
                 padding: 30px;
@@ -395,7 +395,7 @@
                 max-width: 600px;
                 width: 90%;
                 border: 2px solid #0ea5e9;
-            ">
+            " onclick="event.stopPropagation()">
                 <h2 style="color: #e2e8f0; margin-bottom: 20px;">⚙️ Settings</h2>
 
                 <div class="field">
@@ -679,12 +679,35 @@
         function showSettings() {
             const modal = document.getElementById('settingsModal');
             modal.classList.remove('hidden');
+            modal.style.display = 'flex';
             document.getElementById('deploymentUrlInput').value = state.scriptUrl;
+            document.getElementById('urlStatus').innerHTML = '';  // Clear any previous status
         }
 
         function closeSettings() {
-            document.getElementById('settingsModal').classList.add('hidden');
+            const modal = document.getElementById('settingsModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
         }
+
+        function closeSettingsOnBackdropClick(event) {
+            // Only close if clicking on the background (not the modal content)
+            if (event.target.id === 'settingsModal') {
+                closeSettings();
+            }
+        }
+
+        // Add escape key handler
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('settingsModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeSettings();
+                }
+            }
+        });
 
         function saveDeploymentUrl() {
             const url = document.getElementById('deploymentUrlInput').value.trim();
