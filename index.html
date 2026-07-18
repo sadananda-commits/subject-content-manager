@@ -1362,14 +1362,31 @@
 
             const data = await res.json();
 
+            // Check EVERY chunk for failure, not just the very first one.
+            // Previously only (i === 0 && classIdx === 0) was checked, so a
+            // failure in chunk 2, 3, ... (or for the 2nd+ class) was silently
+            // ignored and the progress bar / totalUploaded counted it as
+            // uploaded anyway, leading to a false "Success" message even
+            // when most rows never reached the sheet.
+            if (!data.success) {
+              throw new Error(
+                `Upload failed for ${currentClass}, questions ${i + 1}-${i + chunk.length}: ${data.message || 'Unknown error'}`
+              );
+            }
+
+            const actuallyAdded = (typeof data.uploadedCount === 'number') ? data.uploadedCount : chunk.length;
+            if (actuallyAdded !== chunk.length) {
+              uploadStatus.innerHTML += `
+                <div class="status-message warning">
+                  <i class="fa-solid fa-exclamation-triangle"></i> ${currentClass}: sent ${chunk.length} questions but server only added ${actuallyAdded}
+                </div>
+              `;
+            }
+
             totalUploaded += chunk.length;
             uploadCurrent.textContent = totalUploaded;
             const percent = Math.round((totalUploaded / totalUploads) * 100);
             uploadFill.style.width = percent + '%';
-
-            if (!data.success && i === 0 && classIdx === 0) {
-              throw new Error(data.message || 'Upload failed');
-            }
           }
 
           uploadStatus.innerHTML += `
