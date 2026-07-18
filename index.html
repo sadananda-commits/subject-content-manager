@@ -1,463 +1,2003 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Subject Content Manager</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --bg: #0d1320; --surface: #161e2e; --surface2: #1c2638; --line: #26324a;
-      --teal: #00c6a7; --teal-dim: rgba(0,198,167,.14);
-      --green: #22c55e; --green-dim: rgba(34,197,94,.14);
-      --red: #ef5b5b; --red-dim: rgba(239,91,91,.14);
-      --ink: #e8edf6; --muted: #8b97ad;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; }
-    .wrap { max-width: 1000px; margin: 0 auto; padding: 28px 20px; }
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    h1 { font-size: 24px; margin: 0 0 8px; font-weight: 700; }
-    .sub { color: var(--muted); margin: 0 0 16px; font-size: 13px; }
-    .field { margin-bottom: 12px; }
-    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
-    input, select, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 10px; font-family: inherit; font-size: 13px; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--teal); }
-    .btn { font-weight: 600; border-radius: 8px; padding: 10px 16px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
-    .btn-primary { background: var(--teal); color: #06231d; }
-    .btn-primary:hover { opacity: 0.9; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
-    .btn-ghost:hover { border-color: var(--muted); }
-    .btn-sm { padding: 8px 12px; font-size: 12px; }
-    .callout { border-radius: 8px; padding: 12px; font-size: 12px; margin-bottom: 12px; display: flex; gap: 10px; }
-    .callout i { flex-shrink: 0; margin-top: 2px; }
-    .callout.info { background: var(--surface2); border: 1px solid var(--line); }
-    .callout.success { background: var(--green-dim); border: 1px solid rgba(34,197,94,.3); color: #86e7ab; }
-    .callout.error { background: var(--red-dim); border: 1px solid rgba(239,91,91,.3); color: #f59b9b; }
-    .hidden { display: none !important; }
-    .chip { display: inline-block; background: var(--teal-dim); border: 1px solid rgba(0,198,167,.3); border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-right: 8px; margin-bottom: 8px; }
-    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .settings-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subject Content Manager — Vedanta Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0d1320; --surface:#161e2e; --surface2:#1c2638; --line:#26324a;
+    --teal:#00c6a7; --teal-dim:rgba(0,198,167,.14);
+    --amber:#f5a623; --amber-dim:rgba(245,166,35,.14);
+    --red:#ef5b5b; --red-dim:rgba(239,91,91,.14);
+    --green:#22c55e; --green-dim:rgba(34,197,94,.14);
+    --ink:#e8edf6; --muted:#8b97ad; --muted2:#5e6a82;
+    --fd:'Sora',sans-serif; --fb:'Inter',sans-serif; --fm:'JetBrains Mono',monospace;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:14.5px;line-height:1.5;}
+  a{color:var(--teal);}
+  .wrap{max-width:1140px;margin:0 auto;padding:28px 24px 120px;}
+
+  /* ── Header ───────────────────────────────────────────────────────── */
+  .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px;flex-wrap:wrap;}
+  .hdr h1{font-family:var(--fd);font-size:24px;font-weight:700;margin:0 0 4px;}
+  .hdr p{margin:0;color:var(--muted);max-width:560px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--teal-dim);color:var(--teal);
+    border:1px solid rgba(0,198,167,.3);border-radius:999px;padding:4px 12px;font-family:var(--fm);font-size:11.5px;font-weight:600;letter-spacing:.03em;}
+
+  /* ── Settings (collapsible) ──────────────────────────────────────── */
+  details.settings{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:24px;}
+  details.settings summary{cursor:pointer;padding:14px 18px;font-family:var(--fd);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;list-style:none;}
+  details.settings summary::-webkit-details-marker{display:none;}
+  details.settings summary i{color:var(--muted);transition:transform .15s;}
+  details.settings[open] summary i{transform:rotate(90deg);}
+  .settings-body{padding:4px 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .settings-body .full{grid-column:1/-1;}
+  .settings-note{grid-column:1/-1;background:var(--surface2);border-radius:8px;padding:10px 12px;color:var(--muted);font-size:12.5px;}
+  .settings-actions{grid-column:1/-1;display:flex;gap:10px;align-items:center;}
+  #connTestResult{font-size:12.5px;font-family:var(--fm);}
+
+  /* ── Progress rail ───────────────────────────────────────────────── */
+  .rail{display:flex;gap:6px;margin-bottom:24px;}
+  .rail .step{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;opacity:.5;transition:all .15s;}
+  .rail .step.active{opacity:1;border-color:rgba(0,198,167,.4);background:var(--teal-dim);}
+  .rail .step.done{opacity:1;}
+  .rail .num{width:22px;height:22px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;
+    font-family:var(--fm);font-size:11.5px;font-weight:600;flex-shrink:0;}
+  .rail .step.active .num{background:var(--teal);color:#06231d;}
+  .rail .step.done .num{background:var(--green);color:#04220f;}
+  .rail .step.done .num::before{content:'✓';}
+  .rail .label{font-size:12.5px;font-weight:600;font-family:var(--fd);}
+
+  /* ── Cards / sections ────────────────────────────────────────────── */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;}
+  .card h2{font-family:var(--fd);font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
+  .card .sub{color:var(--muted);font-size:13px;margin:0 0 18px;}
+  .hidden{display:none !important;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .field label .opt{color:var(--muted2);font-weight:400;}
+  input[type=text],input[type=url],input[type=number],input[type=password],select,textarea{
+    width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+    padding:10px 12px;font-family:var(--fb);font-size:13.5px;transition:border-color .15s;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);}
+  textarea{resize:vertical;min-height:64px;}
+  input[type=color]{width:44px;height:38px;padding:2px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);cursor:pointer;}
+  .colorrow{display:flex;gap:8px;}
+  .colorrow input[type=text]{font-family:var(--fm);}
+  .checkrow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+  .checkrow input{width:auto;}
+
+  .pillgroup{display:flex;gap:10px;}
+  .pillgroup label{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--line);
+    border-radius:10px;padding:13px 14px;cursor:pointer;font-size:13.5px;font-weight:500;transition:all .15s;}
+  .pillgroup input{width:auto;accent-color:var(--teal);}
+  .pillgroup label:has(input:checked){border-color:var(--teal);background:var(--teal-dim);}
+
+  .iconprev{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;background:var(--surface2);
+    border:1px solid var(--line);flex-shrink:0;}
+  .iconrow{display:flex;gap:8px;align-items:flex-start;}
+  .iconrow .field{flex:1;margin-bottom:0;}
+
+  .callout{border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+  .callout i{margin-top:1px;}
+  .callout.warn{background:var(--amber-dim);border:1px solid rgba(245,166,35,.3);color:#f5c777;}
+  .callout.err{background:var(--red-dim);border:1px solid rgba(239,91,91,.3);color:#f59b9b;}
+  .callout.ok{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:#86e7ab;}
+  .callout.info{background:var(--surface2);border:1px solid var(--line);color:var(--muted);}
+  .callout a{font-weight:600;}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);
+    border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:12.5px;}
+  .chip.id{background:var(--teal-dim);border-color:rgba(0,198,167,.35);color:var(--teal);font-weight:600;}
+  .prefix-hi{background:rgba(0,198,167,.3);border-radius:3px;padding:0 2px;color:#fff;}
+
+  /* ── Question blocks ─────────────────────────────────────────────── */
+  .qblock{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;background:var(--surface2);position:relative;}
+  .qblock .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .qblock .qhead .step-chip{font-family:var(--fm);font-size:11.5px;color:var(--teal);background:var(--teal-dim);
+    border-radius:999px;padding:3px 10px;font-weight:600;}
+  .qblock .rm{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;}
+  .qblock .rm:hover{color:var(--red);background:var(--red-dim);}
+  .opt4{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .opt-label{display:flex;align-items:center;gap:8px;}
+  .opt-letter{width:24px;height:24px;border-radius:6px;background:var(--surface);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:11.5px;font-weight:700;flex-shrink:0;}
+
+  /* ── Excel upload ──────────────────────────────────────────────────── */
+  .upload-zone{border:2px dashed var(--line);border-radius:12px;padding:32px 24px;text-align:center;cursor:pointer;
+    transition:border-color .2s,background .2s;background:var(--surface2);}
+  .upload-zone:hover,.upload-zone.drag-over{border-color:var(--teal);background:var(--teal-dim);}
+  .upload-zone input[type=file]{display:none;}
+  .upload-zone .uz-icon{font-size:28px;color:var(--teal);margin-bottom:10px;}
+  .upload-zone p{margin:4px 0;font-size:13.5px;}
+  .upload-zone .uz-hint{font-size:12px;color:var(--muted);}
+  .upload-toggle{display:flex;gap:10px;margin-bottom:16px;}
+  .upload-toggle button{flex:1;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);
+    color:var(--muted);font-family:var(--fd);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+  .upload-toggle button.active{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
+  .import-status{font-size:13px;padding:10px 14px;border-radius:8px;margin-top:10px;}
+  .import-status.ok{background:rgba(34,197,94,.1);color:#86e7ab;border:1px solid rgba(34,197,94,.25);}
+  .import-status.err{background:var(--red-dim);color:#f59b9b;border:1px solid rgba(239,91,91,.25);}
+  .import-status.warn{background:var(--amber-dim);color:#fcd57a;border:1px solid rgba(245,166,35,.25);}
+  .dl-template{font-size:12.5px;color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-top:10px;}
+  .dl-template:hover{text-decoration:underline;}
+
+  /* ── Buttons ──────────────────────────────────────────────────────── */
+  .btn{font-family:var(--fd);font-weight:600;font-size:13.5px;border-radius:9px;padding:11px 20px;border:1px solid transparent;
+    cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s;}
+  .btn-primary{background:var(--teal);color:#06231d;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .btn-ghost{background:transparent;border-color:var(--line);color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--muted2);}
+  .btn-sm{padding:7px 13px;font-size:12.5px;}
+  .btn-danger-ghost{background:transparent;border-color:rgba(239,91,91,.3);color:var(--red);}
+
+  .actionbar{position:fixed;left:0;right:0;bottom:0;background:rgba(13,19,32,.92);backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;z-index:20;}
+  .actionbar .right{display:flex;gap:10px;}
+
+  table.preview{width:100%;border-collapse:collapse;font-size:13px;}
+  table.preview th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;
+    padding:6px 10px;border-bottom:1px solid var(--line);}
+  table.preview td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.preview tr:last-child td{border-bottom:none;}
+  .kv{display:flex;gap:8px;padding:5px 0;font-size:13px;}
+  .kv .k{color:var(--muted);min-width:140px;flex-shrink:0;}
+
+  .toast{position:fixed;top:20px;right:20px;z-index:50;display:flex;flex-direction:column;gap:8px;}
+  .toast .t{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;
+    display:flex;gap:10px;align-items:flex-start;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:slide .2s ease-out;}
+  .toast .t.ok{border-color:rgba(34,197,94,.4);}
+  .toast .t.err{border-color:rgba(239,91,91,.4);}
+  @keyframes slide{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#06231d;
+    border-radius:50%;animation:rot .6s linear infinite;}
+  @keyframes rot{to{transform:rotate(360deg);}}
+  @keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+  ::placeholder{color:var(--muted2);}
+
+  @media(max-width:760px){
+    .grid2,.grid3,.opt4,.settings-body{grid-template-columns:1fr;}
+    .rail{flex-direction:column;}
+  }
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <!-- SETTINGS (always visible) -->
-    <details class="card" style="background: var(--surface); border: 1px solid var(--line);border-radius:12px;" id="settingsPanel">
-      <summary style="cursor: pointer; padding: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-gear"></i> Settings & Configuration
-      </summary>
-      <div style="padding: 12px; border-top: 1px solid var(--line);">
-        <div class="settings-grid">
-          <div class="field">
-            <label>Google Apps Script URL</label>
-            <input type="text" id="cfgScriptUrl" placeholder="https://script.google.com/macros/d/AKfycbw.../exec">
-          </div>
-          <div class="field">
-            <label>Shared Secret</label>
-            <input type="password" id="cfgSecret" placeholder="••••••••">
-          </div>
-        </div>
-        <div class="callout info">
-          <i class="fa-solid fa-info-circle"></i>
-          <div>Saved in browser only • Never sent anywhere except to your Apps Script</div>
-        </div>
-        <div class="settings-actions">
-          <button class="btn btn-ghost btn-sm" id="btnSaveSettings"><i class="fa-solid fa-floppy-disk"></i> Save</button>
-          <button class="btn btn-ghost btn-sm" id="btnTestConn"><i class="fa-solid fa-plug"></i> Test Connection</button>
-          <span id="connTestResult" style="font-size: 12px; margin-left: 12px;"></span>
+
+<div class="wrap">
+
+  <div class="hdr">
+    <div>
+      <h1>Subject Content Manager</h1>
+      <p>Add a new chapter and its quiz questions for any class/subject — or extend an existing chapter — and push it straight into the right Google Sheet. No manual row-editing.</p>
+    </div>
+    <span class="badge"><i class="fa-solid fa-table-cells"></i> Sheets-connected</span>
+  </div>
+
+  <details class="settings" id="settingsPanel">
+    <summary><i class="fa-solid fa-chevron-right"></i> Connection settings</summary>
+    <div class="settings-body">
+      <div class="field full">
+        <label>Google Apps Script URL</label>
+        <input type="text" id="cfgScriptUrl" placeholder="https://script.google.com/macros/d/.../exec">
+      </div>
+      <div class="field">
+        <label>Shared secret <span class="opt">(set in the Apps Script)</span></label>
+        <input type="password" id="cfgSecret" placeholder="••••••••">
+      </div>
+      <div class="settings-note">
+        These are saved in this browser only (localStorage) — never sent anywhere except your own Apps Script Web App.
+        First time here? See <strong>"Subject Content Manager — Setup"</strong> in the manual for how to deploy the Apps Script backend.
+      </div>
+      <div class="settings-actions">
+        <button class="btn btn-ghost btn-sm" id="btnSaveSettings"><i class="fa-solid fa-floppy-disk"></i> Save settings</button>
+        <button class="btn btn-ghost btn-sm" id="btnTestConn"><i class="fa-solid fa-plug"></i> Test connection</button>
+        <span id="connTestResult"></span>
+      </div>
+    </div>
+  </details>
+
+  <div class="rail" id="rail">
+    <div class="step active" data-step="1"><span class="num">1</span><span class="label">Class &amp; Subject</span></div>
+    <div class="step" data-step="2"><span class="num">2</span><span class="label">Chapter</span></div>
+    <div class="step" data-step="3"><span class="num">3</span><span class="label">Questions</span></div>
+    <div class="step" data-step="4"><span class="num">4</span><span class="label">Review &amp; submit</span></div>
+  </div>
+
+  <div id="globalCallouts"></div>
+
+  <!-- ───────────────────────── STEP 1 ───────────────────────── -->
+  <section class="card" id="step1">
+    <h2><i class="fa-solid fa-graduation-cap"></i> Class &amp; Subject</h2>
+    <p class="sub">Pick where this content belongs. The subject list comes straight from the "Class Subject Map" tab.</p>
+
+    <div class="field">
+      <label>Classes (select one or more)</label>
+      <div id="classCheckboxContainer" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="callout info" style="grid-column:1/-1;">
+          <i class="fa-solid fa-spinner fa-spin"></i> Loading classes…
         </div>
       </div>
-    </details>
+    </div>
 
-    <!-- MAIN APP -->
-    <div id="mainApp" class="hidden">
-      <div class="card">
-        <h1>📚 Subject Content Manager</h1>
-        <p class="sub">Upload questions to multiple classes with the same subject</p>
+    <div class="field">
+      <label>Subject (same for all selected classes)</label>
+      <select id="selSubject"><option value="">Select classes first</option></select>
+    </div>
+
+    <div id="subjectMissingNote" class="callout warn hidden">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div>
+        Don't see your subject for this class? It must already have a row in <strong>"Class Subject Map"</strong>
+        with its Sheet ID before you can add content for it — that's a one-time setup step done directly in the Sheet, not in this tool.
+        Add the row, then click "Refresh".
       </div>
+    </div>
 
-      <!-- Step 1 -->
-      <div id="step1" class="card">
-        <h2 style="margin-top: 0; font-size: 18px;">Step 1: Select Classes & Subject</h2>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
+      <button class="btn btn-ghost btn-sm" id="btnRefreshSubjects"><i class="fa-solid fa-rotate"></i> Refresh subject list</button>
+      <a id="lnkOpenMaster" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;">
+        <i class="fa-solid fa-up-right-from-square"></i> Open Master Config Sheet
+      </a>
+    </div>
 
-        <div class="field">
-          <label>Classes (select multiple)</label>
-          <div id="classContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div class="callout info" style="grid-column: 1/-1;">
-              <i class="fa-solid fa-spinner fa-spin"></i> Loading classes...
-            </div>
-          </div>
-        </div>
+    <div id="targetSheetInfo" class="callout info hidden" style="margin-top:16px;">
+      <i class="fa-solid fa-circle-check"></i>
+      <div id="targetSheetInfoText"></div>
+    </div>
 
-        <div class="field">
-          <label>Subject</label>
-          <select id="subjectSelect">
-            <option value="">— Loading subjects —</option>
-          </select>
-        </div>
-
-        <button class="btn btn-primary" onclick="goToStep2()">
-          <i class="fa-solid fa-arrow-right"></i> Proceed to Step 2
-        </button>
-      </div>
-
-      <!-- Step 2 -->
-      <div id="step2" class="card hidden">
-        <h2 style="margin-top: 0; font-size: 18px;">Step 2: Add Questions</h2>
-
-        <div style="background: var(--teal-dim); border: 1px solid rgba(0,198,167,.3); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
-          <strong style="color: var(--teal);">Selected Classes:</strong>
-          <div id="selectedChips" style="margin-top: 8px;"></div>
-        </div>
-
-        <div id="questionContainer"></div>
-
-        <button class="btn btn-ghost btn-sm" onclick="addQuestion()" style="margin-bottom: 14px;">
-          <i class="fa-solid fa-plus"></i> Add Question
-        </button>
-
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-ghost" onclick="goToStep1()">← Back</button>
-          <button class="btn btn-primary" onclick="submitQuestions()">
-            <i class="fa-solid fa-paper-plane"></i> Submit
+    <!-- REORGANISE OPTION (Enhancement) -->
+    <div id="reorganiseSection" class="callout info hidden" style="margin-top:20px;">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      <div>
+        <strong>Reorganise this subject's questions?</strong>
+        <p style="margin:8px 0 0;font-size:13px;color:inherit;">
+          Instead of adding new questions, you can clean up the existing ones: regenerate module IDs, renumber steps, mark duplicates for review, and organize the chapter.
+        </p>
+        <div style="margin-top:10px;display:flex;gap:10px;">
+          <button class="btn btn-primary btn-sm" onclick="startReorganiseFlow()" style="background:var(--teal);color:var(--bg);">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Reorganise this subject
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="continueToUpload()">
+            <i class="fa-solid fa-plus"></i> Continue to upload instead
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- Step 3: Results -->
-      <div id="step3" class="card hidden">
-        <h2 style="margin-top: 0; font-size: 18px;">Results</h2>
-        <div id="resultsContent"></div>
-        <button class="btn btn-primary" onclick="goToStep1()">
-          <i class="fa-solid fa-arrow-left"></i> Upload More
-        </button>
+    <!-- REORGANISE CONFIRMATION DIALOG -->
+    <div id="reorganiseConfirmDialog" class="callout warn hidden" style="margin-top:16px;">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div>
+        <strong>Before you reorganise:</strong>
+        <ul style="margin:8px 0 0;padding-left:20px;font-size:13px;">
+          <li>All questions in <strong id="reorganiseSubjectName"></strong> will be reorganized</li>
+          <li>Module IDs will be regenerated: 01, 02, 03...</li>
+          <li>Step numbers will be renumbered sequentially: 1, 2, 3...</li>
+          <li>Duplicate questions will be <strong>marked</strong> (not removed)</li>
+          <li>Duplicates will be highlighted in pink for easy identification</li>
+          <li>This cannot be undone (unless you use Google Sheets version history)</li>
+        </ul>
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;">
+          <input type="checkbox" id="confirmReorgFlow" style="width:18px;height:18px;cursor:pointer;accent-color:var(--teal);">
+          <label for="confirmReorgFlow" style="cursor:pointer;font-size:13px;">
+            I understand and want to proceed
+          </label>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:10px;">
+          <button class="btn btn-primary btn-sm" id="btnProceedReorg" onclick="proceedWithReorganise()" 
+            style="background:var(--green);color:white;opacity:0.5;cursor:not-allowed;" disabled>
+            <span class="spin" style="display:none;"></span> Proceed with Reorganisation
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelReorganise()">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- REORGANISE PROGRESS -->
+    <div id="reorganiseProgressDialog" class="callout info hidden" style="margin-top:16px;">
+      <i class="fa-solid fa-spinner"></i>
+      <div>
+        <strong>Reorganising...</strong>
+        <p style="margin:8px 0 0;font-size:13px;">Please wait while we reorganize <strong id="reorganiseProgressSubject"></strong>. This may take 30-60 seconds.</p>
+        <div style="margin-top:12px;background:var(--surface);border-radius:6px;padding:8px;height:20px;overflow:hidden;">
+          <div style="width:50%;height:100%;background:var(--teal);animation:pulse 1s infinite;border-radius:4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REORGANISE RESULTS -->
+    <div id="reorganiseResultsDialog" hidden style="margin-top:16px;"></div>
+
+  </section>
+
+  <!-- ───────────────────────── STEP 2 ───────────────────────── -->
+  <section class="card hidden" id="step2">
+    <h2><i class="fa-solid fa-book-open"></i> Chapter &amp; content</h2>
+    <p class="sub">Add content by hand, or upload a spreadsheet — chapters can be auto-detected from it.</p>
+
+    <!-- toggle: manual vs excel (moved here so chapter handling can depend on it) -->
+    <div class="upload-toggle" id="inputModeToggle">
+      <button id="btnModeManual" class="active" onclick="setInputMode('manual')">
+        <i class="fa-solid fa-pen-to-square"></i> Add manually
+      </button>
+      <button id="btnModeExcel" onclick="setInputMode('excel')">
+        <i class="fa-solid fa-file-excel"></i> Upload spreadsheet
+      </button>
+    </div>
+
+    <!-- ══ MANUAL MODE: chapter picker/form (unchanged) ══ -->
+    <div id="manualChapterWrap">
+      <div class="pillgroup" style="margin-bottom:18px;">
+        <label><input type="radio" name="chapterMode" value="new" checked> <span><strong>New chapter</strong><br><span style="color:var(--muted);font-weight:400;">Creates a new row in "Learning Modules"</span></span></label>
+        <label><input type="radio" name="chapterMode" value="existing"> <span><strong>Existing chapter</strong><br><span style="color:var(--muted);font-weight:400;">Just append more questions</span></span></label>
+      </div>
+
+      <!-- Existing chapter picker -->
+      <div id="existingChapterBlock" class="hidden">
+        <div class="field">
+          <label>Chapter</label>
+          <select id="selExistingModule"><option value="">Loading chapters…</option></select>
+        </div>
+        <div id="existingChapterInfo"></div>
+      </div>
+
+      <!-- New chapter form -->
+      <div id="newChapterBlock">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="modTitle" placeholder="e.g. Input and Output Devices">
+        </div>
+
+        <div class="field">
+          <label>Module ID <span class="opt">(auto-generated — you can override the prefix)</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="modPrefix" maxlength="4" style="width:80px;font-family:var(--fm);text-transform:uppercase;">
+            <span style="color:var(--muted);font-family:var(--fm);">_</span>
+            <span class="chip id" id="modSerialChip">01</span>
+            <span class="chip" id="modIdFull" style="margin-left:auto;">Module ID: —</span>
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:var(--muted2);" id="modPrefixHint"></div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>Subtopics <span class="opt">(comma-separated, optional)</span></label>
+            <input type="text" id="modSubtopics" placeholder="Input devices, Output devices, Safety">
+          </div>
+          <div class="field">
+            <label>Display order <span class="opt">(auto-suggested)</span></label>
+            <input type="number" id="modDisplayOrder" min="1">
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="field">
+            <label>Icon <span class="opt">(FontAwesome solid)</span></label>
+            <div class="iconrow">
+              <span class="iconprev"><i id="modIconPrev" class="fa-solid fa-shapes"></i></span>
+              <div class="field"><input type="text" id="modIcon" placeholder="fa-laptop-code"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Emoji <span class="opt">(optional)</span></label>
+            <input type="text" id="modEmoji" placeholder="💻">
+          </div>
+          <div class="field">
+            <label>Color</label>
+            <div class="colorrow">
+              <input type="color" id="modColorPicker" value="#0ea5e9">
+              <input type="text" id="modColorHex" value="#0ea5e9">
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Introduction</label>
+          <textarea id="modIntro" placeholder="What this chapter teaches, in 1-2 sentences."></textarea>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>"Now You Try" prompt <span class="opt">(optional)</span></label>
+            <textarea id="modNowYouTry"></textarea>
+          </div>
+          <div class="field">
+            <label>Intro image URL <span class="opt">(optional)</span></label>
+            <input type="url" id="modImageUrl" placeholder="https://…">
+          </div>
+        </div>
+        <div class="checkrow"><input type="checkbox" id="modActive" checked> <label for="modActive" style="margin:0;">Active (visible to students immediately)</label></div>
+      </div>
+    </div>
+
+    <!-- ══ EXCEL MODE: upload + auto-detected chapters ══ -->
+    <div id="excelChapterWrap" class="hidden">
+      <label class="upload-zone" id="uploadZone">
+        <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv">
+        <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+        <p><strong>Click to choose</strong> or drag &amp; drop your spreadsheet here</p>
+        <p class="uz-hint">.xlsx, .xls or .csv &nbsp;·&nbsp; Chapter matching goes by title — any Module ID in the file is for grouping only; new chapters always get the next ID in this sheet's own sequence</p>
+      </label>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <a class="dl-template" id="dlTemplate" href="#" onclick="downloadTemplate();return false;">
+          <i class="fa-solid fa-download"></i> Download blank template (.xlsx)
+        </a>
+        <span style="font-size:12px;color:var(--muted);">Works with files shaped like the real sheet tabs — "Question Type" (MCQ / MatchTheFollowing) and Left 1–10 / Right 1–10 columns are read automatically if present</span>
+      </div>
+      <div id="importStatus"></div>
+      <div id="chapterGroupsHost"></div>
+
+      <!-- shared defaults applied to any NEW chapters auto-created from the upload -->
+      <div id="newChapterDefaultsWrap" class="hidden" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--line);">
+        <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:10px;">Defaults for auto-created chapters</h3>
+        <p class="sub" style="margin-bottom:14px;">Applied to every <strong>new</strong> chapter detected above — Module ID, class and title come from the sheet automatically.</p>
+        <div class="grid3">
+          <div class="field">
+            <label>Icon <span class="opt">(FontAwesome solid)</span></label>
+            <div class="iconrow">
+              <span class="iconprev"><i id="autoModIconPrev" class="fa-solid fa-shapes"></i></span>
+              <div class="field"><input type="text" id="autoModIcon" placeholder="fa-laptop-code"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Emoji <span class="opt">(optional)</span></label>
+            <input type="text" id="autoModEmoji" placeholder="💻">
+          </div>
+          <div class="field">
+            <label>Color</label>
+            <div class="colorrow">
+              <input type="color" id="autoModColorPicker" value="#0ea5e9">
+              <input type="text" id="autoModColorHex" value="#0ea5e9">
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Introduction template <span class="opt">(optional — use {chapter} for the chapter's name)</span></label>
+          <textarea id="autoModIntro" placeholder="Learn about {chapter}."></textarea>
+        </div>
+        <div class="checkrow"><input type="checkbox" id="autoModActive" checked> <label for="autoModActive" style="margin:0;">Active (visible to students immediately)</label></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ───────────────────────── STEP 3 ───────────────────────── -->
+  <section class="card hidden" id="step3">
+    <h2><i class="fa-solid fa-circle-question"></i> Questions</h2>
+    <p class="sub" id="step3sub">Add one or more quiz questions for this chapter. Step numbers continue automatically.</p>
+
+    <!-- manual entry -->
+    <div id="manualEntry">
+      <div id="questionsHost"></div>
+      <button class="btn btn-ghost" id="btnAddQuestion"><i class="fa-solid fa-plus"></i> Add another question</button>
+    </div>
+
+    <!-- excel mode: read-only preview of what step 2 already parsed -->
+    <div id="excelSummary" class="hidden">
+      <div id="excelSummaryHost"></div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── STEP 4 ───────────────────────── -->
+  <section class="card hidden" id="step4">
+    <h2><i class="fa-solid fa-clipboard-check"></i> Review &amp; submit</h2>
+    <p class="sub">Confirm everything below, then push it to the Google Sheet.</p>
+    <div id="reviewHost"></div>
+    <div id="submitResult"></div>
+  </section>
+
+</div>
+
+<div class="actionbar">
+  <button class="btn btn-ghost" id="btnBack"><i class="fa-solid fa-arrow-left"></i> Back</button>
+  <div class="right">
+    <span id="actionHint" style="color:var(--muted);font-size:12.5px;align-self:center;"></span>
+    <button class="btn btn-primary" id="btnNext">Continue <i class="fa-solid fa-arrow-right"></i></button>
   </div>
+</div>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════════════
-    // CONFIG
-    // ═══════════════════════════════════════════════════════════════════
-    let cfg = {
-      scriptUrl: localStorage.getItem('scm_scriptUrl') || '',
-      secret: localStorage.getItem('scm_secret') || ''
+<div class="toast" id="toastHost"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   CONFIG
+   ════════════════════════════════════════════════════════════════════════ */
+const DEFAULT_MASTER_SHEET_ID = '1GMW16KYN9IFHecNu06vnf5vrA8vqePJeff261bhmDrs';
+const DEFAULT_CLASS_LEVELS = [
+  {Class:'Class 0',Label:'Class 0 (Nursery/KG)'},{Class:'Class 1',Label:'Class 1'},{Class:'Class 2',Label:'Class 2'},
+  {Class:'Class 3',Label:'Class 3'},{Class:'Class 4',Label:'Class 4'},{Class:'Class 5',Label:'Class 5'},
+  {Class:'Class 6',Label:'Class 6'},{Class:'Class 7',Label:'Class 7'},{Class:'Class 8',Label:'Class 8'},
+  {Class:'Class 9',Label:'Class 9'},{Class:'Class 10',Label:'Class 10'},{Class:'Adult',Label:'Adult'},
+];
+
+const cfg = {
+  masterSheetId: localStorage.getItem('scm_masterSheetId') || DEFAULT_MASTER_SHEET_ID,
+  scriptUrl:     localStorage.getItem('scm_scriptUrl')     || '',
+  secret:        localStorage.getItem('scm_secret')        || '',
+};
+document.getElementById('cfgScriptUrl').value      = cfg.scriptUrl;
+document.getElementById('cfgSecret').value         = cfg.secret;
+if (!cfg.scriptUrl) document.getElementById('settingsPanel').open = true;
+
+document.getElementById('btnSaveSettings').addEventListener('click', () => {
+  cfg.scriptUrl     = document.getElementById('cfgScriptUrl').value.trim();
+  cfg.secret        = document.getElementById('cfgSecret').value;
+  localStorage.setItem('scm_scriptUrl', cfg.scriptUrl);
+  localStorage.setItem('scm_secret', cfg.secret);
+  toast('ok', 'Settings saved to this browser.');
+  document.getElementById('lnkOpenMaster').href = `https://docs.google.com/spreadsheets/d/${cfg.masterSheetId}/edit`;
+});
+document.getElementById('lnkOpenMaster').href = `https://docs.google.com/spreadsheets/d/${cfg.masterSheetId}/edit`;
+
+document.getElementById('btnTestConn').addEventListener('click', async () => {
+  const out = document.getElementById('connTestResult');
+  if (!cfg.scriptUrl) { out.textContent = '⚠ Enter and save an Apps Script URL first.'; out.style.color = 'var(--amber)'; return; }
+  out.textContent = 'Testing…'; out.style.color = 'var(--muted)';
+  try {
+    const res = await fetch(`${cfg.scriptUrl}?action=getClassLevels&secret=${encodeURIComponent(cfg.secret)}`);
+    const data = await res.json();
+    if (data.success) { out.textContent = '✓ Connected! ' + data.classes.length + ' classes found'; out.style.color = 'var(--green)'; }
+    else { out.textContent = '✗ ' + data.message; out.style.color = 'var(--red)'; }
+  } catch (err) {
+    out.textContent = '✗ Could not reach the script (' + err.message + ')';
+    out.style.color = 'var(--red)';
+  }
+});
+
+/* ════════════════════════════════════════════════════════════════════════
+   CSV FETCH / PARSE  (mirrors pages/api/portal-config.js exactly)
+   ════════════════════════════════════════════════════════════════════════ */
+const csvUrl = (sheetId, tab) =>
+  `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && next === '"') { field += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else field += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { row.push(field); field = ''; }
+      else if (ch === '\r') { /* skip */ }
+      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += ch;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows) {
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  const out = [];
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    if (cells.every(c => (c||'').trim() === '')) continue;
+    const obj = {};
+    headers.forEach((h, i) => {
+      if (!h) return;
+      let val = (cells[i] !== undefined ? cells[i] : '').trim();
+      if (h === 'Active') val = val === '' ? true : val.toUpperCase() === 'TRUE';
+      obj[h] = val;
+    });
+    out.push(obj);
+  }
+  return out;
+}
+async function fetchTab(sheetId, tabName) {
+  const url = csvUrl(sheetId, tabName);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching "${tabName}"`);
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder('utf-8').decode(buf);
+  if (text.trimStart().startsWith('<')) {
+    throw new Error(`"${tabName}" tab not found, or the sheet isn't shared as "Anyone with the link → Viewer".`);
+  }
+  return rowsToObjects(parseCSV(text));
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   APP STATE
+   ════════════════════════════════════════════════════════════════════════ */
+const state = {
+  step: 1,
+  classLevels: [],
+  subjectMapRows: [],
+  selectedClass: '',          // Keep for backwards compatibility
+  selectedClasses: [],        // NEW: Array for multiple classes
+  selectedSubject: null,      // { Subject, 'Sheet ID', ... } row from Class Subject Map
+  existingModules: [],        // Learning Modules rows for the resolved sheet
+  existingSteps: [],          // Learning Steps rows for the resolved sheet
+  chapterMode: 'new',
+  selectedExistingModuleId: '',
+  questions: [],              // [{...fields}]
+  qSeq: 0,
+};
+
+function toast(kind, msg) {
+  const host = document.getElementById('toastHost');
+  const el = document.createElement('div');
+  el.className = `t ${kind}`;
+  el.innerHTML = `<i class="fa-solid ${kind==='ok'?'fa-circle-check':'fa-circle-exclamation'}" style="color:${kind==='ok'?'var(--green)':'var(--red)'};margin-top:1px;"></i><div>${msg}</div>`;
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+function callout(host, kind, icon, html) {
+  host.innerHTML = `<div class="callout ${kind}"><i class="fa-solid ${icon}"></i><div>${html}</div></div>`;
+}
+function clearCallout(host) { host.innerHTML = ''; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP NAVIGATION
+   ════════════════════════════════════════════════════════════════════════ */
+function goToStep(n) {
+  state.step = n;
+  document.querySelectorAll('.card[id^="step"]').forEach(c => c.classList.add('hidden'));
+  document.getElementById(`step${n}`).classList.remove('hidden');
+  document.querySelectorAll('.rail .step').forEach(el => {
+    const s = Number(el.dataset.step);
+    el.classList.toggle('active', s === n);
+    el.classList.toggle('done', s < n);
+  });
+  document.getElementById('btnBack').style.visibility = n === 1 ? 'hidden' : 'visible';
+  const nextBtn = document.getElementById('btnNext');
+  nextBtn.innerHTML = n === 4
+    ? '<i class="fa-solid fa-cloud-arrow-up"></i> Submit to Google Sheet'
+    : 'Continue <i class="fa-solid fa-arrow-right"></i>';
+  if (n === 3) {
+    document.getElementById('manualEntry').classList.toggle('hidden', inputMode !== 'manual');
+    document.getElementById('excelSummary').classList.toggle('hidden', inputMode !== 'excel');
+    if (inputMode === 'manual') renderQuestions();
+    else renderExcelSummaryStep3();
+  }
+  if (n === 4) renderReview();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.getElementById('btnBack').addEventListener('click', () => { if (state.step > 1) goToStep(state.step - 1); });
+document.getElementById('btnNext').addEventListener('click', onNextClicked);
+
+async function onNextClicked() {
+  if (state.step === 1) {
+    if (!validateStep1()) return;
+    await loadModulesAndSteps();
+    goToStep(2);
+  } else if (state.step === 2) {
+    if (!validateStep2()) return;
+    if (inputMode === 'manual' && state.questions.length === 0) addQuestionBlock();
+    goToStep(3);
+  } else if (state.step === 3) {
+    if (!validateStep3()) return;
+    goToStep(4);
+  } else if (state.step === 4) {
+    await submitAll();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 1 — Class & Subject
+   ════════════════════════════════════════════════════════════════════════ */
+async function loadClassLevels() {
+  const container = document.getElementById('classCheckboxContainer');
+  try {
+    const rows = await fetchTab(cfg.masterSheetId, 'Class Levels');
+    state.classLevels = rows.length
+      ? rows.filter(r => r.Active !== false && r.Class).sort((a,b)=>(Number(a['Display Order'])||999)-(Number(b['Display Order'])||999))
+      : DEFAULT_CLASS_LEVELS;
+  } catch {
+    state.classLevels = DEFAULT_CLASS_LEVELS;
+  }
+  
+  // Create checkboxes instead of dropdown
+  const html = state.classLevels.map((c, i) => `
+    <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border:1px solid var(--line);border-radius:8px;cursor:pointer;">
+      <input type="checkbox" class="classCheckbox" value="${esc(c.Class)}" onchange="updateSelectedClasses()">
+      <span>${esc(c.Label || c.Class)}</span>
+    </label>
+  `).join('');
+  
+  container.innerHTML = html;
+}
+
+function updateSelectedClasses() {
+  state.selectedClasses = Array.from(document.querySelectorAll('.classCheckbox:checked')).map(el => el.value);
+  refreshSubjectDropdown();
+}
+
+async function loadSubjectMap() {
+  try {
+    state.subjectMapRows = await fetchTab(cfg.masterSheetId, 'Class Subject Map');
+  } catch (err) {
+    callout(document.getElementById('globalCallouts'), 'err', 'fa-triangle-exclamation',
+      `Couldn't load "Class Subject Map" from the Master Config Sheet: ${esc(err.message)}`);
+    state.subjectMapRows = [];
+  }
+}
+
+function refreshSubjectDropdown() {
+  const sel = document.getElementById('selSubject');
+  const note = document.getElementById('subjectMissingNote');
+  
+  if (!state.selectedClasses || state.selectedClasses.length === 0) {
+    sel.innerHTML = '<option value="">Select classes first</option>';
+    note.classList.add('hidden');
+    return;
+  }
+  
+  // Get subjects that exist for ANY of the selected classes
+  const rows = state.subjectMapRows.filter(r =>
+    r.Active !== false && r.Subject &&
+    (state.selectedClasses.includes((r.Class||'').trim()) || (r.Class||'').trim() === '')
+  );
+  
+  // de-dupe by Subject name
+  const seen = new Map();
+  rows.forEach(r => { if (!seen.has(r.Subject)) seen.set(r.Subject, r); });
+  const list = [...seen.values()].sort((a,b)=>(Number(a['Display Order'])||999)-(Number(b['Display Order'])||999));
+
+  sel.innerHTML = '<option value="">Select a subject…</option>' +
+    list.map(r => `<option value="${esc(r.Subject)}">${esc(r.Subject)}</option>`).join('');
+  note.classList.remove('hidden');
+  document.getElementById('targetSheetInfo').classList.add('hidden');
+  state.selectedSubject = null;
+}
+
+function onSubjectChosen() {
+  const name = document.getElementById('selSubject').value;
+  const infoBox = document.getElementById('targetSheetInfo');
+  const infoText = document.getElementById('targetSheetInfoText');
+  
+  if (!name) { 
+    infoBox.classList.add('hidden'); 
+    state.selectedSubject = null; 
+    return; 
+  }
+  
+  if (!state.selectedClasses || state.selectedClasses.length === 0) {
+    infoBox.classList.remove('hidden');
+    infoBox.className = 'callout warn';
+    infoText.innerHTML = 'Please select at least one class first.';
+    state.selectedSubject = null;
+    return;
+  }
+  
+  // Find rows for this subject in any of the selected classes
+  const rows = state.subjectMapRows.filter(r =>
+    r.Subject === name && (state.selectedClasses.includes((r.Class||'').trim()) || (r.Class||'').trim() === '')
+  );
+  
+  if (rows.length === 0 || !rows[0]['Sheet ID']) {
+    infoBox.classList.remove('hidden');
+    infoBox.className = 'callout warn';
+    infoText.innerHTML = `No Sheet ID found for "${esc(name)}" in selected classes. Add or fix the rows in "Class Subject Map" first.`;
+    state.selectedSubject = null;
+    return;
+  }
+  
+  state.selectedSubject = rows;
+  infoBox.classList.remove('hidden');
+  infoBox.className = 'callout ok';
+  const classNames = state.selectedClasses.join(', ');
+  infoText.innerHTML = `Target sheets resolved — <strong>${esc(name)}</strong> for classes: <strong>${esc(classNames)}</strong>
+    <a href="https://docs.google.com/spreadsheets/d/${esc(rows[0]['Sheet ID'])}/edit" target="_blank">Open first subject's sheet ↗</a>`;
+}
+
+document.getElementById('selSubject').addEventListener('change', onSubjectChosen);
+document.getElementById('btnRefreshSubjects').addEventListener('click', async () => {
+  await loadSubjectMap();
+  refreshSubjectDropdown();
+  toast('ok', 'Subject list refreshed.');
+});
+
+function validateStep1() {
+  clearCallout(document.getElementById('globalCallouts'));
+  if (!state.selectedClasses || state.selectedClasses.length === 0) { 
+    toast('err', 'Pick at least one class first.'); 
+    return false; 
+  }
+  if (!state.selectedSubject) { 
+    toast('err', 'Pick a subject that already has a Sheet ID in "Class Subject Map".'); 
+    return false; 
+  }
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 2 — Chapter
+   ════════════════════════════════════════════════════════════════════════ */
+async function loadModulesAndSteps() {
+  const subjectRow = Array.isArray(state.selectedSubject) ? state.selectedSubject[0] : state.selectedSubject;
+  const sheetId = subjectRow['Sheet ID'];
+  try {
+    [state.existingModules, state.existingSteps] = await Promise.all([
+      fetchTab(sheetId, 'Learning Modules'),
+      fetchTab(sheetId, 'Learning Steps'),
+    ]);
+  } catch (err) {
+    toast('err', `Couldn't load existing chapters: ${esc(err.message)}`);
+    state.existingModules = []; state.existingSteps = [];
+  }
+  populateExistingModuleDropdown();
+  prefillNewChapterDefaults();
+}
+
+function populateExistingModuleDropdown() {
+  const sel = document.getElementById('selExistingModule');
+  const list = state.existingModules.filter(m => m['Module ID'] && m.Active !== false);
+  if (!list.length) {
+    sel.innerHTML = '<option value="">No existing chapters found in this sheet yet</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">Select a chapter…</option>' +
+    list.map(m => `<option value="${esc(m['Module ID'])}">${esc(m['Module ID'])} — ${esc(m.Title)} (${esc(m.Class||'—')})</option>`).join('');
+}
+
+document.querySelectorAll('input[name=chapterMode]').forEach(r => r.addEventListener('change', e => {
+  state.chapterMode = e.target.value;
+  document.getElementById('existingChapterBlock').classList.toggle('hidden', state.chapterMode !== 'existing');
+  document.getElementById('newChapterBlock').classList.toggle('hidden', state.chapterMode === 'existing');
+}));
+
+document.getElementById('selExistingModule').addEventListener('change', e => {
+  state.selectedExistingModuleId = e.target.value;
+  const m = state.existingModules.find(x => x['Module ID'] === e.target.value);
+  const info = document.getElementById('existingChapterInfo');
+  if (!m) { info.innerHTML = ''; return; }
+  const stepCount = state.existingSteps.filter(s => s['Module ID'] === m['Module ID']).length;
+  info.innerHTML = `<div class="kv"><span class="k">Subject</span>${esc(m.Subject)}</div>
+    <div class="kv"><span class="k">Class</span>${esc(m.Class)}</div>
+    <div class="kv"><span class="k">Existing questions</span>${stepCount}</div>`;
+});
+
+// ── Module ID auto-generation ───────────────────────────────────────────
+function subjectPrefix(subject) {
+  const words = subject.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return subject.trim().slice(0,2).toUpperCase();
+}
+function nextSerial(existingIds, prefix) {
+  const re = new RegExp('^' + prefix + '_(\\d+)$', 'i');
+  let max = 0, width = 2;
+  existingIds.forEach(id => {
+    const m = String(id||'').trim().match(re);
+    if (m) { max = Math.max(max, parseInt(m[1],10)); width = Math.max(width, m[1].length); }
+  });
+  return String(max+1).padStart(width, '0');
+}
+function prefillNewChapterDefaults() {
+  const subjectName = state.selectedSubject.Subject;
+  const prefix = subjectPrefix(subjectName);
+  document.getElementById('modPrefix').value = prefix;
+  document.getElementById('modPrefixHint').innerHTML =
+    `Auto-picked from "<span class="prefix-hi">${esc(subjectName.split(/\s+/).slice(0,2).join(' '))}</span>" — edit the box above if you'd rather use a different prefix.`;
+  updateModuleIdPreview();
+
+  const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
+  document.getElementById('modDisplayOrder').value = maxOrder + 1;
+
+  // Reasonable defaults from the subject's own card styling, if available
+  document.getElementById('modIcon').value = state.selectedSubject['Icon (FontAwesome solid)'] || '';
+  document.getElementById('modEmoji').value = state.selectedSubject['Emoji'] || '';
+  const color = state.selectedSubject['Color (Hex)'] || '#0ea5e9';
+  document.getElementById('modColorHex').value = color;
+  document.getElementById('modColorPicker').value = /^#[0-9a-f]{6}$/i.test(color) ? color : '#0ea5e9';
+  updateIconPreview();
+}
+function updateModuleIdPreview() {
+  const prefix = (document.getElementById('modPrefix').value || '').toUpperCase().trim();
+  const existingIds = state.existingModules.map(m => m['Module ID']);
+  const serial = nextSerial(existingIds, prefix || 'XX');
+  document.getElementById('modSerialChip').textContent = serial;
+  document.getElementById('modIdFull').textContent = `Module ID: ${prefix||'—'}_${serial}`;
+}
+document.getElementById('modPrefix').addEventListener('input', updateModuleIdPreview);
+function updateIconPreview() {
+  const val = (document.getElementById('modIcon').value || 'fa-shapes').trim();
+  document.getElementById('modIconPrev').className = 'fa-solid ' + (val || 'fa-shapes');
+}
+document.getElementById('modIcon').addEventListener('input', updateIconPreview);
+document.getElementById('modColorPicker').addEventListener('input', e => { document.getElementById('modColorHex').value = e.target.value; });
+document.getElementById('modColorHex').addEventListener('input', e => {
+  if (/^#[0-9a-f]{6}$/i.test(e.target.value)) document.getElementById('modColorPicker').value = e.target.value;
+});
+
+function validateStep2() {
+  if (inputMode === 'excel') {
+    if (!state.chapterGroups.length) {
+      toast('err', 'Upload a spreadsheet with at least one question first.');
+      return false;
+    }
+    if (state.chapterGroups.some(g => g.mode === 'error')) {
+      toast('err', 'Fix the blocked chapter(s) shown below before continuing.');
+      return false;
+    }
+    return true;
+  }
+  if (state.chapterMode === 'existing') {
+    if (!state.selectedExistingModuleId) { toast('err', 'Pick an existing chapter, or switch to "New chapter".'); return false; }
+    return true;
+  }
+  const title = document.getElementById('modTitle').value.trim();
+  const intro = document.getElementById('modIntro').value.trim();
+  const prefix = document.getElementById('modPrefix').value.trim();
+  if (!title) { toast('err', 'Give the chapter a title.'); return false; }
+  if (!intro) { toast('err', 'Add a short introduction for the chapter.'); return false; }
+  if (!prefix) { toast('err', 'The Module ID prefix can\'t be empty.'); return false; }
+  return true;
+}
+
+function buildNewModulePayload() {
+  const prefix = document.getElementById('modPrefix').value.toUpperCase().trim();
+  const serial = document.getElementById('modSerialChip').textContent;
+  return {
+    'Module ID': `${prefix}_${serial}`,
+    'Title': document.getElementById('modTitle').value.trim(),
+    'Subject': state.selectedSubject.Subject,
+    'Class': state.selectedClass,
+    'Subtopics': document.getElementById('modSubtopics').value.trim(),
+    'Icon (FontAwesome solid)': document.getElementById('modIcon').value.trim(),
+    'Emoji': document.getElementById('modEmoji').value.trim(),
+    'Color (Hex)': document.getElementById('modColorHex').value.trim(),
+    'Introduction': document.getElementById('modIntro').value.trim(),
+    'Now You Try': document.getElementById('modNowYouTry').value.trim(),
+    'Intro Image URL': document.getElementById('modImageUrl').value.trim(),
+    'Display Order': Number(document.getElementById('modDisplayOrder').value) || 1,
+    'Active': document.getElementById('modActive').checked ? 'TRUE' : 'FALSE',
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 3 — Input mode (manual vs excel)
+   ════════════════════════════════════════════════════════════════════════ */
+// Canonical columns for the "Learning Steps" tab — matches the real sheet header
+// row exactly, including "Question Type" and up to 10 Match-the-Following pairs.
+// A single sheet/row format now covers BOTH question types; "Question Type"
+// (MCQ | MatchTheFollowing) picks which of the two field-groups apply.
+const STEP_PAIR_COUNT = 10;
+const STEP_CORE_COLUMNS = [
+  'Module ID','Class','Step Number','Learning Section','Learning Section Body','Teaching','Step Image URL',
+  'Question','Option A','Option B','Option C','Option D','Correct Option','Explanation',
+  'Learn More URL','Learn More Label','Active','Question Type',
+];
+const STEP_PAIR_COLUMNS = [];
+for (let n=1;n<=STEP_PAIR_COUNT;n++) STEP_PAIR_COLUMNS.push(`Left ${n}`, `Right ${n}`);
+const STEP_COLUMNS = STEP_CORE_COLUMNS.concat(STEP_PAIR_COLUMNS);
+const STEP_REQUIRED_COMMON = ['Question'];
+
+const LM_COLUMNS = [
+  'Module ID','Title','Subject','Class','Subtopics','Icon (FontAwesome solid)','Emoji',
+  'Color (Hex)','Introduction','Now You Try','Intro Image URL','Display Order','Active'
+];
+
+// Header aliases: normalized (trimmed/lowercased/collapsed-space) synonyms → canonical column.
+// Makes header mapping order-independent and tolerant of your own export naming.
+const STEP_HEADER_ALIASES = {
+  'Module ID':             ['module id','moduleid','chapter id'],
+  'Learning Section':      ['learning section','section','chapter','chapter name','topic'],
+  'Learning Section Body': ['learning section body','section body','section text','section content'],
+  'Teaching':              ['teaching','teaching step','teaching text','teaching content'],
+  'Step Image URL':        ['step image url','image url','image','picture url'],
+  'Question':              ['question','question text','quiz question'],
+  'Option A':              ['option a','opt a','a','choice a'],
+  'Option B':              ['option b','opt b','b','choice b'],
+  'Option C':              ['option c','opt c','c','choice c'],
+  'Option D':              ['option d','opt d','d','choice d'],
+  'Correct Option':        ['correct option','correct answer','answer','correct'],
+  'Explanation':           ['explanation','explain','why'],
+  'Learn More URL':        ['learn more url','more url','reference url','further reading url'],
+  'Learn More Label':      ['learn more label','more label','reference label'],
+  'Active':                ['active','is active','enabled'],
+  'Question Type':         ['question type','type','qtype','q type'],
+};
+const LM_HEADER_ALIASES = {
+  'Module ID':                ['module id','moduleid','id'],
+  'Title':                    ['title','chapter title','name'],
+  'Subtopics':                ['subtopics'],
+  'Icon (FontAwesome solid)': ['icon','icon (fontawesome solid)','fontawesome icon'],
+  'Emoji':                    ['emoji'],
+  'Color (Hex)':               ['color','color (hex)','colour','colour (hex)'],
+  'Introduction':             ['introduction','intro'],
+  'Now You Try':              ['now you try','now you try prompt'],
+  'Intro Image URL':          ['intro image url'],
+  'Display Order':            ['display order','order'],
+  'Active':                   ['active'],
+};
+
+let inputMode = 'manual'; // 'manual' | 'excel'
+
+state.chapterGroups = [];   // [{ moduleId, displayName, rows, mode:'existing'|'new'|'error', startStep, newModuleRow, error }]
+
+function setInputMode(mode) {
+  inputMode = mode;
+  document.getElementById('btnModeManual').classList.toggle('active', mode === 'manual');
+  document.getElementById('btnModeExcel').classList.toggle('active', mode === 'excel');
+  document.getElementById('manualChapterWrap').classList.toggle('hidden', mode !== 'manual');
+  document.getElementById('excelChapterWrap').classList.toggle('hidden', mode !== 'excel');
+}
+
+/* ── Header mapping helpers ──────────────────────────────────────────── */
+function normalizeHeader(h) { return String(h||'').trim().toLowerCase().replace(/\s+/g,' '); }
+
+// Maps canonical column name -> the raw header actually used in the uploaded file.
+function buildHeaderMap(rawHeaders, canonicalList, aliasMap) {
+  const map = {};
+  rawHeaders.forEach(raw => {
+    const norm = normalizeHeader(raw);
+    for (const canon of canonicalList) {
+      if (map[canon]) continue;
+      const aliasHit = (aliasMap[canon]||[]).includes(norm) || normalizeHeader(canon) === norm;
+      if (aliasHit) map[canon] = raw;
+    }
+  });
+  return map;
+}
+function getCell(row, headerMap, canon) {
+  const raw = headerMap[canon];
+  return raw !== undefined && row[raw] !== undefined ? String(row[raw]).trim() : '';
+}
+function getPairCell(row, n, side) {
+  // "Left N" / "Right N" matched by normalized name directly (there are too many of
+  // these to alias individually — exact-ish naming is expected for pair columns).
+  const key = Object.keys(row).find(k => normalizeHeader(k) === `${side} ${n}`);
+  return key ? String(row[key]).trim() : '';
+}
+
+/* ── Template download ───────────────────────────────────────────────── */
+// Mirrors the real "Learning Modules" + "Learning Steps" tab shapes exactly, so a
+// file exported straight from those tabs (or built to match them, like your own
+// generation scripts already do) can be re-uploaded with zero reformatting.
+function downloadTemplate() {
+  if (typeof XLSX === 'undefined') { toast('err','SheetJS library not loaded yet. Try again in a moment.'); return; }
+  const wb = XLSX.utils.book_new();
+
+  const lmWs = XLSX.utils.aoa_to_sheet([LM_COLUMNS]);
+  lmWs['!cols'] = LM_COLUMNS.map(h => ({ wch: Math.max(h.length + 4, 14) }));
+  XLSX.utils.book_append_sheet(wb, lmWs, 'Learning Modules');
+
+  const lsWs = XLSX.utils.aoa_to_sheet([STEP_COLUMNS]);
+  lsWs['!cols'] = STEP_COLUMNS.map(h => ({ wch: Math.max(h.length + 2, 12) }));
+  XLSX.utils.book_append_sheet(wb, lsWs, 'Learning Steps');
+
+  XLSX.writeFile(wb, 'content-import-template.xlsx');
+}
+
+/* ── Drag-and-drop wiring ─────────────────────────────────────────────── */
+(function wireDrop() {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleExcelFile(file);
+  });
+  document.getElementById('xlsxInput').addEventListener('change', e => {
+    if (e.target.files[0]) handleExcelFile(e.target.files[0]);
+  });
+})();
+
+/* ── Parse uploaded file ─────────────────────────────────────────────── */
+function findSheetName(workbook, patterns) {
+  return workbook.SheetNames.find(name => patterns.some(p => p.test(name)));
+}
+const IGNORED_SHEET_PATTERN = /^(read ?me|instructions?|notes?|about|help|guide|cover|assignment subjects)$/i;
+
+// Scores a sheet by how many recognizable "Learning Steps" columns it has —
+// far more reliable than guessing from the sheet's name or position. A sheet
+// only qualifies if it has a recognizable "Question" column at minimum.
+function scoreAsStepsSheet(workbook, sheetName) {
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval:'' });
+  if (!rows.length) return { score: -1, rows: [] };
+  const headerMap = buildHeaderMap(Object.keys(rows[0]), STEP_CORE_COLUMNS, STEP_HEADER_ALIASES);
+  if (!headerMap['Question']) return { score: -1, rows: [], headerMap };
+  let score = 5; // has Question — qualifies
+  STEP_CORE_COLUMNS.forEach(c => { if (headerMap[c]) score += 1; });
+  return { score, rows, headerMap };
+}
+
+function pickStepsSheet(workbook, excludeName) {
+  let best = null;
+  workbook.SheetNames.forEach(name => {
+    if (name === excludeName || IGNORED_SHEET_PATTERN.test(name.trim())) return;
+    const candidate = scoreAsStepsSheet(workbook, name);
+    if (candidate.score > (best ? best.score : -1)) best = { name, ...candidate };
+  });
+  return best; // null if nothing in the workbook has a recognizable Question column
+}
+
+function handleExcelFile(file) {
+  if (typeof XLSX === 'undefined') { showImportStatus('err','SheetJS not loaded — reload the page and try again.'); return; }
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = ext === 'csv'
+        ? XLSX.read(e.target.result, { type:'string' })
+        : XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+
+      // "Learning Modules" (optional) supplies full chapter metadata for any brand-new
+      // Module ID referenced by the question rows.
+      const modulesSheetName = findSheetName(wb, [/learning modules/i]);
+
+      // Question data: any sheet whose headers actually look like question columns —
+      // regardless of its name or position (so "Biology", "MCQ Questions", "Learning
+      // Steps", etc. are all recognized the same way; a README/notes sheet never wins).
+      const stepsPick = pickStepsSheet(wb, modulesSheetName);
+      if (!stepsPick) {
+        showImportStatus('err', `Couldn't find a sheet with a recognizable "Question" column. Sheets in this file: ${wb.SheetNames.map(esc).join(', ')}.`);
+        resetImportState(); return;
+      }
+
+      const moduleRawRows = modulesSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[modulesSheetName], { defval:'' }) : [];
+      processImport(stepsPick.rows, moduleRawRows);
+    } catch(err) {
+
+      showImportStatus('err', 'Could not read file: ' + err.message);
+    }
+  };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function processImport(stepRawRows, moduleRawRows) {
+  if (!stepRawRows.length) {
+    showImportStatus('err', 'The file is empty, or no "Learning Steps" (or "Questions") sheet was found.');
+    resetImportState(); return;
+  }
+
+  const errs = [];
+  const stepHeaderMap = buildHeaderMap(Object.keys(stepRawRows[0]), STEP_CORE_COLUMNS, STEP_HEADER_ALIASES);
+  const missingCommon = STEP_REQUIRED_COMMON.filter(col => !stepHeaderMap[col]);
+  if (missingCommon.length) {
+    showImportStatus('err', `Missing column${missingCommon.length>1?'s':''}: <strong>${missingCommon.join(', ')}</strong> (or a recognizable equivalent).`);
+    resetImportState(); return;
+  }
+  const hasModuleIdCol = !!stepHeaderMap['Module ID'];
+  const hasSectionCol = !!stepHeaderMap['Learning Section'];
+  if (!hasModuleIdCol && !hasSectionCol) {
+    showImportStatus('err', `Need either a "Module ID" column (to append to / create specific chapters) or a "Learning Section" column (used as the chapter name for auto-detection).`);
+    resetImportState(); return;
+  }
+
+  // ── Parse question rows ──
+  const parsedRows = stepRawRows.map((row, i) => {
+    const qTypeRaw = getCell(row, stepHeaderMap, 'Question Type').toLowerCase();
+    const qType = qTypeRaw.startsWith('match') ? 'MatchTheFollowing' : 'MCQ';
+    const moduleId = getCell(row, stepHeaderMap, 'Module ID');
+    const learningSection = getCell(row, stepHeaderMap, 'Learning Section');
+    const question = getCell(row, stepHeaderMap, 'Question');
+    if (!question) errs.push(`Row ${i+2}: Question is blank.`);
+    if (!moduleId && !learningSection) errs.push(`Row ${i+2}: need either Module ID or Learning Section to know which chapter this belongs to.`);
+
+    const parsed = {
+      moduleId, learningSection,
+      learningSectionBody: getCell(row, stepHeaderMap, 'Learning Section Body'),
+      teaching: getCell(row, stepHeaderMap, 'Teaching'),
+      stepImageUrl: getCell(row, stepHeaderMap, 'Step Image URL'),
+      question, questionType: qType,
+      optA:'', optB:'', optC:'', optD:'', correct:'A', pairs: [],
+      explanation: getCell(row, stepHeaderMap, 'Explanation'),
+      learnMoreUrl: getCell(row, stepHeaderMap, 'Learn More URL'),
+      learnMoreLabel: getCell(row, stepHeaderMap, 'Learn More Label'),
+      active: true,
     };
+    const activeRaw = getCell(row, stepHeaderMap, 'Active').toUpperCase();
+    parsed.active = activeRaw === '' || activeRaw === 'TRUE' || activeRaw === '1' || activeRaw === 'YES';
 
-    let state = {
-      classes: [],
-      subjects: {},
-      selectedClasses: [],
-      selectedSubject: '',
-      questions: []
-    };
-
-    // ═══════════════════════════════════════════════════════════════════
-    // SETUP
-    // ═══════════════════════════════════════════════════════════════════
-    function toast(type, msg) {
-      console.log(`[${type.toUpperCase()}] ${msg}`);
-    }
-
-    // Load settings on init
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('cfgScriptUrl').value = cfg.scriptUrl;
-      document.getElementById('cfgSecret').value = cfg.secret;
-      
-      if (!cfg.scriptUrl) {
-        document.getElementById('settingsPanel').open = true;
-      } else {
-        loadAppData();
+    if (qType === 'MatchTheFollowing') {
+      for (let n=1; n<=STEP_PAIR_COUNT; n++) {
+        const left = getPairCell(row, n, 'left'), right = getPairCell(row, n, 'right');
+        if (left || right) parsed.pairs.push({ left, right });
       }
-    });
-
-    // Save settings
-    document.getElementById('btnSaveSettings').addEventListener('click', () => {
-      cfg.scriptUrl = document.getElementById('cfgScriptUrl').value.trim();
-      cfg.secret = document.getElementById('cfgSecret').value;
-      
-      localStorage.setItem('scm_scriptUrl', cfg.scriptUrl);
-      localStorage.setItem('scm_secret', cfg.secret);
-      
-      toast('ok', 'Settings saved');
-    });
-
-    // Test connection
-    document.getElementById('btnTestConn').addEventListener('click', async () => {
-      const out = document.getElementById('connTestResult');
-      
-      if (!cfg.scriptUrl) {
-        out.textContent = '⚠ Enter URL first';
-        out.style.color = 'var(--muted)';
-        return;
-      }
-      
-      out.textContent = 'Testing…';
-      out.style.color = 'var(--muted)';
-      
-      try {
-        const res = await fetch(`${cfg.scriptUrl}?action=getClassLevels&secret=${encodeURIComponent(cfg.secret)}`);
-        const data = await res.json();
-        
-        if (data.success) {
-          out.textContent = '✓ Connected! ' + data.classes.length + ' classes found';
-          out.style.color = 'var(--green)';
-          loadAppData();
-        } else {
-          out.textContent = '✗ ' + data.message;
-          out.style.color = 'var(--red)';
-        }
-      } catch (err) {
-        out.textContent = '✗ ' + err.message;
-        out.style.color = 'var(--red)';
-      }
-    });
-
-    function loadAppData() {
-      loadClasses();
-      loadSubjects();
-      document.getElementById('mainApp').classList.remove('hidden');
-      document.getElementById('settingsPanel').open = false;
+      if (parsed.pairs.length < 2) errs.push(`Row ${i+2} (${moduleId||learningSection}): Match The Following needs at least 2 Left/Right pairs.`);
+    } else {
+      parsed.optA = getCell(row, stepHeaderMap, 'Option A');
+      parsed.optB = getCell(row, stepHeaderMap, 'Option B');
+      parsed.optC = getCell(row, stepHeaderMap, 'Option C');
+      parsed.optD = getCell(row, stepHeaderMap, 'Option D');
+      const correct = getCell(row, stepHeaderMap, 'Correct Option').toUpperCase();
+      if (!parsed.optA||!parsed.optB||!parsed.optC||!parsed.optD) errs.push(`Row ${i+2} (${moduleId||learningSection}): One or more MCQ options are blank.`);
+      if (!['A','B','C','D'].includes(correct)) errs.push(`Row ${i+2} (${moduleId||learningSection}): Correct Option must be A, B, C, or D.`);
+      parsed.correct = ['A','B','C','D'].includes(correct) ? correct : 'A';
     }
+    return parsed;
+  });
 
-    // ═══════════════════════════════════════════════════════════════════
-    // LOAD DATA
-    // ═══════════════════════════════════════════════════════════════════
-    async function loadClasses() {
-      try {
-        const response = await fetch(`${cfg.scriptUrl}?action=getClassLevels&secret=${encodeURIComponent(cfg.secret)}`);
-        const data = await response.json();
+  if (errs.length) {
+    showImportStatus('err', errs.slice(0,6).join('<br>') + (errs.length>6 ? `<br>…and ${errs.length-6} more` : ''));
+    resetImportState(); return;
+  }
 
-        if (data.success) {
-          state.classes = data.classes;
-          renderClasses();
-        }
-      } catch (err) {
-        console.error('Error loading classes:', err);
-      }
-    }
-
-    async function loadSubjects() {
-      try {
-        const response = await fetch(`${cfg.scriptUrl}?action=getSubjectMap&secret=${encodeURIComponent(cfg.secret)}`);
-        const data = await response.json();
-
-        if (data.success) {
-          state.subjects = data.subjectMap;
-          const select = document.getElementById('subjectSelect');
-          select.innerHTML = '<option value="">— Choose a subject —</option>';
-          Object.keys(data.subjectMap).forEach(subject => {
-            const opt = document.createElement('option');
-            opt.value = subject;
-            opt.textContent = subject;
-            select.appendChild(opt);
-          });
-        }
-      } catch (err) {
-        console.error('Error loading subjects:', err);
-      }
-    }
-
-    function renderClasses() {
-      const html = state.classes.map((cls, i) => `
-        <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;">
-          <input type="checkbox" value="${cls}" onchange="updateSelectedClasses()">
-          ${cls}
-        </label>
-      `).join('');
-      
-      document.getElementById('classContainer').innerHTML = html;
-    }
-
-    function updateSelectedClasses() {
-      state.selectedClasses = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // NAVIGATION
-    // ═══════════════════════════════════════════════════════════════════
-    function goToStep2() {
-      state.selectedSubject = document.getElementById('subjectSelect').value;
-
-      if (state.selectedClasses.length === 0) {
-        alert('Select at least one class');
-        return;
-      }
-      if (!state.selectedSubject) {
-        alert('Select a subject');
-        return;
-      }
-
-      document.getElementById('selectedChips').innerHTML = state.selectedClasses.map(cls => `<span class="chip">${cls}</span>`).join('');
-      
-      document.getElementById('step1').classList.add('hidden');
-      document.getElementById('step2').classList.remove('hidden');
-      state.questions = [];
-      addQuestion();
-    }
-
-    function goToStep1() {
-      document.getElementById('step2').classList.add('hidden');
-      document.getElementById('step3').classList.add('hidden');
-      document.getElementById('step1').classList.remove('hidden');
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // QUESTIONS
-    // ═══════════════════════════════════════════════════════════════════
-    function addQuestion() {
-      const idx = state.questions.length;
-      state.questions.push({
-        moduleId: '', stepNum: '', question: '', optA: '', optB: '', optC: '', optD: '', correct: 'A'
+  // ── Parse Learning Modules metadata rows (optional) ──
+  const moduleRowsById = {};
+  if (moduleRawRows.length) {
+    const lmHeaderMap = buildHeaderMap(Object.keys(moduleRawRows[0]), LM_COLUMNS, LM_HEADER_ALIASES);
+    if (lmHeaderMap['Module ID']) {
+      moduleRawRows.forEach(row => {
+        const id = getCell(row, lmHeaderMap, 'Module ID');
+        if (!id) return;
+        moduleRowsById[id] = {
+          'Title': getCell(row, lmHeaderMap, 'Title'),
+          'Subtopics': getCell(row, lmHeaderMap, 'Subtopics'),
+          'Icon (FontAwesome solid)': getCell(row, lmHeaderMap, 'Icon (FontAwesome solid)'),
+          'Emoji': getCell(row, lmHeaderMap, 'Emoji'),
+          'Color (Hex)': getCell(row, lmHeaderMap, 'Color (Hex)'),
+          'Introduction': getCell(row, lmHeaderMap, 'Introduction'),
+          'Now You Try': getCell(row, lmHeaderMap, 'Now You Try'),
+          'Intro Image URL': getCell(row, lmHeaderMap, 'Intro Image URL'),
+          'Display Order': getCell(row, lmHeaderMap, 'Display Order'),
+          'Active': getCell(row, lmHeaderMap, 'Active'),
+        };
       });
+    }
+  }
 
-      const html = `
-        <div style="background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <strong>Question ${idx + 1}</strong>
-            ${idx > 0 ? `<button class="btn btn-ghost btn-sm" onclick="removeQuestion(${idx})"><i class="fa-solid fa-trash"></i></button>` : ''}
-          </div>
+  state.chapterGroups = resolveChapterGroups(buildRawChapterGroups(parsedRows, moduleRowsById));
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <div class="field">
-              <label>Module ID</label>
-              <input type="text" onchange="updateQuestion(${idx}, 'moduleId', this.value)">
-            </div>
-            <div class="field">
-              <label>Step Number</label>
-              <input type="number" onchange="updateQuestion(${idx}, 'stepNum', this.value)">
-            </div>
-          </div>
+  const errorGroups = state.chapterGroups.filter(g => g.mode === 'error');
+  if (errorGroups.length) {
+    showImportStatus('err', errorGroups.map(g => esc(g.error)).join('<br>'));
+    renderChapterGroups();
+    return;
+  }
 
+  const totalQ = parsedRows.length;
+  const mcqCount = parsedRows.filter(r=>r.questionType==='MCQ').length;
+  const mtfCount = totalQ - mcqCount;
+  const newCount = state.chapterGroups.filter(g=>g.mode==='new').length;
+  const existingCount = state.chapterGroups.filter(g=>g.mode==='existing').length;
+  showImportStatus('ok', `<i class="fa-solid fa-check-circle"></i> &nbsp;${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'} ` +
+    `(${existingCount} existing, ${newCount} new) · ${totalQ} question${totalQ===1?'':'s'} (${mcqCount} MCQ, ${mtfCount} Match The Following) — ` +
+    `review below, then click <strong>Continue</strong>.`);
+  renderChapterGroups();
+}
+
+function resetImportState() {
+  state.chapterGroups = [];
+  renderChapterGroups();
+}
+
+function showImportStatus(type, html) {
+  const el = document.getElementById('importStatus');
+  el.className = 'import-status ' + type;
+  el.innerHTML = html;
+}
+
+/* ── Group rows by chapter and resolve new/existing ─────────────────────
+   Preferred key: explicit "Module ID" column (matches your native export
+   format exactly). Falls back to grouping by "Learning Section" text when
+   no Module ID is given, auto-generating an ID (Phase-1 behaviour). ──── */
+function buildRawChapterGroups(rows, moduleRowsById) {
+  const groups = new Map();
+  rows.forEach(r => {
+    const key = r.moduleId ? `id:${r.moduleId}` : `sec:${r.learningSection.toLowerCase()}`;
+    if (!groups.has(key)) {
+      const lmTitle = r.moduleId && moduleRowsById[r.moduleId] ? moduleRowsById[r.moduleId].Title : '';
+      groups.set(key, {
+        key,
+        explicitModuleId: r.moduleId || '',
+        // Prefer: Learning Modules title → the row's own Chapter/Learning Section text → the Module ID itself.
+        displayName: lmTitle || r.learningSection || r.moduleId,
+        lmRow: r.moduleId ? moduleRowsById[r.moduleId] : null,
+        rows: [],
+      });
+    }
+    groups.get(key).rows.push(r);
+  });
+  return [...groups.values()];
+}
+
+function resolveChapterGroups(rawGroups) {
+  const existingByTitle = new Map();
+  state.existingModules.forEach(m => { if (m.Title) existingByTitle.set(String(m.Title).trim().toLowerCase(), m); });
+  const prefix = subjectPrefix(state.selectedSubject.Subject);
+  const pendingIds = state.existingModules.map(m => m['Module ID']);
+  const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
+  let newIdx = 0;
+
+  return rawGroups.map(g => {
+    // Match by chapter TITLE against what's already in the target sheet — the
+    // upload's own Module ID (if any) is only used internally, to group rows and
+    // look up "Learning Modules" metadata. It is never written to the sheet.
+    const match = existingByTitle.get(g.displayName.trim().toLowerCase());
+    if (match) {
+      const maxStep = state.existingSteps.filter(s => s['Module ID'] === match['Module ID'])
+        .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
+      return { ...g, moduleId: match['Module ID'], mode:'existing', startStep: maxStep + 1 };
+    }
+    // New chapter — always assign the next sequential ID from the target sheet's
+    // own numbering, regardless of what Module ID (if any) the upload used.
+    const serial = nextSerial(pendingIds, prefix);
+    const moduleId = `${prefix}_${serial}`;
+    pendingIds.push(moduleId);
+    newIdx++;
+    if (g.lmRow) {
+      return { ...g, moduleId, mode:'new', startStep: 1,
+        newModuleRow: buildModuleRowFromUpload(g.lmRow, moduleId, maxOrder + newIdx) };
+    }
+    return { ...g, moduleId, mode:'new', startStep: 1, needsSharedDefaults: true };
+  });
+}
+
+function buildModuleRowFromUpload(lmRow, moduleId, displayOrder) {
+  return {
+    'Module ID': moduleId,
+    'Title': lmRow.Title || moduleId,
+    'Subject': state.selectedSubject.Subject,
+    'Class': state.selectedClass,
+    'Subtopics': lmRow.Subtopics || '',
+    'Icon (FontAwesome solid)': lmRow['Icon (FontAwesome solid)'] || '',
+    'Emoji': lmRow.Emoji || '',
+    'Color (Hex)': lmRow['Color (Hex)'] || '',
+    'Introduction': lmRow.Introduction || '',
+    'Now You Try': lmRow['Now You Try'] || '',
+    'Intro Image URL': lmRow['Intro Image URL'] || '',
+    'Display Order': Number(lmRow['Display Order']) || displayOrder,
+    'Active': (lmRow.Active || '').toUpperCase() === 'FALSE' ? 'FALSE' : 'TRUE',
+  };
+}
+
+/* ── Rendering: detected chapters (step 2, excel mode) ─────────────────── */
+function renderChapterGroups() {
+  const host = document.getElementById('chapterGroupsHost');
+  const defaultsWrap = document.getElementById('newChapterDefaultsWrap');
+  if (!state.chapterGroups.length) { host.innerHTML=''; defaultsWrap.classList.add('hidden'); return; }
+  const needsDefaults = state.chapterGroups.some(g => g.mode === 'new' && g.needsSharedDefaults);
+  defaultsWrap.classList.toggle('hidden', !needsDefaults);
+  if (needsDefaults && !document.getElementById('autoModIcon').value) prefillAutoChapterDefaults();
+
+  host.innerHTML = `
+    <div style="margin-top:16px;">
+      <table class="preview">
+        <tr><th>Chapter</th><th>Status</th><th>Module ID</th><th>Questions</th></tr>
+        ${state.chapterGroups.map(g => `<tr>
+          <td>${esc(g.displayName)}</td>
+          <td>${g.mode==='existing' ? '<span class="chip">Existing — appending</span>' :
+               g.mode==='error' ? '<span class="chip" style="border-color:var(--red);color:var(--red);">Blocked</span>' :
+               g.needsSharedDefaults ? '<span class="chip id">New — using defaults below</span>' : '<span class="chip id">New — details from upload</span>'}</td>
+          <td><span class="chip id">${esc(g.moduleId||'—')}</span> ${g.mode==='new' ? '<span style="font-size:11px;color:var(--muted2);">auto-assigned</span>' : ''}</td>
+          <td>${g.rows.length}</td>
+        </tr>${g.mode==='error' ? `<tr><td colspan="4" style="color:var(--red);font-size:12px;">${esc(g.error)}</td></tr>` : ''}`).join('')}
+      </table>
+    </div>`;
+}
+
+function prefillAutoChapterDefaults() {
+  document.getElementById('autoModIcon').value = state.selectedSubject['Icon (FontAwesome solid)'] || '';
+  document.getElementById('autoModEmoji').value = state.selectedSubject['Emoji'] || '';
+  const color = state.selectedSubject['Color (Hex)'] || '#0ea5e9';
+  document.getElementById('autoModColorHex').value = color;
+  document.getElementById('autoModColorPicker').value = /^#[0-9a-f]{6}$/i.test(color) ? color : '#0ea5e9';
+  updateAutoIconPreview();
+}
+function updateAutoIconPreview() {
+  const val = (document.getElementById('autoModIcon').value || 'fa-shapes').trim();
+  document.getElementById('autoModIconPrev').className = 'fa-solid ' + (val || 'fa-shapes');
+}
+document.getElementById('autoModIcon').addEventListener('input', updateAutoIconPreview);
+document.getElementById('autoModColorPicker').addEventListener('input', e => { document.getElementById('autoModColorHex').value = e.target.value; });
+document.getElementById('autoModColorHex').addEventListener('input', e => {
+  if (/^#[0-9a-f]{6}$/i.test(e.target.value)) document.getElementById('autoModColorPicker').value = e.target.value;
+});
+
+/* ── Rendering: read-only preview (step 3, excel mode) ─────────────────── */
+function renderExcelSummaryStep3() {
+  const host = document.getElementById('excelSummaryHost');
+  const parts = state.chapterGroups.filter(g => g.mode !== 'error').map(g => `
+      <div style="margin-bottom:20px;">
+        <h3 style="font-family:var(--fd);font-size:14px;margin-bottom:8px;">
+          ${esc(g.displayName)} — <span class="chip id">${esc(g.moduleId)}</span>
+          ${g.mode==='existing' ? '<span class="chip">existing</span>' : '<span class="chip id">new</span>'}
+        </h3>
+        <table class="preview">
+          <tr><th>Step</th><th>Type</th><th>Question</th><th>Detail</th><th>Active</th></tr>
+          ${g.rows.map((q,i) => `<tr>
+            <td>${g.startStep+i}</td>
+            <td>${q.questionType==='MatchTheFollowing' ? 'Match' : 'MCQ'}</td>
+            <td>${esc(q.question)}</td>
+            <td>${q.questionType==='MatchTheFollowing'
+                ? esc(q.pairs.length + ' pairs')
+                : `A:${esc(q.optA)} B:${esc(q.optB)} C:${esc(q.optC)} D:${esc(q.optD)} <strong style="color:var(--teal)">(${esc(q.correct)})</strong>`}</td>
+            <td>${q.active?'✓':'—'}</td>
+          </tr>`).join('')}
+        </table>
+      </div>`);
+  host.innerHTML = parts.join('') || '<p class="sub">Nothing parsed yet — go back to Chapter step and upload a file.</p>';
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 3 — Questions
+   ════════════════════════════════════════════════════════════════════════ */
+function currentModuleIdForSteps() {
+  return state.chapterMode === 'existing' ? state.selectedExistingModuleId : buildNewModulePayload()['Module ID'];
+}
+function startingStepNumber() {
+  if (state.chapterMode !== 'existing') return 1;
+  const mid = state.selectedExistingModuleId;
+  const max = state.existingSteps.filter(s => s['Module ID'] === mid)
+    .reduce((m,s)=>Math.max(m, Number(s['Step Number'])||0), 0);
+  return max + 1;
+}
+function addQuestionBlock() {
+  state.qSeq += 1;
+  state.questions.push({
+    _id: state.qSeq, learningSection:'', learningSectionBody:'', teaching:'', stepImageUrl:'', question:'',
+    optA:'', optB:'', optC:'', optD:'', correct:'A', explanation:'', learnMoreUrl:'', learnMoreLabel:'', active:true,
+  });
+  renderQuestions();
+}
+function removeQuestionBlock(id) {
+  state.questions = state.questions.filter(q => q._id !== id);
+  if (!state.questions.length) addQuestionBlock(); else renderQuestions();
+}
+function renderQuestions() {
+  document.getElementById('step3sub').textContent =
+    `Adding to ${state.chapterMode==='existing' ? `"${state.selectedExistingModuleId}"` : 'this new chapter'} — starting at step ${startingStepNumber()}.`;
+  const host = document.getElementById('questionsHost');
+  const startNum = startingStepNumber();
+  host.innerHTML = state.questions.map((q, idx) => `
+    <div class="qblock" data-id="${q._id}">
+      <div class="qhead">
+        <span class="step-chip">Step ${startNum + idx}</span>
+        <button class="rm" data-rm="${q._id}" ${state.questions.length===1?'disabled':''}><i class="fa-solid fa-trash"></i> Remove</button>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Learning section <span class="opt">(optional — short heading shown in header)</span></label>
+          <input type="text" data-f="learningSection" data-id="${q._id}" value="${escAttr(q.learningSection)}" placeholder="e.g. What is a seed?"></div>
+        <div class="field"><label>Step image URL <span class="opt">(optional)</span></label>
+          <input type="url" data-f="stepImageUrl" data-id="${q._id}" value="${escAttr(q.stepImageUrl)}" placeholder="https://…"></div>
+      </div>
+      <div class="field"><label>Learning section body <span class="opt">(optional — up to ~400 words, shown in scrollable blue box)</span></label>
+        <textarea data-f="learningSectionBody" data-id="${q._id}" style="min-height:160px;font-size:13px;line-height:1.65;" placeholder="Write the full explanatory text for this learning section here — up to about 400 words. Students can scroll to read it all.">${escHtml(q.learningSectionBody)}</textarea></div>
+      <div class="field"><label>Teaching <span class="opt">(optional — up to ~400–500 words, shown in scrollable teal box)</span></label>
+        <textarea data-f="teaching" data-id="${q._id}" style="min-height:160px;font-size:13px;line-height:1.65;" placeholder="Write the teaching fact or explanation here — up to about 400–500 words. Students can scroll to read it all.">${escHtml(q.teaching)}</textarea></div>
+      <div class="field"><label>Question</label>
+        <textarea data-f="question" data-id="${q._id}" placeholder="What is a computer?">${escHtml(q.question)}</textarea></div>
+      <div class="opt4">
+        ${['A','B','C','D'].map(L => `
           <div class="field">
-            <label>Question</label>
-            <textarea onchange="updateQuestion(${idx}, 'question', this.value)" style="min-height: 60px;"></textarea>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="field">
-              <label>A)</label>
-              <input type="text" onchange="updateQuestion(${idx}, 'optA', this.value)">
-            </div>
-            <div class="field">
-              <label>B)</label>
-              <input type="text" onchange="updateQuestion(${idx}, 'optB', this.value)">
-            </div>
-            <div class="field">
-              <label>C)</label>
-              <input type="text" onchange="updateQuestion(${idx}, 'optC', this.value)">
-            </div>
-            <div class="field">
-              <label>D)</label>
-              <input type="text" onchange="updateQuestion(${idx}, 'optD', this.value)">
-            </div>
-          </div>
-
-          <div class="field">
-            <label>Correct Answer</label>
-            <select onchange="updateQuestion(${idx}, 'correct', this.value)">
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
-          </div>
+            <label class="opt-label"><span class="opt-letter">${L}</span> Option ${L}</label>
+            <input type="text" data-f="opt${L}" data-id="${q._id}" value="${escAttr(q['opt'+L])}">
+          </div>`).join('')}
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Correct option</label>
+          <select data-f="correct" data-id="${q._id}">
+            ${['A','B','C','D'].map(L => `<option value="${L}" ${q.correct===L?'selected':''}>${L}</option>`).join('')}
+          </select></div>
+        <div class="checkrow" style="margin-top:30px;">
+          <input type="checkbox" data-f="active" data-id="${q._id}" ${q.active?'checked':''}>
+          <label style="margin:0;">Active</label>
         </div>
-      `;
+      </div>
+      <div class="field"><label>Explanation <span class="opt">(optional)</span></label>
+        <textarea data-f="explanation" data-id="${q._id}">${escHtml(q.explanation)}</textarea></div>
+      <div class="grid2">
+        <div class="field"><label>Learn more URL <span class="opt">(optional)</span></label>
+          <input type="url" data-f="learnMoreUrl" data-id="${q._id}" value="${escAttr(q.learnMoreUrl)}"></div>
+        <div class="field"><label>Learn more label <span class="opt">(optional)</span></label>
+          <input type="text" data-f="learnMoreLabel" data-id="${q._id}" value="${escAttr(q.learnMoreLabel)}"></div>
+      </div>
+    </div>
+  `).join('');
 
-      document.getElementById('questionContainer').innerHTML += html;
+  host.querySelectorAll('[data-f]').forEach(el => {
+    el.addEventListener('input', onQuestionFieldChange);
+    el.addEventListener('change', onQuestionFieldChange);
+  });
+  host.querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', () => removeQuestionBlock(Number(btn.dataset.rm))));
+}
+function onQuestionFieldChange(e) {
+  const id = Number(e.target.dataset.id), field = e.target.dataset.f;
+  const q = state.questions.find(x => x._id === id);
+  if (!q) return;
+  q[field] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+}
+document.getElementById('btnAddQuestion').addEventListener('click', addQuestionBlock);
+
+function validateStep3() {
+  if (inputMode === 'excel') {
+    return state.chapterGroups.length > 0 && !state.chapterGroups.some(g => g.mode === 'error');
+  }
+  if (!state.questions.length) { toast('err', 'Add at least one question.'); return false; }
+  for (const q of state.questions) {
+    if (!q.question.trim()) { toast('err', 'Every question needs question text.'); return false; }
+    if (!q.optA.trim() || !q.optB.trim() || !q.optC.trim() || !q.optD.trim()) { toast('err', 'Fill in all four options for every question.'); return false; }
+  }
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   STEP 4 — Review & submit
+   ════════════════════════════════════════════════════════════════════════ */
+// Manual-mode-only: single chapter's worth of steps (unchanged behaviour).
+function buildStepsPayload() {
+  const moduleId = currentModuleIdForSteps();
+  const startNum = startingStepNumber();
+  return state.questions.map((q, idx) => ({
+    'Module ID': moduleId,
+    'Class': state.selectedClass,
+    'Step Number': startNum + idx,
+    'Learning Section': q.learningSection,
+    'Learning Section Body': q.learningSectionBody,
+    'Teaching': q.teaching,
+    'Step Image URL': q.stepImageUrl,
+    'Question': q.question,
+    'Option A': q.optA, 'Option B': q.optB, 'Option C': q.optC, 'Option D': q.optD,
+    'Correct Option': q.correct,
+    'Explanation': q.explanation,
+    'Learn More URL': q.learnMoreUrl,
+    'Learn More Label': q.learnMoreLabel,
+    'Active': q.active ? 'TRUE' : 'FALSE',
+  }));
+}
+
+// Excel-mode: one chapter group's steps — includes Question Type and, for
+// MatchTheFollowing rows, the Left N/Right N pair columns.
+function buildStepsForGroup(g) {
+  return g.rows.map((q, idx) => {
+    const row = {
+      'Module ID': g.moduleId,
+      'Class': state.selectedClass,
+      'Step Number': g.startStep + idx,
+      'Learning Section': q.learningSection,
+      'Learning Section Body': q.learningSectionBody,
+      'Teaching': q.teaching,
+      'Step Image URL': q.stepImageUrl,
+      'Question': q.question,
+      'Question Type': q.questionType,
+      'Option A': q.optA, 'Option B': q.optB, 'Option C': q.optC, 'Option D': q.optD,
+      'Correct Option': q.correct,
+      'Explanation': q.explanation,
+      'Learn More URL': q.learnMoreUrl,
+      'Learn More Label': q.learnMoreLabel,
+      'Active': q.active ? 'TRUE' : 'FALSE',
+    };
+    q.pairs.forEach((p, i) => { row[`Left ${i+1}`] = p.left; row[`Right ${i+1}`] = p.right; });
+    return row;
+  });
+}
+
+// Excel-mode: new-chapter row. Uses the uploaded "Learning Modules" row if the
+// group came with an explicit Module ID; otherwise falls back to the shared
+// defaults form (chapter detected purely from "Learning Section" text).
+function buildAutoModulePayload(g) {
+  if (g.newModuleRow) return g.newModuleRow;
+  const introTemplate = document.getElementById('autoModIntro').value.trim() || 'Learn about {chapter}.';
+  const maxOrder = state.existingModules.reduce((m,r)=>Math.max(m, Number(r['Display Order'])||0), 0);
+  return {
+    'Module ID': g.moduleId,
+    'Title': g.displayName,
+    'Subject': state.selectedSubject.Subject,
+    'Class': state.selectedClass,
+    'Subtopics': '',
+    'Icon (FontAwesome solid)': document.getElementById('autoModIcon').value.trim(),
+    'Emoji': document.getElementById('autoModEmoji').value.trim(),
+    'Color (Hex)': document.getElementById('autoModColorHex').value.trim(),
+    'Introduction': introTemplate.replace(/\{chapter\}/gi, g.displayName),
+    'Now You Try': '',
+    'Intro Image URL': '',
+    'Display Order': maxOrder + 1,
+    'Active': document.getElementById('autoModActive').checked ? 'TRUE' : 'FALSE',
+  };
+}
+
+function renderReview() {
+  const host = document.getElementById('reviewHost');
+  let html = `
+    <div class="kv"><span class="k">Class</span><strong>${esc(state.selectedClass)}</strong></div>
+    <div class="kv"><span class="k">Subject</span><strong>${esc(state.selectedSubject.Subject)}</strong></div>
+    <div class="kv"><span class="k">Target sheet</span><span class="chip">${esc(state.selectedSubject['Sheet ID'])}</span></div>
+  `;
+
+  if (inputMode === 'manual') {
+    const moduleId = currentModuleIdForSteps();
+    const steps = buildStepsPayload();
+    html += `<div class="kv"><span class="k">Chapter</span><strong>${state.chapterMode==='existing' ? '(existing) ' : '(new) '}${esc(moduleId)}</strong></div>
+      <hr style="border-color:var(--line);margin:16px 0;">`;
+    if (state.chapterMode === 'new') {
+      const m = buildNewModulePayload();
+      html += `<h3 style="font-family:var(--fd);font-size:14px;">New chapter row</h3>`;
+      html += Object.entries(m).map(([k,v]) => `<div class="kv"><span class="k">${esc(k)}</span>${esc(String(v))}</div>`).join('');
+      html += `<hr style="border-color:var(--line);margin:16px 0;">`;
     }
+    html += `<h3 style="font-family:var(--fd);font-size:14px;">${steps.length} question${steps.length===1?'':'s'} to add</h3>`;
+    html += `<table class="preview"><tr><th>Step</th><th>Question</th><th>Correct</th></tr>` +
+      steps.map(s => `<tr><td>${s['Step Number']}</td><td>${esc(s.Question)}</td><td>${esc(s['Correct Option'])}</td></tr>`).join('') +
+      `</table>`;
+  } else {
+    const totalQ = state.chapterGroups.reduce((n,g)=>n+g.rows.length, 0);
+    const mtfCount = state.chapterGroups.reduce((n,g)=>n+g.rows.filter(r=>r.questionType==='MatchTheFollowing').length, 0);
+    html += `<hr style="border-color:var(--line);margin:16px 0;">
+      <h3 style="font-family:var(--fd);font-size:14px;">${state.chapterGroups.length} chapter${state.chapterGroups.length===1?'':'s'}, ${totalQ} question${totalQ===1?'':'s'}${mtfCount ? ` (${mtfCount} Match The Following)` : ''}</h3>
+      <table class="preview"><tr><th>Chapter</th><th>Status</th><th>Module ID</th><th>Questions</th></tr>
+      ${state.chapterGroups.map(g => `<tr><td>${esc(g.displayName)}</td><td>${g.mode==='existing'?'Existing':'New'}</td><td>${esc(g.moduleId)}</td><td>${g.rows.length}</td></tr>`).join('')}
+      </table>`;
+  }
+  host.innerHTML = html;
+}
 
-    function updateQuestion(idx, field, value) {
-      if (state.questions[idx]) {
-        state.questions[idx][field] = value;
+async function submitAll() {
+  if (!cfg.scriptUrl) {
+    toast('err', 'Set the Apps Script Web App URL in Connection settings first.');
+    document.getElementById('settingsPanel').open = true;
+    return;
+  }
+  const btn = document.getElementById('btnNext');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Submitting…';
+  const resultHost = document.getElementById('submitResult');
+
+  try {
+    const selectedClasses = state.selectedClasses;
+    const subjectName = Array.isArray(state.selectedSubject) ? state.selectedSubject[0].Subject : state.selectedSubject.Subject;
+    const successMessages = [];
+
+    // Upload to each selected class
+    for (const selectedClass of selectedClasses) {
+      // Find the sheet ID for this class-subject combination
+      const row = state.subjectMapRows.find(r =>
+        r.Subject === subjectName && (r.Class||'').trim() === selectedClass
+      );
+      
+      if (!row || !row['Sheet ID']) {
+        throw new Error(`No Sheet ID found for ${selectedClass} / ${subjectName}`);
       }
-    }
 
-    function removeQuestion(idx) {
-      state.questions.splice(idx, 1);
-      document.getElementById('questionContainer').innerHTML = '';
-      state.questions.forEach(() => addQuestion());
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // SUBMIT
-    // ═══════════════════════════════════════════════════════════════════
-    async function submitQuestions() {
-      if (state.questions.length === 0) {
-        alert('Add at least one question');
-        return;
-      }
-
-      const btn = event.target.closest('button');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
-
-      try {
-        const results = [];
-
-        for (const className of state.selectedClasses) {
-          try {
-            const response = await fetch(cfg.scriptUrl, {
-              method: 'POST',
-              body: JSON.stringify({
-                secret: cfg.secret,
-                action: 'uploadQuestions',
-                class: className,
-                subject: state.selectedSubject,
-                questions: state.questions
-              })
-            });
-
-            const data = await response.json();
-            results.push({
-              class: className,
-              success: data.success,
-              message: data.message,
-              count: data.stepsAdded || 0
-            });
-          } catch (err) {
-            results.push({
-              class: className,
-              success: false,
-              message: err.message,
-              count: 0
-            });
+      if (inputMode === 'manual') {
+        const payload = {
+          secret: cfg.secret,
+          sheetId: row['Sheet ID'],
+          newModule: state.chapterMode === 'new' ? buildNewModulePayload() : null,
+          existingModuleId: state.chapterMode === 'existing' ? state.selectedExistingModuleId : null,
+          newSteps: buildStepsPayload(),
+        };
+        const data = await postToScript(payload);
+        if (!data.success) throw new Error(data.message || 'Unknown error from the Apps Script.');
+        successMessages.push(`${selectedClass}: Added <strong>${data.stepsAdded}</strong> question(s)`);
+      } else {
+        // Excel mode: one request per chapter group
+        const doneChapters = [];
+        for (let i=0; i<state.chapterGroups.length; i++) {
+          const g = state.chapterGroups[i];
+          const payload = {
+            secret: cfg.secret,
+            sheetId: row['Sheet ID'],
+            newModule: g.mode === 'new' ? buildAutoModulePayload(g) : null,
+            existingModuleId: g.mode === 'existing' ? g.moduleId : null,
+            newSteps: buildStepsForGroup(g),
+          };
+          const data = await postToScript(payload);
+          if (!data.success) {
+            throw new Error(`Stopped at chapter "${g.displayName}": ${data.message || 'Unknown error'}`);
           }
+          doneChapters.push(`${g.displayName} (${data.stepsAdded} q)`);
         }
-
-        showResults(results);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit';
+        successMessages.push(`${selectedClass}: Added ${doneChapters.length} chapter${doneChapters.length===1?'':'s'} - ${doneChapters.map(esc).join(', ')}`);
       }
     }
 
-    function showResults(results) {
-      const allSuccess = results.every(r => r.success);
-      let html = `
-        <div class="callout ${allSuccess ? 'success' : 'error'}" style="margin-bottom: 14px;">
-          <i class="fa-solid fa-${allSuccess ? 'circle-check' : 'circle-exclamation'}"></i>
-          <div>
-            <strong>${allSuccess ? '✓ All uploads successful!' : '✗ Some uploads failed'}</strong>
-            ${results.map(r => `
-              <div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 12px;">
-                ${r.success ? '✓' : '✗'} <strong>${r.class}:</strong> ${r.success ? r.count + ' questions added' : r.message}
-              </div>
-            `).join('')}
+    callout(resultHost, 'ok', 'fa-circle-check',
+      `Content uploaded to ${selectedClasses.length} class${selectedClasses.length===1?'':'es'}:<br/>
+      ${successMessages.map(m => `<div style="margin-top:8px;">✓ ${m}</div>`).join('')}`);
+
+    toast('ok', 'Saved to Google Sheets.');
+    document.getElementById('btnBack').classList.add('hidden');
+    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Add another chapter';
+    btn.disabled = false;
+    btn.onclick = () => location.reload();
+  } catch (err) {
+    callout(resultHost, 'err', 'fa-triangle-exclamation', `Submit failed: ${esc(err.message)}`);
+    toast('err', 'Submit failed — see details below.');
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+async function postToScript(payload) {
+  const res = await fetch(cfg.scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   HELPERS
+   ════════════════════════════════════════════════════════════════════════ */
+function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s) { return esc(s); }
+function escHtml(s) { return esc(s); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   REORGANISE FEATURE
+   ════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Show reorganise option when class and subject are selected
+ */
+function showReorganiseOption() {
+  const classVal = document.getElementById('selClass').value;
+  const subjectVal = document.getElementById('selSubject').value;
+  const reorganiseSection = document.getElementById('reorganiseSection');
+  
+  if (classVal && subjectVal) {
+    reorganiseSection.classList.remove('hidden');
+  } else {
+    reorganiseSection.classList.add('hidden');
+    document.getElementById('reorganiseConfirmDialog').classList.add('hidden');
+    document.getElementById('reorganiseProgressDialog').classList.add('hidden');
+  }
+}
+
+/**
+ * Start reorganise flow
+ */
+function startReorganiseFlow() {
+  const confirmDialog = document.getElementById('reorganiseConfirmDialog');
+  const reorganiseSubjectName = document.getElementById('reorganiseSubjectName');
+  const subjectSelect = document.getElementById('selSubject');
+  
+  const selectedOption = subjectSelect.options[subjectSelect.selectedIndex];
+  const subjectName = selectedOption.text;
+  
+  reorganiseSubjectName.textContent = subjectName;
+  confirmDialog.classList.remove('hidden');
+  
+  document.getElementById('confirmReorgFlow').checked = false;
+  updateReorgButton();
+}
+
+/**
+ * Enable/disable reorganise button
+ */
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'confirmReorgFlow') {
+    updateReorgButton();
+  }
+});
+
+function updateReorgButton() {
+  const btn = document.getElementById('btnProceedReorg');
+  const checkbox = document.getElementById('confirmReorgFlow');
+  
+  if (checkbox.checked) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+
+/**
+ * Proceed with reorganisation
+ */
+async function proceedWithReorganise() {
+  const confirmDialog = document.getElementById('reorganiseConfirmDialog');
+  const progressDialog = document.getElementById('reorganiseProgressDialog');
+  const resultsDialog = document.getElementById('reorganiseResultsDialog');
+  const subjectSelect = document.getElementById('selSubject');
+  
+  if (!state.selectedClasses || state.selectedClasses.length === 0) {
+    toast('err', 'No classes selected');
+    return;
+  }
+  
+  if (!state.selectedSubject) {
+    toast('err', 'No subject selected');
+    return;
+  }
+  
+  if (!cfg.scriptUrl) {
+    toast('err', 'Apps Script URL not configured in settings');
+    return;
+  }
+  
+  try {
+    confirmDialog.classList.add('hidden');
+    progressDialog.classList.remove('hidden');
+    
+    const selectedOption = subjectSelect.options[subjectSelect.selectedIndex];
+    document.getElementById('reorganiseProgressSubject').textContent = `${state.selectedClasses.join(', ')} - ${selectedOption.text}`;
+    
+    const results = [];
+    
+    // Reorganise for each selected class
+    for (const selectedClass of state.selectedClasses) {
+      const payload = {
+        action: 'reorganiseSubject',
+        class: selectedClass,
+        subject: state.selectedSubject[0]?.Subject || selectedOption.text,
+        secret: cfg.secret
+      };
+      
+      console.log('📤 Sending reorganise request for class:', selectedClass);
+      
+      const response = await fetch(cfg.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status} for ${selectedClass}`);
+      }
+      
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Response was not valid JSON: ' + text.substring(0, 100));
+      }
+      
+      if (!data.success) {
+        throw new Error(`${selectedClass}: ${data.message || 'Unknown error'}`);
+      }
+      
+      results.push({
+        class: selectedClass,
+        reorganised: data.reorganised || 0,
+        duplicatesMarked: data.duplicatesMarked || 0
+      });
+    }
+    
+    progressDialog.classList.add('hidden');
+    
+    let html = `
+      <div style="background:var(--green-dim);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:16px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;color:#86e7ab;">
+          <i class="fa-solid fa-circle-check" style="margin-top:2px;flex-shrink:0;font-size:20px;"></i>
+          <div style="flex:1;">
+            <strong style="font-size:15px;display:block;margin-bottom:12px;">✓ Reorganisation Complete!</strong>
+            
+            <div style="font-size:13px;line-height:1.9;border-top:1px solid rgba(34,197,94,.3);padding-top:12px;">
+              <div style="margin-bottom:12px;"><strong>Classes Reorganised:</strong></div>
+              ${results.map(r => `
+                <div style="padding:12px;background:rgba(0,0,0,.1);border-radius:6px;margin-bottom:8px;border-left:3px solid #86e7ab;">
+                  <div style="font-weight:600;margin-bottom:6px;">${esc(r.class)}</div>
+                  <div>✓ <strong>${r.reorganised}</strong> questions reorganized</div>
+                  <div>⚠ <strong>${r.duplicatesMarked}</strong> duplicate(s) marked in pink</div>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div style="margin-top:12px;padding:12px;background:rgba(0,0,0,.1);border-radius:6px;font-size:11px;color:rgba(255,255,255,.8);border-left:3px solid rgba(34,197,94,.5);">
+              ℹ️ <strong>What was done:</strong><br/>
+              • Module IDs regenerated (01, 02, 03...)<br/>
+              • Step numbers renumbered (1, 2, 3...)<br/>
+              • Duplicate questions marked with "✓ DUPLICATE" label<br/>
+              • Duplicates highlighted in pink for easy review
+            </div>
           </div>
         </div>
-      `;
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="resetToStep1()">
+          <i class="fa-solid fa-arrow-left"></i> Back to class/subject
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="continueToUpload()">
+          <i class="fa-solid fa-plus"></i> Now add more questions
+        </button>
+      </div>
+    `;
+    
+    resultsDialog.innerHTML = html;
+    resultsDialog.removeAttribute('hidden');
+    
+    toast('ok', 'Subject reorganized successfully!');
+    
+    
+  } catch (err) {
+    progressDialog.classList.add('hidden');
+    confirmDialog.classList.remove('hidden');
+    
+    let html = `
+      <div style="background:var(--red-dim);border:1px solid rgba(239,91,91,.3);border-radius:10px;padding:16px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;color:#f59b9b;">
+          <i class="fa-solid fa-circle-exclamation" style="margin-top:2px;flex-shrink:0;font-size:20px;"></i>
+          <div>
+            <strong style="font-size:15px;display:block;margin-bottom:6px;">Reorganisation failed</strong>
+            <div style="font-size:13px;">${esc(err.message)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    resultsDialog.innerHTML = html;
+    resultsDialog.removeAttribute('hidden');
+    
+    toast('err', 'Reorganisation failed: ' + err.message);
+  }
+}
 
-      document.getElementById('resultsContent').innerHTML = html;
-      document.getElementById('step2').classList.add('hidden');
-      document.getElementById('step3').classList.remove('hidden');
-    }
-  </script>
+/**
+ * Cancel reorganise
+ */
+function cancelReorganise() {
+  document.getElementById('reorganiseConfirmDialog').classList.add('hidden');
+  document.getElementById('reorganiseProgressDialog').classList.add('hidden');
+  document.getElementById('reorganiseResultsDialog').setAttribute('hidden', '');
+  document.getElementById('confirmReorgFlow').checked = false;
+  updateReorgButton();
+}
+
+/**
+ * Continue to upload
+ */
+function continueToUpload() {
+  cancelReorganise();
+  showStep(2);
+}
+
+/**
+ * Reset to step 1
+ */
+function resetToStep1() {
+  cancelReorganise();
+  document.getElementById('selClass').value = '';
+  document.getElementById('selSubject').value = '';
+  showStep(1);
+}
+
+/**
+ * Hook into subject selection
+ */
+(function() {
+  const subjectSelect = document.getElementById('selSubject');
+  if (subjectSelect && !subjectSelect.hasAttribute('data-reorganise-hooked')) {
+    subjectSelect.addEventListener('change', showReorganiseOption);
+    subjectSelect.setAttribute('data-reorganise-hooked', 'true');
+  }
+})();
+
+/**
+ * Reset when class changes
+ */
+(function() {
+  const classSelect = document.getElementById('selClass');
+  if (classSelect && !classSelect.hasAttribute('data-reorganise-hooked')) {
+    classSelect.addEventListener('change', function() {
+      document.getElementById('reorganiseSection').classList.add('hidden');
+      cancelReorganise();
+    });
+    classSelect.setAttribute('data-reorganise-hooked', 'true');
+  }
+})();
+
+/* ════════════════════════════════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════════════════════════════════ */
+(async function init() {
+  addQuestionBlock(); // start with one empty question block ready
+  await Promise.all([loadClassLevels(), loadSubjectMap()]);
+})();
+</script>
 </body>
 </html>
