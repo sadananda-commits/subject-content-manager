@@ -219,18 +219,37 @@
           <div id="mcqForm">
             <div class="grid3">
               <div class="field">
-                <label>Module ID</label>
+                <label>Module ID (Optional)</label>
                 <input type="text" id="mcqMod" placeholder="AUTO">
                 <small style="color: #8b97ad;">Leave blank for auto-generation</small>
+              </div>
+              <div class="field">
+                <label>Module Title (Chapter Name) *</label>
+                <input type="text" id="mcqModTitle" placeholder="e.g., Photosynthesis">
+                <small style="color: #8b97ad;">Used for Learning Modules tab</small>
               </div>
               <div class="field">
                 <label>Step Number</label>
                 <input type="number" id="mcqStep" placeholder="1" min="1">
               </div>
+            </div>
+
+            <div class="grid2">
               <div class="field">
-                <label>Learning Section</label>
-                <input type="text" id="mcqSection" placeholder="e.g., Introduction">
+                <label>Learning Section (Chapter Name)</label>
+                <input type="text" id="mcqSection" placeholder="e.g., Photosynthesis">
+                <small style="color: #8b97ad;">Appears in Learning Steps tab</small>
               </div>
+              <div class="field">
+                <label>Subtopics (Optional)</label>
+                <input type="text" id="mcqSubtopics" placeholder="e.g., Process, Requirements, Products">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Chapter Description (Learning Section Body)</label>
+              <textarea id="mcqChapterDesc" placeholder="Describe what this chapter covers..." style="min-height: 60px;"></textarea>
+              <small style="color: #8b97ad;">Appears in Learning Modules Introduction field</small>
             </div>
 
             <div class="field">
@@ -268,10 +287,18 @@
                   <option>D</option>
                 </select>
               </div>
-              <div class="field">
-                <label>Teaching/Explanation (Optional)</label>
-                <textarea id="mcqExpl" placeholder="Explain why this is correct..." style="min-height: 50px;"></textarea>
-              </div>
+            </div>
+
+            <div class="field">
+              <label>Teaching Notes (Detailed Explanation)</label>
+              <textarea id="mcqTeaching" placeholder="Step-by-step explanation for teachers. E.g., Step 1: Identify the key concept. Step 2: Apply the formula..." style="min-height: 80px;"></textarea>
+              <small style="color: #8b97ad;">Appears in Learning Steps 'Teaching' column</small>
+            </div>
+
+            <div class="field">
+              <label>Explanation (Student Answer Explanation)</label>
+              <textarea id="mcqExpl" placeholder="Why is option [correct answer] the right answer?..." style="min-height: 60px;"></textarea>
+              <small style="color: #8b97ad;">Appears in Learning Steps 'Explanation' column</small>
             </div>
 
             <button class="btn btn-primary" onclick="addMCQ()">
@@ -283,18 +310,37 @@
           <div id="matchForm" class="hidden">
             <div class="grid3">
               <div class="field">
-                <label>Module ID</label>
+                <label>Module ID (Optional)</label>
                 <input type="text" id="matchMod" placeholder="AUTO">
                 <small style="color: #8b97ad;">Leave blank for auto-generation</small>
+              </div>
+              <div class="field">
+                <label>Module Title (Chapter Name) *</label>
+                <input type="text" id="matchModTitle" placeholder="e.g., Vocabulary">
+                <small style="color: #8b97ad;">Used for Learning Modules tab</small>
               </div>
               <div class="field">
                 <label>Step Number</label>
                 <input type="number" id="matchStep" placeholder="1" min="1">
               </div>
+            </div>
+
+            <div class="grid2">
               <div class="field">
-                <label>Learning Section</label>
+                <label>Learning Section (Chapter Name)</label>
                 <input type="text" id="matchSection" placeholder="e.g., Vocabulary">
+                <small style="color: #8b97ad;">Appears in Learning Steps tab</small>
               </div>
+              <div class="field">
+                <label>Subtopics (Optional)</label>
+                <input type="text" id="matchSubtopics" placeholder="e.g., Synonyms, Antonyms">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Chapter Description (Learning Section Body)</label>
+              <textarea id="matchChapterDesc" placeholder="Describe what this chapter covers..." style="min-height: 60px;"></textarea>
+              <small style="color: #8b97ad;">Appears in Learning Modules Introduction field</small>
             </div>
 
             <div class="field">
@@ -310,8 +356,15 @@
             </button>
 
             <div class="field" style="margin-top: 20px;">
-              <label>Explanation (Optional)</label>
-              <textarea id="matchExpl" placeholder="Explain the correct matches..." style="min-height: 50px;"></textarea>
+              <label>Teaching Notes (Detailed Explanation)</label>
+              <textarea id="matchTeaching" placeholder="Step-by-step explanation for teachers..." style="min-height: 80px;"></textarea>
+              <small style="color: #8b97ad;">Appears in Learning Steps 'Teaching' column</small>
+            </div>
+
+            <div class="field">
+              <label>Explanation (Student Answer Explanation)</label>
+              <textarea id="matchExpl" placeholder="Explain the correct matches..." style="min-height: 60px;"></textarea>
+              <small style="color: #8b97ad;">Appears in Learning Steps 'Explanation' column</small>
             </div>
 
             <button class="btn btn-primary" onclick="addMatch()">
@@ -848,6 +901,7 @@
 
     function addMCQ() {
       const moduleId = document.getElementById('mcqMod').value.trim() || generateModuleId(state.selectedSubject, state.questions.length + 1);
+      const moduleTitle = document.getElementById('mcqModTitle').value.trim();
       const stepNum = parseInt(document.getElementById('mcqStep').value) || (state.questions.length + 1);
       const question = document.getElementById('mcqQ').value.trim();
       const optA = document.getElementById('mcqA').value.trim();
@@ -855,22 +909,33 @@
       const optC = document.getElementById('mcqC').value.trim();
       const optD = document.getElementById('mcqD').value.trim();
       const correct = document.getElementById('mcqCorrect').value;
-      const section = document.getElementById('mcqSection').value.trim() || 'Learning Step';
+      const section = document.getElementById('mcqSection').value.trim() || moduleTitle || 'Learning Step';
+      const chapterDescription = document.getElementById('mcqChapterDesc').value.trim();
+      const subtopics = document.getElementById('mcqSubtopics').value.trim();
+      const teaching = document.getElementById('mcqTeaching').value.trim();
       const explanation = document.getElementById('mcqExpl').value.trim();
 
-      if (!question || !optA || !optB || !optC || !optD) {
-        alert('Fill in all required fields');
+      if (!question || !optA || !optB || !optC || !optD || !moduleTitle) {
+        alert('Fill in all required fields (Module Title is required)');
         return;
       }
 
       const q = {
         type: 'MCQ',
         moduleId,
+        moduleTitle,
         stepNum,
         section,
+        chapterDescription,
+        subtopics,
         question,
-        optA, optB, optC, optD,
-        correct,
+        optionA: optA,
+        optionB: optB,
+        optionC: optC,
+        optionD: optD,
+        correctAnswer: correct,
+        correctOption: correct,
+        teaching,
         explanation
       };
 
@@ -878,6 +943,7 @@
       showQuestions();
 
       // Clear form
+      document.getElementById('mcqModTitle').value = '';
       document.getElementById('mcqQ').value = '';
       document.getElementById('mcqA').value = '';
       document.getElementById('mcqB').value = '';
@@ -886,6 +952,9 @@
       document.getElementById('mcqStep').value = '';
       document.getElementById('mcqMod').value = '';
       document.getElementById('mcqSection').value = '';
+      document.getElementById('mcqChapterDesc').value = '';
+      document.getElementById('mcqSubtopics').value = '';
+      document.getElementById('mcqTeaching').value = '';
       document.getElementById('mcqExpl').value = '';
 
       document.getElementById('nextBtn').disabled = false;
@@ -893,13 +962,17 @@
 
     function addMatch() {
       const moduleId = document.getElementById('matchMod').value.trim() || generateModuleId(state.selectedSubject, state.questions.length + 1);
+      const moduleTitle = document.getElementById('matchModTitle').value.trim();
       const stepNum = parseInt(document.getElementById('matchStep').value) || (state.questions.length + 1);
       const question = document.getElementById('matchQ').value.trim();
-      const section = document.getElementById('matchSection').value.trim() || 'Learning Step';
+      const section = document.getElementById('matchSection').value.trim() || moduleTitle || 'Learning Step';
+      const chapterDescription = document.getElementById('matchChapterDesc').value.trim();
+      const subtopics = document.getElementById('matchSubtopics').value.trim();
+      const teaching = document.getElementById('matchTeaching').value.trim();
       const explanation = document.getElementById('matchExpl').value.trim();
 
-      if (!question) {
-        alert('Enter a question');
+      if (!question || !moduleTitle) {
+        alert('Fill in required fields (Module Title and Question are required)');
         return;
       }
 
@@ -921,10 +994,14 @@
       const q = {
         type: 'Match',
         moduleId,
+        moduleTitle,
         stepNum,
         section,
+        chapterDescription,
+        subtopics,
         question,
         pairs,
+        teaching,
         explanation
       };
 
@@ -932,10 +1009,14 @@
       showQuestions();
 
       // Clear form
+      document.getElementById('matchModTitle').value = '';
       document.getElementById('matchQ').value = '';
       document.getElementById('matchStep').value = '';
       document.getElementById('matchMod').value = '';
       document.getElementById('matchSection').value = '';
+      document.getElementById('matchChapterDesc').value = '';
+      document.getElementById('matchSubtopics').value = '';
+      document.getElementById('matchTeaching').value = '';
       document.getElementById('matchExpl').value = '';
       initMatchPairs();
 
@@ -1103,29 +1184,39 @@
           const q = {
             type: 'MCQ',
             moduleId,
+            moduleTitle: row['Module Title'] || row['Chapter Name'] || row['Chapter'] || 'Module',
             stepNum: row['Step Number'] || row['Step'] || (i + 1),
-            section: row['Learning Section'] || row['Section'] || 'Learning Step',
+            section: row['Learning Section'] || row['Section'] || row['Module Title'] || 'Learning Step',
+            chapterDescription: row['Chapter Description'] || row['Description'] || '',
+            subtopics: row['Subtopics'] || '',
             question: row['Question'] || '',
+            optionA: row['Option A'] || row['A'] || '',
+            optionB: row['Option B'] || row['B'] || '',
+            optionC: row['Option C'] || row['C'] || '',
+            optionD: row['Option D'] || row['D'] || '',
             optA: row['Option A'] || row['A'] || '',
             optB: row['Option B'] || row['B'] || '',
             optC: row['Option C'] || row['C'] || '',
             optD: row['Option D'] || row['D'] || '',
+            correctAnswer: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
+            correctOption: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
             correct: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
-            explanation: row['Teaching'] || row['Explanation'] || ''
+            teaching: row['Teaching'] || row['Teaching Notes'] || '',
+            explanation: row['Explanation'] || row['Answer Explanation'] || ''
           };
 
-          if (q.question && q.optA && q.optB && q.optC && q.optD) {
+          if (q.question && q.optA && q.optB && q.optC && q.optD && q.moduleTitle) {
             state.questions.push(q);
           } else {
             progressStatus.innerHTML += `
               <div class="status-message warning">
-                <i class="fa-solid fa-exclamation-circle"></i> Row ${i + 1}: Incomplete MCQ data
+                <i class="fa-solid fa-exclamation-circle"></i> Row ${i + 1}: Incomplete MCQ data (need: Module Title, Question, all Options)
               </div>
             `;
           }
         } else if (qType === 'MATCH' || qType === 'MATCH THE FOLLOWING') {
           let pairs = [];
-          for (let j = 1; j <= 5; j++) {
+          for (let j = 1; j <= 10; j++) {
             const left = row[`Left ${j}`] || '';
             const right = row[`Right ${j}`] || '';
             if (left && right) {
@@ -1137,11 +1228,15 @@
             const q = {
               type: 'Match',
               moduleId,
+              moduleTitle: row['Module Title'] || row['Chapter Name'] || row['Chapter'] || 'Module',
               stepNum: row['Step Number'] || row['Step'] || (i + 1),
-              section: row['Learning Section'] || row['Section'] || 'Learning Step',
+              section: row['Learning Section'] || row['Section'] || row['Module Title'] || 'Learning Step',
+              chapterDescription: row['Chapter Description'] || row['Description'] || '',
+              subtopics: row['Subtopics'] || '',
               question: row['Question'] || '',
               pairs,
-              explanation: row['Teaching'] || row['Explanation'] || ''
+              teaching: row['Teaching'] || row['Teaching Notes'] || '',
+              explanation: row['Explanation'] || row['Answer Explanation'] || ''
             };
             state.questions.push(q);
           } else {
