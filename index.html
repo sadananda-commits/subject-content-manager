@@ -10,122 +10,157 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     :root {
-      --bg: #0d1320;
-      --surface: #161e2e;
-      --surface2: #1c2638;
-      --line: #26324a;
-      --teal: #00c6a7;
-      --teal-dim: rgba(0, 198, 167, 0.14);
-      --red: #ef5b5b;
-      --red-dim: rgba(239, 91, 91, 0.14);
-      --green: #22c55e;
-      --green-dim: rgba(34, 197, 94, 0.14);
-      --ink: #e8edf6;
-      --muted: #8b97ad;
-      --radius: 12px;
+      --bg: #0d1320; --surface: #161e2e; --surface2: #1c2638; --line: #26324a;
+      --teal: #00c6a7; --teal-dim: rgba(0,198,167,.14);
+      --red: #ef5b5b; --red-dim: rgba(239,91,91,.14);
+      --green: #22c55e; --green-dim: rgba(34,197,94,.14);
+      --ink: #e8edf6; --muted: #8b97ad;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; font-size: 14.5px; }
-    .wrap { max-width: 1140px; margin: 0 auto; padding: 28px 24px; }
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 18px; }
-    .card h2 { margin: 0 0 12px; font-size: 18px; }
-    .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
-    input, select, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 10px 12px; font-family: inherit; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+    input, select, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 12px; font-family: inherit; font-size: 14px; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--teal); }
-    .btn { font-weight: 600; border-radius: 8px; padding: 10px 16px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn { font-weight: 600; border-radius: 8px; padding: 12px 20px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
     .btn-primary { background: var(--teal); color: #06231d; }
     .btn-primary:hover { opacity: 0.9; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
-    .callout { border-radius: 8px; padding: 12px 14px; font-size: 13px; display: flex; gap: 10px; margin-bottom: 14px; }
+    .callout { border-radius: 8px; padding: 14px; font-size: 13px; margin-bottom: 14px; display: flex; gap: 10px; }
     .callout.info { background: var(--surface2); border: 1px solid var(--line); }
-    .callout.success { background: var(--green-dim); border: 1px solid rgba(34, 197, 94, 0.3); color: #86e7ab; }
-    .callout.error { background: var(--red-dim); border: 1px solid rgba(239, 91, 91, 0.3); color: #f59b9b; }
-    .loading { display: none; }
-    .loading.show { display: block; }
-    .chip { display: inline-block; background: var(--teal-dim); border: 1px solid rgba(0, 198, 167, 0.3); border-radius: 6px; padding: 6px 12px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; }
+    .callout.success { background: var(--green-dim); border: 1px solid rgba(34,197,94,.3); color: #86e7ab; }
+    .callout.error { background: var(--red-dim); border: 1px solid rgba(239,91,91,.3); color: #f59b9b; }
     .hidden { display: none !important; }
+    .chip { display: inline-block; background: var(--teal-dim); border: 1px solid rgba(0,198,167,.3); border-radius: 6px; padding: 6px 12px; font-size: 12px; margin-right: 8px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>📚 Subject Content Manager</h1>
-    
-    <!-- Status Display -->
-    <div id="statusBox" class="callout info">
-      <i class="fa-solid fa-circle-info"></i>
-      <div>
-        <strong>Status:</strong> <span id="statusText">Initializing...</span>
+    <!-- SETUP PAGE -->
+    <div id="setupPage">
+      <div class="card">
+        <h1>📚 Subject Content Manager</h1>
+        <p class="sub">Configuration & Setup</p>
+
+        <div class="callout info">
+          <i class="fa-solid fa-info-circle"></i>
+          <div>
+            <strong>Step 1: Connect to Google Apps Script</strong><br/>
+            Paste your deployment URL from Google Apps Script. It should look like:<br/>
+            <code style="font-size: 11px; background: #0d1320; padding: 8px; display: block; margin-top: 8px; border-radius: 4px;">
+              https://script.google.com/macros/d/AKfycbw.../exec
+            </code>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="execUrl">Google Apps Script Deployment URL</label>
+          <input 
+            type="text" 
+            id="execUrl" 
+            placeholder="https://script.google.com/macros/d/AKfycbw.../exec"
+            value=""
+          >
+          <small style="color: var(--muted); margin-top: 6px; display: block;">
+            Find this in Google Apps Script → Deploy → Manage deployments → Copy the Web app URL
+          </small>
+        </div>
+
+        <button class="btn btn-primary" onclick="testConnection()">
+          <i class="fa-solid fa-plug"></i> Test Connection
+        </button>
+
+        <div id="testResult" style="margin-top: 16px;"></div>
       </div>
     </div>
 
-    <!-- Step 1: Class & Subject Selection -->
-    <div id="step1" class="card">
-      <h2>Step 1: Select Classes & Subject</h2>
-      
-      <div class="field">
-        <label>Classes (select multiple)</label>
-        <div id="classContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-          <div class="callout info" style="grid-column: 1/-1;">
-            <i class="fa-solid fa-spinner fa-spin"></i> Loading classes...
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h1>📚 Subject Content Manager</h1>
+            <p class="sub">Upload questions to multiple classes</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="resetSetup()">⚙️ Reset Config</button>
+        </div>
+
+        <div id="connectionStatus" class="callout success" style="margin-bottom: 20px;">
+          <i class="fa-solid fa-circle-check"></i>
+          <div>
+            <strong>✓ Connected</strong> to Google Apps Script<br/>
+            <small id="connectedUrl" style="color: var(--muted);"></small>
           </div>
         </div>
       </div>
 
-      <div class="field">
-        <label>Subject</label>
-        <select id="subjectSelect">
-          <option value="">— Choose a subject —</option>
-        </select>
-      </div>
+      <!-- Step 1 -->
+      <div id="step1" class="card">
+        <h2 style="margin-top: 0;">Step 1: Select Classes & Subject</h2>
 
-      <button class="btn btn-primary" onclick="proceedToStep2()">
-        <i class="fa-solid fa-arrow-right"></i> Proceed
-      </button>
-    </div>
+        <div class="field">
+          <label>Classes (select multiple)</label>
+          <div id="classContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="callout info" style="grid-column: 1/-1;">
+              <i class="fa-solid fa-spinner fa-spin"></i> Loading classes...
+            </div>
+          </div>
+        </div>
 
-    <!-- Step 2: Add Questions -->
-    <div id="step2" class="card hidden">
-      <h2>Step 2: Add Questions</h2>
-      
-      <div id="selectedInfo" style="background: var(--teal-dim); border: 1px solid rgba(0, 198, 167, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
-        <strong style="color: var(--teal);">Selected Classes:</strong>
-        <div id="selectedClassChips" style="margin-top: 8px;"></div>
-      </div>
+        <div class="field">
+          <label>Subject</label>
+          <select id="subjectSelect">
+            <option value="">— Loading subjects —</option>
+          </select>
+        </div>
 
-      <div id="questionContainer"></div>
-      
-      <button class="btn btn-ghost" onclick="addQuestion()" style="margin-bottom: 12px;">
-        <i class="fa-solid fa-plus"></i> Add Question
-      </button>
-
-      <div style="display: flex; gap: 8px;">
-        <button class="btn btn-ghost" onclick="backToStep1()">← Back</button>
-        <button class="btn btn-primary" onclick="submitQuestions()">
-          <i class="fa-solid fa-paper-plane"></i> Submit
+        <button class="btn btn-primary" onclick="goToStep2()">
+          <i class="fa-solid fa-arrow-right"></i> Proceed to Step 2
         </button>
       </div>
-    </div>
 
-    <!-- Results -->
-    <div id="results" class="card hidden">
-      <h2>Results</h2>
-      <div id="resultsContent"></div>
-      <button class="btn btn-primary" onclick="restart()">Upload More</button>
+      <!-- Step 2 -->
+      <div id="step2" class="card hidden">
+        <h2 style="margin-top: 0;">Step 2: Add Questions</h2>
+
+        <div style="background: var(--teal-dim); border: 1px solid rgba(0,198,167,.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+          <strong style="color: var(--teal);">Selected Classes:</strong>
+          <div id="selectedChips" style="margin-top: 8px;"></div>
+        </div>
+
+        <div id="questionContainer"></div>
+
+        <button class="btn btn-ghost" onclick="addQuestion()" style="margin-bottom: 14px;">
+          <i class="fa-solid fa-plus"></i> Add Question
+        </button>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-ghost" onclick="goToStep1()">← Back</button>
+          <button class="btn btn-primary" onclick="submitQuestions()">
+            <i class="fa-solid fa-paper-plane"></i> Submit Questions
+          </button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="step3" class="card hidden">
+        <h2 style="margin-top: 0;">Results</h2>
+        <div id="resultsContent"></div>
+        <button class="btn btn-primary" onclick="goToStep1()">
+          <i class="fa-solid fa-arrow-left"></i> Upload More
+        </button>
+      </div>
     </div>
   </div>
 
   <script>
-    // ═══════════════════════════════════════════════════════════════════
-    // CONFIGURATION
-    // ═══════════════════════════════════════════════════════════════════
-    const GAS_URL = 'https://script.google.com/macros/d/AKfycbwkwNebAvtZ_4CeBpdWJr70hhuFP7bpvKvXAhmfpIWCH5cZmgE1Gs6t4ZsQxw8j_kWc-Q/exec';
     const SECRET = '123456';
-
-    // ═══════════════════════════════════════════════════════════════════
-    // APP STATE
-    // ═══════════════════════════════════════════════════════════════════
+    let GAS_URL = null;
     let state = {
       classes: [],
       subjects: {},
@@ -135,114 +170,131 @@
     };
 
     // ═══════════════════════════════════════════════════════════════════
-    // INITIALIZATION
+    // SETUP
     // ═══════════════════════════════════════════════════════════════════
-    async function init() {
+    async function testConnection() {
+      const url = document.getElementById('execUrl').value.trim();
+      const resultDiv = document.getElementById('testResult');
+
+      if (!url) {
+        resultDiv.innerHTML = '<div class="callout error"><i class="fa-solid fa-circle-exclamation"></i><div>Please enter a deployment URL</div></div>';
+        return;
+      }
+
+      if (!url.includes('/exec')) {
+        resultDiv.innerHTML = '<div class="callout error"><i class="fa-solid fa-circle-exclamation"></i><div>URL must end with /exec (not /usercontent)</div></div>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<div class="callout info"><i class="fa-solid fa-spinner fa-spin"></i><div>Testing connection...</div></div>';
+
       try {
-        updateStatus('Loading classes...');
-        await loadClasses();
-        await loadSubjects();
-        updateStatus('Ready!');
+        const testUrl = url + '?action=getClassLevels&secret=' + SECRET;
+        const response = await fetch(testUrl);
+        const data = await response.json();
+
+        if (data.success) {
+          GAS_URL = url;
+          localStorage.setItem('GAS_URL', url);
+          resultDiv.innerHTML = '<div class="callout success"><i class="fa-solid fa-circle-check"></i><div>✓ Connection successful! Classes loaded: ' + data.classes.length + '</div></div>';
+          
+          setTimeout(() => {
+            launchApp();
+          }, 1000);
+        } else {
+          resultDiv.innerHTML = '<div class="callout error"><i class="fa-solid fa-circle-exclamation"></i><div>✗ Error: ' + data.message + '</div></div>';
+        }
       } catch (err) {
-        updateStatus('Error: ' + err.message);
+        resultDiv.innerHTML = '<div class="callout error"><i class="fa-solid fa-circle-exclamation"></i><div>✗ Connection failed: ' + err.message + '</div></div>';
       }
     }
 
-    function updateStatus(text) {
-      document.getElementById('statusText').textContent = text;
-      console.log('[STATUS]', text);
+    function launchApp() {
+      document.getElementById('setupPage').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      document.getElementById('connectedUrl').textContent = GAS_URL;
+      loadClasses();
+      loadSubjects();
+    }
+
+    function resetSetup() {
+      GAS_URL = null;
+      localStorage.removeItem('GAS_URL');
+      document.getElementById('setupPage').classList.remove('hidden');
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('execUrl').value = '';
+      document.getElementById('testResult').innerHTML = '';
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // LOAD DATA FROM APPS SCRIPT
+    // LOAD DATA
     // ═══════════════════════════════════════════════════════════════════
     async function loadClasses() {
-      const url = GAS_URL + '?action=getClassLevels&secret=' + SECRET;
-      console.log('Fetching classes from:', url);
-      
       try {
-        const response = await fetch(url);
+        const response = await fetch(GAS_URL + '?action=getClassLevels&secret=' + SECRET);
         const data = await response.json();
-        
-        if (data.success && data.classes) {
+
+        if (data.success) {
           state.classes = data.classes;
           renderClasses();
-          console.log('Classes loaded:', data.classes);
-        } else {
-          throw new Error(data.message || 'Failed to load classes');
         }
       } catch (err) {
         console.error('Error loading classes:', err);
-        throw err;
       }
     }
 
     async function loadSubjects() {
-      const url = GAS_URL + '?action=getSubjectMap&secret=' + SECRET;
-      console.log('Fetching subjects from:', url);
-      
       try {
-        const response = await fetch(url);
+        const response = await fetch(GAS_URL + '?action=getSubjectMap&secret=' + SECRET);
         const data = await response.json();
-        
-        if (data.success && data.subjectMap) {
+
+        if (data.success) {
           state.subjects = data.subjectMap;
-          renderSubjects();
-          console.log('Subjects loaded:', Object.keys(data.subjectMap));
-        } else {
-          throw new Error(data.message || 'Failed to load subjects');
+          const select = document.getElementById('subjectSelect');
+          select.innerHTML = '<option value="">— Choose a subject —</option>';
+          Object.keys(data.subjectMap).forEach(subject => {
+            const opt = document.createElement('option');
+            opt.value = subject;
+            opt.textContent = subject;
+            select.appendChild(opt);
+          });
         }
       } catch (err) {
         console.error('Error loading subjects:', err);
-        throw err;
       }
     }
 
     function renderClasses() {
       const html = state.classes.map((cls, i) => `
-        <label style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;">
+        <label style="display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;">
           <input type="checkbox" value="${cls}" onchange="updateSelectedClasses()">
           ${cls}
         </label>
       `).join('');
       
-      document.getElementById('classContainer').innerHTML = html || '<p style="color: var(--muted);">No classes found</p>';
-    }
-
-    function renderSubjects() {
-      const select = document.getElementById('subjectSelect');
-      Object.keys(state.subjects).forEach(subject => {
-        const opt = document.createElement('option');
-        opt.value = subject;
-        opt.textContent = subject;
-        select.appendChild(opt);
-      });
+      document.getElementById('classContainer').innerHTML = html;
     }
 
     function updateSelectedClasses() {
       state.selectedClasses = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
-      console.log('Selected classes:', state.selectedClasses);
     }
 
     // ═══════════════════════════════════════════════════════════════════
     // NAVIGATION
     // ═══════════════════════════════════════════════════════════════════
-    function proceedToStep2() {
+    function goToStep2() {
       state.selectedSubject = document.getElementById('subjectSelect').value;
-      
+
       if (state.selectedClasses.length === 0) {
-        alert('Please select at least one class');
+        alert('Select at least one class');
         return;
       }
-      
       if (!state.selectedSubject) {
-        alert('Please select a subject');
+        alert('Select a subject');
         return;
       }
-      
-      document.getElementById('selectedClassChips').innerHTML = state.selectedClasses.map(cls => 
-        `<span class="chip">${cls}</span>`
-      ).join('');
+
+      document.getElementById('selectedChips').innerHTML = state.selectedClasses.map(cls => `<span class="chip">${cls}</span>`).join('');
       
       document.getElementById('step1').classList.add('hidden');
       document.getElementById('step2').classList.remove('hidden');
@@ -250,20 +302,10 @@
       addQuestion();
     }
 
-    function backToStep1() {
+    function goToStep1() {
       document.getElementById('step2').classList.add('hidden');
+      document.getElementById('step3').classList.add('hidden');
       document.getElementById('step1').classList.remove('hidden');
-    }
-
-    function restart() {
-      document.getElementById('results').classList.add('hidden');
-      document.getElementById('step1').classList.remove('hidden');
-      state.selectedClasses = [];
-      state.selectedSubject = '';
-      state.questions = [];
-      document.querySelectorAll('input[type="checkbox"]').forEach(el => el.checked = false);
-      document.getElementById('subjectSelect').value = '';
-      document.getElementById('questionContainer').innerHTML = '';
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -272,21 +314,14 @@
     function addQuestion() {
       const idx = state.questions.length;
       state.questions.push({
-        moduleId: '',
-        stepNum: '',
-        question: '',
-        optA: '',
-        optB: '',
-        optC: '',
-        optD: '',
-        correct: 'A'
+        moduleId: '', stepNum: '', question: '', optA: '', optB: '', optC: '', optD: '', correct: 'A'
       });
 
       const html = `
         <div style="background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
             <strong>Question ${idx + 1}</strong>
-            ${idx > 0 ? `<button class="btn btn-ghost" style="padding: 4px 8px;" onclick="removeQuestion(${idx})"><i class="fa-solid fa-trash"></i></button>` : ''}
+            ${idx > 0 ? `<button class="btn btn-ghost" onclick="removeQuestion(${idx})"><i class="fa-solid fa-trash"></i></button>` : ''}
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
@@ -307,19 +342,19 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
             <div class="field">
-              <label>Option A</label>
+              <label>A)</label>
               <input type="text" onchange="updateQuestion(${idx}, 'optA', this.value)">
             </div>
             <div class="field">
-              <label>Option B</label>
+              <label>B)</label>
               <input type="text" onchange="updateQuestion(${idx}, 'optB', this.value)">
             </div>
             <div class="field">
-              <label>Option C</label>
+              <label>C)</label>
               <input type="text" onchange="updateQuestion(${idx}, 'optC', this.value)">
             </div>
             <div class="field">
-              <label>Option D</label>
+              <label>D)</label>
               <input type="text" onchange="updateQuestion(${idx}, 'optD', this.value)">
             </div>
           </div>
@@ -342,7 +377,6 @@
     function updateQuestion(idx, field, value) {
       if (state.questions[idx]) {
         state.questions[idx][field] = value;
-        console.log('Updated Q' + (idx + 1) + ' ' + field, value);
       }
     }
 
@@ -357,7 +391,7 @@
     // ═══════════════════════════════════════════════════════════════════
     async function submitQuestions() {
       if (state.questions.length === 0) {
-        alert('Please add at least one question');
+        alert('Add at least one question');
         return;
       }
 
@@ -366,7 +400,6 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
 
       try {
-        updateStatus('Uploading to ' + state.selectedClasses.length + ' classes...');
         const results = [];
 
         for (const className of state.selectedClasses) {
@@ -402,7 +435,7 @@
         showResults(results);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit';
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Questions';
       }
     }
 
@@ -415,7 +448,7 @@
             ${allSuccess ? '✓ All uploads successful!' : '✗ Some uploads failed'}
             ${results.map(r => `
               <div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                <strong>${r.class}:</strong> ${r.success ? `✓ ${r.count} questions added` : `✗ ${r.message}`}
+                ${r.success ? '✓' : '✗'} <strong>${r.class}:</strong> ${r.success ? r.count + ' questions added' : r.message}
               </div>
             `).join('')}
           </div>
@@ -424,12 +457,19 @@
 
       document.getElementById('resultsContent').innerHTML = html;
       document.getElementById('step2').classList.add('hidden');
-      document.getElementById('results').classList.remove('hidden');
-      updateStatus('Upload complete!');
+      document.getElementById('step3').classList.remove('hidden');
     }
 
-    // Start on load
-    window.addEventListener('load', init);
+    // ═══════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════
+    window.addEventListener('load', () => {
+      const saved = localStorage.getItem('GAS_URL');
+      if (saved) {
+        document.getElementById('execUrl').value = saved;
+        testConnection();
+      }
+    });
   </script>
 </body>
 </html>
