@@ -1,42 +1,705 @@
-<!-- 
-  THIS IS THE PART TO FIND AND FIX IN YOUR index.html
-  Look for this around line 295-300
--->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subject Content Manager — Vedanta Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0d1320; --surface:#161e2e; --surface2:#1c2638; --line:#26324a;
+    --teal:#00c6a7; --teal-dim:rgba(0,198,167,.14);
+    --amber:#f5a623; --amber-dim:rgba(245,166,35,.14);
+    --red:#ef5b5b; --red-dim:rgba(239,91,91,.14);
+    --green:#22c55e; --green-dim:rgba(34,197,94,.14);
+    --ink:#e8edf6; --muted:#8b97ad; --muted2:#5e6a82;
+    --fd:'Sora',sans-serif; --fb:'Inter',sans-serif; --fm:'JetBrains Mono',monospace;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:14.5px;line-height:1.5;}
+  a{color:var(--teal);}
+  .wrap{max-width:1140px;margin:0 auto;padding:28px 24px 120px;}
 
-<!-- ❌ CURRENT (WRONG) - DO NOT USE -->
-<script>
-const GAS_URL = 'https://script.google.com/macros/d/1sNmOvLFG7oVKaW5zPCAheosBQlh33Skr17F_scKB4oyM6RO6sacd7EET/usercontent';
-//                                                     ↑ This is PROJECT ID (wrong!)
-//                                                                                   ↑ Typo: should be /usercontent (not usercontent)
-const SHARED_SECRET = '123456';
-</script>
+  /* ── Header ───────────────────────────────────────────────────────── */
+  .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px;flex-wrap:wrap;}
+  .hdr h1{font-family:var(--fd);font-size:24px;font-weight:700;margin:0 0 4px;}
+  .hdr p{margin:0;color:var(--muted);max-width:560px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--teal-dim);color:var(--teal);
+    border:1px solid rgba(0,198,167,.3);border-radius:999px;padding:4px 12px;font-family:var(--fm);font-size:11.5px;font-weight:600;letter-spacing:.03em;}
 
-<!-- ✅ CORRECT - USE THIS FORMAT -->
+  /* ── Settings (collapsible) ──────────────────────────────────────── */
+  details.settings{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:24px;}
+  details.settings summary{cursor:pointer;padding:14px 18px;font-family:var(--fd);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;list-style:none;}
+  details.settings summary::-webkit-details-marker{display:none;}
+  details.settings summary i{color:var(--muted);transition:transform .15s;}
+  details.settings[open] summary i{transform:rotate(90deg);}
+  .settings-body{padding:4px 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .settings-body .full{grid-column:1/-1;}
+
+  /* ── Progress rail ───────────────────────────────────────────────── */
+  .rail{display:flex;gap:6px;margin-bottom:24px;}
+  .rail .step{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+    display:flex;align-items:center;gap:10px;opacity:.5;transition:all .15s;}
+  .rail .step.active{opacity:1;border-color:rgba(0,198,167,.4);background:var(--teal-dim);}
+  .rail .step.done{opacity:1;}
+  .rail .num{width:22px;height:22px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;
+    font-family:var(--fm);font-size:11.5px;font-weight:600;flex-shrink:0;}
+  .rail .step.active .num{background:var(--teal);color:#06231d;}
+  .rail .step.done .num{background:var(--green);color:#04220f;}
+  .rail .step.done .num::before{content:'✓';}
+  .rail .label{font-size:12.5px;font-weight:600;font-family:var(--fd);}
+
+  /* ── Cards / sections ────────────────────────────────────────────── */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;}
+  .card h2{font-family:var(--fd);font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
+  .card .sub{color:var(--muted);font-size:13px;margin:0 0 18px;}
+  .hidden{display:none !important;}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  input[type=text],input[type=url],input[type=number],input[type=password],select,textarea{
+    width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+    padding:10px 12px;font-family:var(--fb);font-size:13.5px;transition:border-color .15s;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);}
+
+  /* ── Multi-class selection ────────────────────────────────────────── */
+  .class-selector{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .class-selector .group-label{font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:10px;}
+  .class-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .class-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;cursor:pointer;transition:all .15s;}
+  .class-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal);cursor:pointer;}
+  .class-item:has(input:checked){border-color:var(--teal);background:var(--teal-dim);}
+  .class-item label{flex:1;cursor:pointer;font-size:13.5px;font-weight:500;margin:0;}
+  
+  .selected-classes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .selected-classes .chip{background:var(--teal-dim);border-color:rgba(0,198,167,.35);}
+
+  .callout{border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+  .callout i{margin-top:1px;}
+  .callout.warn{background:var(--amber-dim);border:1px solid rgba(245,166,35,.3);color:#f5c777;}
+  .callout.err{background:var(--red-dim);border:1px solid rgba(239,91,91,.3);color:#f59b9b;}
+  .callout.ok{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:#86e7ab;}
+  .callout.info{background:var(--surface2);border:1px solid var(--line);color:var(--muted);}
+  .callout.debug{background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);color:#ffb84d;}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);
+    border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:12.5px;}
+  .chip.id{background:var(--teal-dim);border-color:rgba(0,198,167,.35);color:var(--teal);font-weight:600;}
+
+  /* ── Buttons ──────────────────────────────────────────────────────── */
+  .btn{font-family:var(--fd);font-weight:600;font-size:13.5px;border-radius:9px;padding:11px 20px;border:1px solid transparent;
+    cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s;}
+  .btn-primary{background:var(--teal);color:#06231d;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .btn-ghost{background:transparent;border-color:var(--line);color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--muted2);}
+  .btn-sm{padding:7px 13px;font-size:12.5px;}
+  .btn-group{display:flex;gap:8px;margin-top:14px;}
+
+  .manual-input{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .manual-input textarea{font-size:12px;font-family:var(--fm);}
+
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Header -->
+  <div class="hdr">
+    <div>
+      <h1><i class="fa-solid fa-book-open"></i> Content Manager</h1>
+      <p>Upload questions to multiple classes with the same subject</p>
+    </div>
+  </div>
+
+  <!-- Debug Info -->
+  <details class="settings">
+    <summary>
+      <i class="fa-solid fa-bug"></i> Debug & Setup Info
+    </summary>
+    <div class="settings-body">
+      <div class="full">
+        <div class="callout debug">
+          <i class="fa-solid fa-info-circle"></i>
+          <div>
+            <strong>GAS_URL Status:</strong>
+            <div style="font-family:monospace;font-size:11px;margin-top:6px;word-break:break-all;" id="gasUrlDisplay">Loading...</div>
+            <div style="margin-top:8px;font-size:12px;">
+              <strong>How to fix if classes don't load:</strong>
+              <ol style="margin:8px 0;padding-left:20px;">
+                <li>Check your deployment URL is correct</li>
+                <li>Replace YOUR_DEPLOYMENT_ID with actual ID</li>
+                <li>Check browser console (F12 → Console tab) for errors</li>
+                <li>Check Apps Script logs for failed requests</li>
+                <li>Use "Manual Class Input" below to test</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Progress Rail -->
+  <div class="rail">
+    <div class="step active" id="step1Indicator">
+      <div class="num">1</div>
+      <div class="label">Select Classes & Subject</div>
+    </div>
+    <div class="step" id="step2Indicator">
+      <div class="num">2</div>
+      <div class="label">Upload Questions</div>
+    </div>
+    <div class="step" id="step3Indicator">
+      <div class="num">3</div>
+      <div class="label">Review & Submit</div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Class & Subject Selection -->
+  <div id="step1" class="card">
+    <h2><i class="fa-solid fa-list-check"></i> Select Classes & Subject</h2>
+    <p class="sub">Choose one or more classes and the subject to upload questions to</p>
+
+    <!-- Auto-load Classes Section -->
+    <div class="field">
+      <label><i class="fa-solid fa-sitemap"></i> Classes (select multiple)</label>
+      <div id="autoLoadSection">
+        <div class="callout info">
+          <i class="fa-solid fa-spinner fa-spin"></i> Loading classes from your master sheet...
+        </div>
+      </div>
+      <div id="selectedClassesDisplay" style="display:none;">
+        <div class="selected-classes" id="selectedClassChips"></div>
+      </div>
+    </div>
+
+    <!-- Manual Class Input (Fallback) -->
+    <div class="manual-input">
+      <div style="margin-bottom:10px;">
+        <strong style="font-size:13.5px;">💡 Classes not loading? Use manual input:</strong>
+      </div>
+      <div class="field">
+        <label>Enter class names (one per line)</label>
+        <textarea id="manualClassInput" placeholder="Example:&#10;Class 6&#10;Class 7&#10;Class 8&#10;Class 9" style="font-family:monospace;min-height:100px;"></textarea>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="loadManualClasses()">
+        <i class="fa-solid fa-upload"></i> Load These Classes
+      </button>
+    </div>
+
+    <!-- Subject Selection -->
+    <div class="field">
+      <label for="selSubject"><i class="fa-solid fa-book"></i> Subject</label>
+      <select id="selSubject">
+        <option value="">— Choose a subject —</option>
+      </select>
+    </div>
+
+    <div class="callout info">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <strong>Multi-class Upload:</strong> Select 2 or more classes that share the same subject. 
+        When you upload questions, they will be written to all selected class-subject folders automatically.
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="proceedToUpload()" id="proceedBtn">
+      <i class="fa-solid fa-arrow-right"></i> Proceed to Upload
+    </button>
+  </div>
+
+  <!-- STEP 2: Question Upload -->
+  <div id="step2" class="card hidden">
+    <h2><i class="fa-solid fa-cloud-arrow-up"></i> Upload Questions</h2>
+    <p class="sub">Upload an Excel file with your questions</p>
+
+    <div id="selectedClassesInfo" style="background:var(--teal-dim);border:1px solid rgba(0,198,167,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+      <strong style="display:block;margin-bottom:8px;color:var(--teal);">Selected Classes:</strong>
+      <div id="classListDisplay" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="field">
+      <label><i class="fa-solid fa-book"></i> Selected Subject: <strong id="subjectDisplay"></strong></label>
+    </div>
+
+    <div style="margin-bottom:16px;padding:12px;background:var(--green-dim);border:1px solid rgba(34,197,94,.3);border-radius:8px;color:#86e7ab;">
+      <i class="fa-solid fa-check-circle"></i> Ready to upload to <strong id="classCountDisplay">0</strong> classes
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-ghost" onclick="backToSelection()">
+        <i class="fa-solid fa-arrow-left"></i> Back
+      </button>
+      <button class="btn btn-primary" onclick="proceedToReview()" id="reviewBtn">
+        <i class="fa-solid fa-arrow-right"></i> Proceed to Upload
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Quick Question Entry -->
+  <div id="step3" class="card hidden">
+    <h2><i class="fa-solid fa-pencil"></i> Add Questions</h2>
+    <p class="sub">Enter your questions (minimum 1 required)</p>
+
+    <div id="questionContainer"></div>
+    
+    <button class="btn btn-ghost" onclick="addQuestionBlock()">
+      <i class="fa-solid fa-plus"></i> Add Another Question
+    </button>
+
+    <div class="btn-group" style="margin-top:24px;">
+      <button class="btn btn-ghost" onclick="backToStep2()">
+        <i class="fa-solid fa-arrow-left"></i> Back
+      </button>
+      <button class="btn btn-primary" onclick="submitQuestions()" id="submitBtn">
+        <i class="fa-solid fa-paper-plane"></i> Submit to All Classes
+      </button>
+    </div>
+  </div>
+
+  <!-- Results Dialog -->
+  <div id="resultsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center;">
+    <div id="resultsDialog" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <script>
+// ════════════════════════════════════════════════════════════════════════
+// CONFIGURATION - UPDATE THIS WITH YOUR DEPLOYMENT ID
+// ════════════════════════════════════════════════════════════════════════
 const GAS_URL = 'https://script.google.com/macros/d/AKfycbxkTSuEyUuNwfjz7CnJw-gGmFiJc_9y9xWaJheIlLAccrf5abkTfl8NkP0Mg2gXV_lA/usercontent';
-//                                                     ↑ This is DEPLOYMENT ID (starts with AKfycby...)
-//                                                                                   ↑ Correct: /usercontent
 const SHARED_SECRET = '123456';
-</script>
 
-<!-- 
-  HOW TO GET YOUR DEPLOYMENT ID:
+let appState = {
+  selectedClasses: [],
+  selectedSubject: '',
+  questionData: [],
+  classLevels: [],
+  subjectMap: {}
+};
+
+// ════════════════════════════════════════════════════════════════════════
+// INITIALIZATION & DEBUG
+// ════════════════════════════════════════════════════════════════════════
+function debugLog(title, message) {
+  console.log(`[${title}] ${message}`);
+  console.log(message);
+}
+
+(function init() {
+  debugLog('INIT', 'Checking GAS_URL...');
+  console.log('GAS_URL:', GAS_URL);
   
-  1. Go to Google Apps Script: https://script.google.com
-  2. Open your "Subject Content Manager" project
-  3. Click the "Deploy" button (top right)
-  4. Click "Manage deployments" (the icon that looks like sliders)
-  5. Find the "Web app" deployment
-  6. Copy the URL - it will look like:
-     https://script.google.com/macros/d/AKfycby_1234567890abcdef_xyz/usercontent
-  7. Extract just the ID part: AKfycby_1234567890abcdef_xyz
-  8. Replace "REPLACE_WITH_YOUR_DEPLOYMENT_ID_HERE" with that ID
+  if (GAS_URL.includes('YOUR_DEPLOYMENT_ID')) {
+    document.getElementById('gasUrlDisplay').innerHTML = `
+      <span style="color:#ff6b6b;">❌ GAS_URL NOT CONFIGURED</span><br/>
+      <span style="color:var(--muted);">${GAS_URL}</span><br/>
+      <strong style="color:#ffb84d;">Action Required:</strong> Replace YOUR_DEPLOYMENT_ID with your actual deployment ID
+    `;
+    console.error('❌ GAS_URL not configured! Replace YOUR_DEPLOYMENT_ID');
+  } else {
+    document.getElementById('gasUrlDisplay').innerHTML = `
+      <span style="color:#86e7ab;">✓ GAS_URL configured</span><br/>
+      <span style="color:var(--muted);">${GAS_URL}</span>
+    `;
+    debugLog('INIT', 'GAS_URL is configured, attempting to load classes...');
+    loadClassLevels();
+  }
   
-  Example after replacement:
-  const GAS_URL = 'https://script.google.com/macros/d/AKfycby_1234567890abcdef_xyz/usercontent';
+  addQuestionBlock();
+  loadSubjectMap();
+})();
+
+// ════════════════════════════════════════════════════════════════════════
+// LOAD CLASSES FROM BACKEND
+// ════════════════════════════════════════════════════════════════════════
+async function loadClassLevels() {
+  try {
+    debugLog('LOAD_CLASSES', 'Fetching from ' + GAS_URL + '?action=getClassLevels');
+    
+    const url = `${GAS_URL}?action=getClassLevels&secret=${SHARED_SECRET}`;
+    console.log('Fetch URL:', url);
+    
+    const response = await fetch(url);
+    console.log('Response status:', response.status);
+    
+    const data = await response.json();
+    console.log('Response data:', data);
+    
+    if (data.success && data.classes && data.classes.length > 0) {
+      appState.classLevels = data.classes;
+      debugLog('LOAD_CLASSES', 'Loaded ' + data.classes.length + ' classes: ' + data.classes.join(', '));
+      renderClassSelector();
+    } else {
+      throw new Error('No classes returned or request failed: ' + (data.message || 'Unknown error'));
+    }
+  } catch (err) {
+    debugLog('LOAD_CLASSES', '❌ Error: ' + err.message);
+    console.error('Full error:', err);
+    
+    // Show error and fallback
+    document.getElementById('autoLoadSection').innerHTML = `
+      <div class="callout err">
+        <i class="fa-solid fa-exclamation-circle"></i>
+        <div>
+          <strong>Failed to load classes</strong>
+          <div style="font-size:12px;margin-top:6px;color:var(--muted);">${err.message}</div>
+          <div style="font-size:11px;margin-top:8px;">Use the "Manual Class Input" option below to enter classes manually.</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+async function loadSubjectMap() {
+  try {
+    debugLog('LOAD_SUBJECTS', 'Fetching subject map...');
+    
+    const url = `${GAS_URL}?action=getSubjectMap&secret=${SHARED_SECRET}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.success && data.subjectMap) {
+      appState.subjectMap = data.subjectMap;
+      debugLog('LOAD_SUBJECTS', 'Loaded subjects');
+      renderSubjectDropdown();
+    }
+  } catch (err) {
+    debugLog('LOAD_SUBJECTS', '⚠️ Could not load subjects: ' + err.message);
+  }
+}
+
+function renderSubjectDropdown() {
+  const select = document.getElementById('selSubject');
+  Object.keys(appState.subjectMap).forEach(subject => {
+    const opt = document.createElement('option');
+    opt.value = subject;
+    opt.textContent = subject;
+    select.appendChild(opt);
+  });
+}
+
+function renderClassSelector() {
+  if (appState.classLevels.length === 0) return;
   
-  DO NOT USE:
-  - The PROJECT ID from the browser URL bar (that starts with numbers like 1sNmOvL...)
-  - A typo URL like /usercontent
-  - Your Google email or other values
--->
+  const html = `
+    <div class="class-selector">
+      <div class="group-label">Select one or more classes:</div>
+      <div class="class-list">
+        ${appState.classLevels.map((cls, idx) => `
+          <div class="class-item">
+            <input type="checkbox" id="class_${idx}" value="${cls}" onchange="updateClassSelection()">
+            <label for="class_${idx}">${cls}</label>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('autoLoadSection').innerHTML = html;
+  document.getElementById('selectedClassesDisplay').style.display = 'block';
+}
+
+function updateClassSelection() {
+  appState.selectedClasses = Array.from(document.querySelectorAll('.class-item input:checked')).map(el => el.value);
+  
+  const chipHtml = appState.selectedClasses.map(cls => `
+    <span class="chip">${cls}</span>
+  `).join('');
+  
+  document.getElementById('selectedClassChips').innerHTML = chipHtml;
+  debugLog('CLASS_SELECT', 'Selected: ' + appState.selectedClasses.join(', '));
+}
+
+function loadManualClasses() {
+  const input = document.getElementById('manualClassInput').value;
+  const classes = input.split('\n').map(c => c.trim()).filter(c => c.length > 0);
+  
+  if (classes.length === 0) {
+    alert('Please enter at least one class name');
+    return;
+  }
+  
+  appState.classLevels = classes;
+  appState.selectedClasses = [];
+  renderClassSelector();
+  debugLog('MANUAL_LOAD', 'Loaded ' + classes.length + ' classes manually');
+}
+
+function proceedToUpload() {
+  appState.selectedSubject = document.getElementById('selSubject').value;
+  
+  if (appState.selectedClasses.length === 0) {
+    alert('Please select at least one class');
+    return;
+  }
+  
+  if (!appState.selectedSubject) {
+    alert('Please select a subject');
+    return;
+  }
+  
+  document.getElementById('classListDisplay').innerHTML = appState.selectedClasses.map(cls => 
+    `<span class="chip">${cls}</span>`
+  ).join('');
+  
+  document.getElementById('subjectDisplay').textContent = appState.selectedSubject;
+  document.getElementById('classCountDisplay').textContent = appState.selectedClasses.length;
+  
+  showStep(2);
+}
+
+function backToSelection() {
+  showStep(1);
+}
+
+function backToStep2() {
+  showStep(2);
+}
+
+function showStep(stepNum) {
+  document.querySelectorAll('[id^="step"][id$="Indicator"]').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+  });
+  
+  document.querySelectorAll('[id^="step"][id$=""]').forEach(el => {
+    if (el.id && el.id.match(/^step\d+$/)) {
+      el.classList.add('hidden');
+    }
+  });
+  
+  document.getElementById(`step${stepNum}Indicator`).classList.add('active');
+  
+  for (let i = 1; i < stepNum; i++) {
+    document.getElementById(`step${i}Indicator`).classList.add('done');
+  }
+  
+  document.getElementById(`step${stepNum}`).classList.remove('hidden');
+  
+  window.scrollTo({top: 0, behavior: 'smooth'});
+  debugLog('STEP', 'Showing step ' + stepNum);
+}
+
+function addQuestionBlock() {
+  const idx = appState.questionData.length;
+  appState.questionData.push({
+    moduleId: '',
+    stepNum: '',
+    question: '',
+    optA: '',
+    optB: '',
+    optC: '',
+    optD: '',
+    correct: 'A'
+  });
+  
+  const qData = appState.questionData[idx];
+  const container = document.getElementById('questionContainer');
+  
+  const html = `
+    <div id="qblock${idx}" style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <strong style="font-size:13.5px;">Question ${idx+1}</strong>
+        ${idx > 0 ? `<button class="btn btn-ghost btn-sm" onclick="removeQuestionBlock(${idx})"><i class="fa-solid fa-trash"></i></button>` : ''}
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="field">
+          <label>Module ID</label>
+          <input type="text" value="${qData.moduleId}" onchange="updateQuestion(${idx}, 'moduleId', this.value)">
+        </div>
+        <div class="field">
+          <label>Step Number</label>
+          <input type="number" value="${qData.stepNum}" onchange="updateQuestion(${idx}, 'stepNum', this.value)">
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>Question</label>
+        <textarea onchange="updateQuestion(${idx}, 'question', this.value)">${qData.question}</textarea>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field">
+          <label>A)</label>
+          <input type="text" value="${qData.optA}" onchange="updateQuestion(${idx}, 'optA', this.value)">
+        </div>
+        <div class="field">
+          <label>B)</label>
+          <input type="text" value="${qData.optB}" onchange="updateQuestion(${idx}, 'optB', this.value)">
+        </div>
+        <div class="field">
+          <label>C)</label>
+          <input type="text" value="${qData.optC}" onchange="updateQuestion(${idx}, 'optC', this.value)">
+        </div>
+        <div class="field">
+          <label>D)</label>
+          <input type="text" value="${qData.optD}" onchange="updateQuestion(${idx}, 'optD', this.value)">
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>Correct Answer</label>
+        <select onchange="updateQuestion(${idx}, 'correct', this.value)">
+          <option value="A" ${qData.correct === 'A' ? 'selected' : ''}>A</option>
+          <option value="B" ${qData.correct === 'B' ? 'selected' : ''}>B</option>
+          <option value="C" ${qData.correct === 'C' ? 'selected' : ''}>C</option>
+          <option value="D" ${qData.correct === 'D' ? 'selected' : ''}>D</option>
+        </select>
+      </div>
+    </div>
+  `;
+  
+  if (idx === 0 || !document.getElementById(`qblock${idx}`)) {
+    container.innerHTML += html;
+  }
+}
+
+function updateQuestion(idx, field, value) {
+  if (!appState.questionData[idx]) appState.questionData[idx] = {};
+  appState.questionData[idx][field] = value;
+  debugLog('UPDATE_Q', 'Question ' + (idx+1) + ' field ' + field + ' = ' + value);
+}
+
+function removeQuestionBlock(idx) {
+  appState.questionData.splice(idx, 1);
+  document.getElementById('questionContainer').innerHTML = '';
+  appState.questionData.forEach((_, i) => {
+    addQuestionBlock();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SUBMIT
+// ════════════════════════════════════════════════════════════════════════
+async function proceedToReview() {
+  if (appState.questionData.length === 0) {
+    alert('Please add at least one question');
+    return;
+  }
+  debugLog('PROCEED', 'Moving to step 3 (question entry)');
+  showStep(3);
+}
+
+async function submitQuestions() {
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+  
+  try {
+    debugLog('SUBMIT', 'Starting submission to ' + appState.selectedClasses.length + ' classes');
+    const results = [];
+    
+    for (const className of appState.selectedClasses) {
+      try {
+        debugLog('SUBMIT', 'Uploading to class: ' + className);
+        
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            secret: SHARED_SECRET,
+            action: 'uploadQuestions',
+            class: className,
+            subject: appState.selectedSubject,
+            questions: appState.questionData
+          })
+        });
+        
+        const data = await response.json();
+        debugLog('SUBMIT', 'Response for ' + className + ':', data);
+        
+        results.push({
+          class: className,
+          success: data.success,
+          message: data.message,
+          stepsAdded: data.stepsAdded || 0
+        });
+      } catch (err) {
+        debugLog('SUBMIT', '❌ Error uploading to ' + className + ': ' + err.message);
+        results.push({
+          class: className,
+          success: false,
+          message: err.message
+        });
+      }
+    }
+    
+    showResultsDialog(results);
+    
+  } catch (err) {
+    debugLog('SUBMIT', '❌ Fatal error: ' + err.message);
+    alert('Submission failed: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit to All Classes';
+  }
+}
+
+function showResultsDialog(results) {
+  const allSuccess = results.every(r => r.success);
+  const overlay = document.getElementById('resultsOverlay');
+  const dialog = document.getElementById('resultsDialog');
+  
+  let html = `
+    <div style="background:${allSuccess ? 'var(--green-dim)' : 'var(--red-dim)'};border:1px solid ${allSuccess ? 'rgba(34,197,94,.3)' : 'rgba(239,91,91,.3)'};border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;color:${allSuccess ? '#86e7ab' : '#f59b9b'};">
+        <i class="fa-solid fa-${allSuccess ? 'circle-check' : 'circle-exclamation'}" style="margin-top:2px;flex-shrink:0;font-size:20px;"></i>
+        <div style="flex:1;">
+          <strong style="font-size:15px;display:block;margin-bottom:12px;">
+            ${allSuccess ? '✓ Questions Uploaded Successfully!' : '✗ Upload Completed with Issues'}
+          </strong>
+          <div style="font-size:13px;line-height:1.8;">
+  `;
+  
+  results.forEach(r => {
+    const icon = r.success ? '✓' : '✗';
+    const color = r.success ? '#86e7ab' : '#f59b9b';
+    html += `
+      <div style="padding:8px;margin-bottom:6px;background:rgba(0,0,0,.1);border-radius:6px;border-left:3px solid ${color};">
+        <strong>${icon} ${r.class}:</strong> ${r.stepsAdded || 0} questions added
+      </div>
+    `;
+  });
+  
+  html += `
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" onclick="resetApp()">
+        <i class="fa-solid fa-arrow-left"></i> Upload More
+      </button>
+    </div>
+  `;
+  
+  dialog.innerHTML = html;
+  overlay.style.display = 'flex';
+}
+
+function resetApp() {
+  document.getElementById('resultsOverlay').style.display = 'none';
+  appState = {
+    selectedClasses: [],
+    selectedSubject: '',
+    questionData: [],
+    classLevels: appState.classLevels,
+    subjectMap: appState.subjectMap
+  };
+  document.getElementById('selSubject').value = '';
+  document.getElementById('questionContainer').innerHTML = '';
+  renderClassSelector();
+  addQuestionBlock();
+  showStep(1);
+}
+</script>
+</body>
+</html>
