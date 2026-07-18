@@ -450,24 +450,35 @@
                 </button>
             </div>
 
-            <!-- STEP 2: SELECT CHAPTER -->
+            <!-- STEP 2: SELECT CHAPTER (OPTIONAL) -->
             <div class="step" id="step2" style="display: none;">
-                <h2><span class="step-number">2</span> Select or Create Chapter</h2>
+                <h2><span class="step-number">2</span> Select Chapter (Optional)</h2>
+                
+                <div class="alert info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Optional Step:</strong> You can select an existing chapter here, or skip this step. 
+                        When you upload the Excel file, the system will automatically detect chapters from the "Module Title" column.
+                    </div>
+                </div>
                 
                 <div class="field">
-                    <label>Chapter Title *</label>
-                    <input type="text" id="chapterSearch" placeholder="Search existing or type new chapter name..." onkeyup="updateChapterList()">
+                    <label>Chapter Title (Optional)</label>
+                    <input type="text" id="chapterSearch" placeholder="Search existing chapters or type new name..." onkeyup="updateChapterList()">
                     <div class="chapter-list" id="chapterList"></div>
                     <input type="hidden" id="selectedChapter">
-                    <small>Select existing chapter or type new name (system will create automatically)</small>
+                    <small>Leave empty to auto-detect chapters from uploaded file</small>
                 </div>
 
                 <div style="margin-top: 20px; display: flex; gap: 10px;">
                     <button class="btn btn-ghost" onclick="goToStep1()">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
-                    <button class="btn btn-primary" onclick="goToStep3()" id="step2NextBtn" disabled>
-                        <i class="fas fa-arrow-right"></i> Next
+                    <button class="btn btn-ghost" onclick="skipChapterSelection()">
+                        <i class="fas fa-forward"></i> Skip (Auto-detect)
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep3()" id="step2NextBtn">
+                        <i class="fas fa-arrow-right"></i> Next with Selection
                     </button>
                 </div>
             </div>
@@ -480,7 +491,8 @@
                     <i class="fas fa-info-circle"></i>
                     <div>
                         <strong>v4.0 Features:</strong> Single sheet with "Question Type" column. 
-                        Select existing chapter above or type new name. Questions auto-number within chapters.
+                        The system will scan your Excel file and automatically detect chapters from the "Module Title" column.
+                        If a chapter exists, it will reuse it. If not, it will create a new one.
                     </div>
                 </div>
 
@@ -494,6 +506,12 @@
                 <!-- MANUAL ENTRY TAB -->
                 <div id="tab-manual" class="tab-content active">
                     <h3 style="color: #e2e8f0; margin-bottom: 15px;">Add Questions Manually</h3>
+
+                    <div class="field">
+                        <label>Chapter/Module Title (Optional)</label>
+                        <input type="text" id="manualChapterTitle" placeholder="If not selected in Step 2...">
+                        <small>If you didn't select a chapter in Step 2, you can enter it here</small>
+                    </div>
 
                     <div class="field">
                         <label>Question Type *</label>
@@ -959,13 +977,16 @@
         }
 
         function goToStep3() {
-            if (!state.selectedChapter) {
-                alert('Please select or create a chapter');
-                return;
-            }
+            // Chapter selection is now optional
             hideAllSteps();
             document.getElementById('step3').style.display = 'block';
             updateStepNumbers(3);
+        }
+
+        function skipChapterSelection() {
+            // Skip Step 2 and go to Step 3 (auto-detect from Excel)
+            state.selectedChapter = null;  // Clear any selection
+            goToStep3();
         }
 
         function hideAllSteps() {
@@ -1019,8 +1040,8 @@
                 list.appendChild(item);
             }
 
-            // Enable next button if chapter is selected
-            document.getElementById('step2NextBtn').disabled = !state.selectedChapter;
+            // Step 2 is now optional, so button is always enabled
+            // Enable next button regardless of chapter selection
         }
 
         function selectChapter(title, moduleId) {
@@ -1028,7 +1049,6 @@
             state.selectedChapterModule = moduleId;  // Can be null for new chapters
             document.getElementById('chapterSearch').value = title;
             updateChapterList();
-            document.getElementById('step2NextBtn').disabled = false;
         }
 
         // ========================================================================
@@ -1075,7 +1095,7 @@
 
             const q = {
                 type: 'MCQ',
-                moduleTitle: state.selectedChapter,
+                moduleTitle: state.selectedChapter || document.getElementById('manualChapterTitle').value || 'Untitled Chapter',
                 question,
                 optionA: optA,
                 optionB: optB,
@@ -1168,7 +1188,7 @@
 
             const q = {
                 type: 'Match the Following',
-                moduleTitle: state.selectedChapter,
+                moduleTitle: state.selectedChapter || document.getElementById('manualChapterTitle').value || 'Untitled Chapter',
                 question,
                 pairs,
                 explanation
@@ -1225,6 +1245,11 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
+                    // Check if XLSX library is loaded
+                    if (typeof XLSX === 'undefined') {
+                        throw new Error('Excel library (XLSX) failed to load. Please refresh the page and try again.');
+                    }
+
                     const workbook = XLSX.read(e.target.result, { type: 'array' });
                     let allData = [];
 
@@ -1433,12 +1458,65 @@
         }
 
         function downloadTemplate() {
-            const link = document.createElement('a');
-            link.href = '/files/Question_Upload_Template_V4.xlsx';
-            link.download = 'Question_Upload_Template_V4.xlsx';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            try {
+                // Check if XLSX library is loaded
+                if (typeof XLSX === 'undefined') {
+                    alert('Excel library failed to load. Please refresh the page and try again.');
+                    return;
+                }
+
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+
+                // Create instructions sheet
+                const instructionsData = [
+                    ['SUBJECT CONTENT UPLOADER - v4.0 (SINGLE SHEET)'],
+                    [''],
+                    ['WHAT\'S NEW IN v4.0'],
+                    [''],
+                    ['1. SINGLE SHEET UPLOAD', 'Use ONE sheet with both MCQ and Match questions'],
+                    ['2. CHAPTER SELECTION', 'System automatically detects chapters from "Module Title" column'],
+                    ['3. FLEXIBLE COLUMNS', 'Works with various column names and positions'],
+                    ['4. SEQUENTIAL NUMBERING', 'Questions auto-number within chapters'],
+                    [''],
+                    ['HOW TO USE'],
+                    [''],
+                    ['1. Column: Question Type', 'Enter MCQ or Match the Following'],
+                    ['2. Column: Module Title', 'Name of the chapter/section (required)'],
+                    ['3. MCQ Questions', 'Fill: Question, Option A/B/C/D, Correct Answer'],
+                    ['4. Match Questions', 'Fill: Question, Left 1, Right 1, Left 2, Right 2, etc.'],
+                    ['5. Optional Columns', 'Chapter Description, Subtopics, Teaching Notes, Explanation'],
+                    [''],
+                    ['IMPORTANT NOTES'],
+                    [''],
+                    ['• System auto-detects if chapter exists', '→ reuses it, else creates new one'],
+                    ['• Step numbers auto-increment', '→ continues from last step in chapter'],
+                    ['• Leave Module ID blank', '→ auto-generated by system'],
+                    ['• All text fields should be TEXT format', '→ not numbers']
+                ];
+
+                const instructionsSheet = XLSX.utils.aoa_to_sheet(instructionsData);
+                instructionsSheet['!cols'] = [{wch: 45}, {wch: 50}];
+                XLSX.utils.book_append_sheet(wb, instructionsSheet, 'Instructions');
+
+                // Create Questions sheet
+                const questionsData = [
+                    ['Question Type*', 'Module Title*', 'Question*', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
+                    ['MCQ', 'Percentage', 'What is 25% of 100?', '10', '20', '25', '30', 'C', '', '', '', '', '', '', '', '', '', '', 'Understand percentage as parts per hundred', 'Fractions, Decimals', 'Step 1: 25% means 25 out of 100', '25% of 100 equals 25', '', ''],
+                    ['Match the Following', 'Parts of Speech', 'Match words with parts', '', '', '', '', '', 'Happy', 'Adjective', 'Run', 'Verb', 'The', 'Article', '', '', '', '', 'Word classification', 'Nouns, Verbs, Adjectives', 'Review word functions', 'Different word types', '', '']
+                ];
+
+                const questionsSheet = XLSX.utils.aoa_to_sheet(questionsData);
+                questionsSheet['!cols'] = Array(questionsData[0].length).fill({wch: 15});
+                XLSX.utils.book_append_sheet(wb, questionsSheet, 'Questions');
+
+                // Download
+                XLSX.writeFile(wb, 'Question_Upload_Template_V4.xlsx');
+                console.log('✅ Template downloaded successfully');
+            } catch (err) {
+                console.error('❌ Error downloading template:', err);
+                alert('Error downloading template: ' + err.message + '\n\nTry refreshing the page and try again.');
+            }
         }
 
         // ========================================================================
