@@ -1068,6 +1068,13 @@
         return;
       }
 
+      // Generate ONE Module ID for this whole batch (e.g. one chapter's
+      // worth of questions), and reuse it for every row that doesn't have
+      // its own explicit Module ID. Previously this was generated inside
+      // the row loop, which incremented a brand-new ID for every single
+      // row instead of grouping the whole chapter under one module.
+      let batchGeneratedModuleId = null;
+
       // Process each row
       for (let i = 0; i < excelData.length; i++) {
         const row = excelData[i];
@@ -1084,7 +1091,13 @@
 
         // Determine question type
         const qType = (row['Question Type'] || 'MCQ').toUpperCase();
-        const moduleId = row['Module ID'] && row['Module ID'].trim() ? row['Module ID'].trim() : generateModuleId(state.selectedSubject, i + 1);
+        let moduleId = row['Module ID'] && row['Module ID'].trim() ? row['Module ID'].trim() : null;
+        if (!moduleId) {
+          if (!batchGeneratedModuleId) {
+            batchGeneratedModuleId = generateModuleId(state.selectedSubject, 1);
+          }
+          moduleId = batchGeneratedModuleId;
+        }
 
         if (qType === 'MCQ' || qType === 'MULTIPLE CHOICE') {
           const q = {
