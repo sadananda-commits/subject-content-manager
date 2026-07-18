@@ -1183,91 +1183,50 @@
       const progressStatus = document.getElementById('progressStatus');
       progressStatus.innerHTML = '';
 
-      if (excelData.length === 0) {
-        alert('Upload a file first');
-        return;
-      }
-
-      // Generate ONE Module ID for this whole batch (e.g. one chapter's
-      // worth of questions), and reuse it for every row that doesn't have
-      // its own explicit Module ID. Previously this was generated inside
-      // the row loop, which incremented a brand-new ID for every single
-      // row instead of grouping the whole chapter under one module.
-      let batchGeneratedModuleId = null;
-
-      // Process each row
-      for (let i = 0; i < excelData.length; i++) {
-        const row = excelData[i];
-        const percent = Math.round((i / excelData.length) * 100);
-        
-        // Update progress display
-        document.getElementById('progressPercent').textContent = percent;
-        document.getElementById('progressFill').style.width = percent + '%';
-        document.getElementById('progressStatus').innerHTML = `
-          <div class="status-message">
-            <i class="fa-solid fa-spinner"></i> Processing ${i + 1} of ${excelData.length}...
-          </div>
-        `;
-
-        // Determine question type (from sheet name first, then column, then default)
-        let qType = row['__questionType'] || row['Question Type'] || 'MCQ';
-        qType = qType.toUpperCase();
-        
-        let moduleId = row['Module ID'] && row['Module ID'].trim() ? row['Module ID'].trim() : null;
-        if (!moduleId) {
-          if (!batchGeneratedModuleId) {
-            batchGeneratedModuleId = generateModuleId(state.selectedSubject, 1);
-          }
-          moduleId = batchGeneratedModuleId;
+      try {
+        if (excelData.length === 0) {
+          alert('Upload a file first');
+          return;
         }
 
-        if (qType === 'MCQ' || qType === 'MULTIPLE CHOICE') {
-          const q = {
-            type: 'MCQ',
-            moduleId,
-            moduleTitle: row['Module Title'] || row['Chapter Name'] || row['Chapter'] || 'Module',
-            stepNum: row['Step Number'] || row['Step'] || (i + 1),
-            section: row['Learning Section'] || row['Section'] || row['Module Title'] || 'Learning Step',
-            chapterDescription: row['Chapter Description'] || row['Description'] || '',
-            subtopics: row['Subtopics'] || '',
-            question: row['Question'] || '',
-            optionA: row['Option A'] || row['A'] || '',
-            optionB: row['Option B'] || row['B'] || '',
-            optionC: row['Option C'] || row['C'] || '',
-            optionD: row['Option D'] || row['D'] || '',
-            optA: row['Option A'] || row['A'] || '',
-            optB: row['Option B'] || row['B'] || '',
-            optC: row['Option C'] || row['C'] || '',
-            optD: row['Option D'] || row['D'] || '',
-            correctAnswer: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
-            correctOption: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
-            correct: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
-            teaching: row['Teaching'] || row['Teaching Notes'] || '',
-            explanation: row['Explanation'] || row['Answer Explanation'] || ''
-          };
+        document.getElementById('excelProgress').classList.remove('hidden');
 
-          if (q.question && q.optA && q.optB && q.optC && q.optD && q.moduleTitle) {
-            state.questions.push(q);
-          } else {
-            progressStatus.innerHTML += `
-              <div class="status-message warning">
-                <i class="fa-solid fa-exclamation-circle"></i> Row ${i + 1}: Incomplete MCQ data (need: Module Title, Question, all Options)
-              </div>
-            `;
-          }
-        } else if (qType === 'MATCH' || qType === 'MATCH THE FOLLOWING') {
-          let pairs = [];
-          for (let j = 1; j <= 10; j++) {
-            const left = row[`Left ${j}`] || '';
-            const right = row[`Right ${j}`] || '';
-            if (left && right) {
-              pairs.push({ left, right });
+        // Generate ONE Module ID for this whole batch (e.g. one chapter's
+        // worth of questions), and reuse it for every row that doesn't have
+        // its own explicit Module ID. Previously this was generated inside
+        // the row loop, which incremented a brand-new ID for every single
+        // row instead of grouping the whole chapter under one module.
+        let batchGeneratedModuleId = null;
+
+        // Process each row
+        for (let i = 0; i < excelData.length; i++) {
+          const row = excelData[i];
+          const percent = Math.round((i / excelData.length) * 100);
+          
+          // Update progress display
+          document.getElementById('progressPercent').textContent = percent;
+          document.getElementById('progressFill').style.width = percent + '%';
+          document.getElementById('progressStatus').innerHTML = `
+            <div class="status-message">
+              <i class="fa-solid fa-spinner"></i> Processing ${i + 1} of ${excelData.length}...
+            </div>
+          `;
+
+          // Determine question type (from sheet name first, then column, then default)
+          let qType = row['__questionType'] || row['Question Type'] || 'MCQ';
+          qType = qType.toUpperCase();
+          
+          let moduleId = row['Module ID'] && row['Module ID'].trim() ? row['Module ID'].trim() : null;
+          if (!moduleId) {
+            if (!batchGeneratedModuleId) {
+              batchGeneratedModuleId = generateModuleId(state.selectedSubject, 1);
             }
+            moduleId = batchGeneratedModuleId;
           }
 
-          if (pairs.length >= 2) {
+          if (qType === 'MCQ' || qType === 'MULTIPLE CHOICE') {
             const q = {
-              type: 'Match',
+              type: 'MCQ',
               moduleId,
               moduleTitle: row['Module Title'] || row['Chapter Name'] || row['Chapter'] || 'Module',
               stepNum: row['Step Number'] || row['Step'] || (i + 1),
@@ -1275,35 +1234,91 @@
               chapterDescription: row['Chapter Description'] || row['Description'] || '',
               subtopics: row['Subtopics'] || '',
               question: row['Question'] || '',
-              pairs,
+              optionA: row['Option A'] || row['A'] || '',
+              optionB: row['Option B'] || row['B'] || '',
+              optionC: row['Option C'] || row['C'] || '',
+              optionD: row['Option D'] || row['D'] || '',
+              optA: row['Option A'] || row['A'] || '',
+              optB: row['Option B'] || row['B'] || '',
+              optC: row['Option C'] || row['C'] || '',
+              optD: row['Option D'] || row['D'] || '',
+              correctAnswer: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
+              correctOption: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
+              correct: row['Correct Answer'] || row['Correct'] || row['Answer'] || 'A',
               teaching: row['Teaching'] || row['Teaching Notes'] || '',
               explanation: row['Explanation'] || row['Answer Explanation'] || ''
             };
-            state.questions.push(q);
-          } else {
-            progressStatus.innerHTML += `
-              <div class="status-message warning">
-                <i class="fa-solid fa-exclamation-circle"></i> Row ${i + 1}: Match question needs at least 2 pairs
-              </div>
-            `;
+
+            if (q.question && q.optA && q.optB && q.optC && q.optD && q.moduleTitle) {
+              state.questions.push(q);
+            } else {
+              progressStatus.innerHTML += `
+                <div class="status-message warning">
+                  <i class="fa-solid fa-exclamation-circle"></i> Row ${i + 1}: Incomplete MCQ data (need: Module Title, Question, all Options)
+                </div>
+              `;
+            }
+          } else if (qType === 'MATCH' || qType === 'MATCH THE FOLLOWING') {
+            let pairs = [];
+            for (let j = 1; j <= 10; j++) {
+              const left = row[`Left ${j}`] || '';
+              const right = row[`Right ${j}`] || '';
+              if (left && right) {
+                pairs.push({ left, right });
+              }
+            }
+
+            if (pairs.length >= 2) {
+              const q = {
+                type: 'Match',
+                moduleId,
+                moduleTitle: row['Module Title'] || row['Chapter Name'] || row['Chapter'] || 'Module',
+                stepNum: row['Step Number'] || row['Step'] || (i + 1),
+                section: row['Learning Section'] || row['Section'] || row['Module Title'] || 'Learning Step',
+                chapterDescription: row['Chapter Description'] || row['Description'] || '',
+                subtopics: row['Subtopics'] || '',
+                question: row['Question'] || '',
+                pairs,
+                teaching: row['Teaching'] || row['Teaching Notes'] || '',
+                explanation: row['Explanation'] || row['Answer Explanation'] || ''
+              };
+              state.questions.push(q);
+            } else {
+              progressStatus.innerHTML += `
+                <div class="status-message warning">
+                  <i class="fa-solid fa-exclamation-circle"></i> Row ${i + 1}: Match question needs at least 2 pairs
+                </div>
+              `;
+            }
           }
+
+          // Small delay to show progress
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
 
-        // Small delay to show progress
-        await new Promise(resolve => setTimeout(resolve, 50));
+        document.getElementById('progressPercent').textContent = '100';
+        document.getElementById('progressFill').style.width = '100%';
+        progressStatus.innerHTML = `
+          <div class="status-message success">
+            <i class="fa-solid fa-check-circle"></i> Completed! ${state.questions.length} questions added
+          </div>
+        `;
+
+        clearExcelPreview();
+        showQuestions();
+        document.getElementById('nextBtn').disabled = false;
+
+      } catch (err) {
+        console.error('Error in confirmExcelUpload:', err);
+        document.getElementById('progressStatus').innerHTML = `
+          <div class="alert err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <strong>Error processing file:</strong> ${err.message}
+            <br><small>Check browser console (F12) for details</small>
+          </div>
+        `;
+        document.getElementById('excelProgress').classList.remove('hidden');
       }
-
-      document.getElementById('progressPercent').textContent = '100';
-      document.getElementById('progressFill').style.width = '100%';
-      progressStatus.innerHTML = `
-        <div class="status-message success">
-          <i class="fa-solid fa-check-circle"></i> Completed! ${state.questions.length} questions added
-        </div>
-      `;
-
-      clearExcelPreview();
-      showQuestions();
-      document.getElementById('nextBtn').disabled = false;
     }
 
     // ============================================================================
