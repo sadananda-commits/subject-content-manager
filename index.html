@@ -4,444 +4,338 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Subject Content Manager</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    :root {
-      --bg:#0d1320; --surface:#161e2e; --surface2:#1c2638; --line:#26324a;
-      --teal:#00c6a7; --teal-dim:rgba(0,198,167,.14);
-      --green:#22c55e; --green-dim:rgba(34,197,94,.14);
-      --red:#ef5b5b; --red-dim:rgba(239,91,91,.14);
-      --amber:#f5a623; --amber-dim:rgba(245,166,35,.14);
-      --ink:#e8edf6; --muted:#8b97ad; --muted2:#5e6a82;
-    }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif;
-      font-size: 14px; line-height: 1.5;
-    }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 24px 120px; }
-    
-    /* ─── Settings Panel ─── */
-    .settings { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 24px; }
-    .settings summary { cursor: pointer; padding: 14px 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; list-style: none; }
-    .settings summary i { transition: transform .15s; }
-    .settings[open] summary i { transform: rotate(90deg); }
-    .settings-body { padding: 14px 18px 18px; border-top: 1px solid var(--line); }
-    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .settings-grid .full { grid-column: 1/-1; }
-    
-    /* ─── Card ─── */
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; margin-bottom: 18px; }
-    .card h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
-    .card .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
-    
-    /* ─── Form ─── */
-    .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
-    input, select, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 10px 12px; font-family: inherit; font-size: 13px; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--teal); }
-    textarea { resize: vertical; min-height: 80px; }
-    
-    /* ─── Checkboxes ─── */
-    .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-    .checkbox-item input { width: 18px; height: 18px; }
-    
-    /* ─── Buttons ─── */
-    .btn { font-weight: 600; border-radius: 8px; padding: 10px 16px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
-    .btn-primary { background: var(--teal); color: #06231d; }
+    body { margin: 0; padding: 20px; background: #0d1320; color: #e8edf6; font-family: 'Inter', sans-serif; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .card { background: #161e2e; border: 1px solid #26324a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    h1 { margin: 0 0 10px; font-size: 24px; }
+    .subtitle { color: #8b97ad; margin: 0 0 20px; }
+    .field { margin-bottom: 15px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: #8b97ad; margin-bottom: 5px; }
+    input, select, textarea { width: 100%; padding: 10px; background: #1c2638; border: 1px solid #26324a; border-radius: 8px; color: #e8edf6; font-family: inherit; font-size: 14px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #00c6a7; }
+    .btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .btn-primary { background: #00c6a7; color: #06231d; }
     .btn-primary:hover { opacity: 0.9; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
-    .btn-ghost:hover { border-color: var(--muted); }
-    
-    /* ─── Callout ─── */
-    .callout { border-radius: 10px; padding: 12px 14px; font-size: 13px; display: flex; gap: 10px; margin-bottom: 14px; }
-    .callout.ok { background: var(--green-dim); border: 1px solid rgba(34,197,94,.3); color: #86e7ab; }
-    .callout.err { background: var(--red-dim); border: 1px solid rgba(239,91,91,.3); color: #f59b9b; }
-    .callout.info { background: var(--surface2); border: 1px solid var(--line); color: var(--muted); }
-    .callout i { flex-shrink: 0; margin-top: 2px; }
-    
-    /* ─── Tabs ─── */
-    .tab-buttons { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
-    .tab-btn { padding: 10px 14px; border: none; background: none; color: var(--muted); cursor: pointer; font-weight: 500; border-bottom: 2px solid transparent; }
-    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    
-    /* ─── Upload Zone ─── */
-    .upload-zone { display: block; border: 2px dashed var(--line); border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: all .15s; }
-    .upload-zone:hover { border-color: var(--teal); background: var(--teal-dim); }
-    .upload-zone input { display: none; }
-    .upload-zone i { font-size: 32px; color: var(--teal); margin-bottom: 8px; }
-    
-    /* ─── Hidden ─── */
+    .btn-ghost { background: transparent; border: 1px solid #26324a; color: #e8edf6; }
+    .alert { padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+    .alert.ok { background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); color: #86e7ab; }
+    .alert.err { background: rgba(239,91,91,.15); border: 1px solid rgba(239,91,91,.3); color: #f59b9b; }
     .hidden { display: none !important; }
-    
-    /* ─── Step Rail ─── */
-    .rail { display: flex; gap: 6px; margin-bottom: 24px; }
-    .rail .step { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; opacity: .5; }
-    .rail .step.active { opacity: 1; border-color: rgba(0,198,167,.4); background: var(--teal-dim); }
-    .rail .step.done { opacity: 1; }
-    .rail .num { width: 22px; height: 22px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
-    .rail .step.active .num { background: var(--teal); color: #06231d; }
-    .rail .step.done .num { background: var(--green); color: white; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    textarea { resize: vertical; min-height: 80px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <!-- ═══════════════════════════════════════════════════════════════ SETTINGS ═══ -->
-    <details class="settings" id="settingsPanel">
-      <summary><i class="fa-solid fa-chevron-right"></i> Connection Settings</summary>
-      <div class="settings-body">
-        <div class="settings-grid">
-          <div class="field full">
-            <label>Google Apps Script URL</label>
-            <input type="text" id="cfgScriptUrl" placeholder="https://script.google.com/macros/d/.../exec">
-          </div>
-          <div class="field full">
-            <label>Shared Secret</label>
-            <input type="password" id="cfgSecret" placeholder="••••••••" value="123456">
-          </div>
-          <div class="field full" style="background: var(--surface2); padding: 12px; border-radius: 8px; margin-bottom: 0;">
-            <button class="btn btn-primary" onclick="testConnection()" style="width: 100%;"><i class="fa-solid fa-plug"></i> Test Connection</button>
-            <div id="connStatus" style="margin-top: 8px; font-size: 12px; color: var(--muted);"></div>
-          </div>
-        </div>
-      </div>
-    </details>
-
-    <!-- ═══════════════════════════════════════════════════════════════ STEP 1 ═══ -->
-    <div class="rail">
-      <div class="step active" data-step="1"><div class="num">1</div> <span>Class &amp; Subject</span></div>
-      <div class="step" data-step="2"><div class="num">2</div> <span>Questions</span></div>
-      <div class="step" data-step="3"><div class="num">3</div> <span>Submit</span></div>
-    </div>
-
-    <div class="card" id="step1">
-      <h2><i class="fa-solid fa-graduation-cap"></i> Step 1: Class &amp; Subject</h2>
-      <p class="sub">Select one or more classes and a subject to upload questions.</p>
-
+  <div class="container">
+    <!-- SETTINGS -->
+    <div class="card">
+      <h1>⚙️ Settings</h1>
+      <p class="subtitle">Configure your connection</p>
+      
       <div class="field">
-        <label>Classes (select one or more)</label>
-        <div class="checkbox-grid" id="classCheckboxes">
-          <div class="callout info" style="grid-column: 1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> Loading classes...</div>
-        </div>
+        <label>Apps Script URL (from Google Apps Script deployment)</label>
+        <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
       </div>
 
       <div class="field">
-        <label>Subject</label>
-        <select id="selSubject">
-          <option value="">Select classes first</option>
-        </select>
+        <label>Secret (usually 123456)</label>
+        <input type="password" id="secret" placeholder="123456" value="123456">
       </div>
 
-      <button class="btn btn-primary" onclick="goToStep(2)"><i class="fa-solid fa-arrow-right"></i> Next</button>
+      <button class="btn btn-primary" onclick="testConnection()">
+        <i class="fa-solid fa-plug"></i> Test Connection
+      </button>
 
-      <!-- Reorganise Option -->
-      <div id="reorganiseOption" class="callout info hidden" style="margin-top: 20px;">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        <div>
-          <strong>Reorganise this subject?</strong> Instead of adding questions, clean up existing ones: renumber modules/steps and mark duplicates.
-          <div style="margin-top: 10px; display: flex; gap: 10px;">
-            <button class="btn btn-primary" onclick="startReorganise()" style="background: var(--green);"><i class="fa-solid fa-wand-magic-sparkles"></i> Reorganise</button>
-            <button class="btn btn-ghost" onclick="continueToUpload()"> Continue Upload</button>
-          </div>
-        </div>
-      </div>
+      <div id="connStatus"></div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════ STEP 2 ═══ -->
-    <div class="card hidden" id="step2">
-      <h2><i class="fa-solid fa-circle-question"></i> Step 2: Questions</h2>
-      <p class="sub">Add questions manually or upload Excel file.</p>
-
-      <!-- Tabs -->
-      <div class="tab-buttons">
-        <button class="tab-btn active" onclick="switchTab('manual')"><i class="fa-solid fa-pen"></i> Manual Entry</button>
-        <button class="tab-btn" onclick="switchTab('excel')"><i class="fa-solid fa-file-excel"></i> Excel Upload</button>
-      </div>
-
-      <!-- Manual Tab -->
-      <div class="tab-content active" id="tab-manual">
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden">
+      <!-- STEP 1 -->
+      <div class="card">
+        <h1>Step 1: Select Class & Subject</h1>
+        
         <div class="field">
-          <label>Question Type</label>
-          <select id="questionType">
-            <option value="MCQ">Multiple Choice (MCQ)</option>
-            <option value="MatchTheFollowing">Match the Following</option>
+          <label>Class</label>
+          <select id="selClass" onchange="loadSubjects()">
+            <option value="">Loading...</option>
           </select>
         </div>
 
+        <div class="field">
+          <label>Subject</label>
+          <select id="selSubject">
+            <option value="">Select class first</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="goStep(2)">Next →</button>
+        
+        <div id="reorganiseOption" class="hidden" style="margin-top: 20px;">
+          <div class="alert ok">
+            <strong>Reorganise?</strong> Clean up existing questions instead of adding new ones.
+            <br><br>
+            <button class="btn btn-primary" onclick="startReorganise()" style="background: #22c55e;">Reorganise</button>
+            <button class="btn btn-ghost" onclick="goStep(2)">Add Questions</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="card hidden" id="step2">
+        <h1>Step 2: Add Questions</h1>
+        
+        <div class="field">
+          <label>Question Type</label>
+          <select id="qType">
+            <option value="MCQ">Multiple Choice (MCQ)</option>
+            <option value="Match">Match the Following</option>
+          </select>
+        </div>
+
+        <!-- MCQ Form -->
         <div id="mcqForm">
-          <div class="field">
-            <label>Module ID (e.g., MOD01)</label>
-            <input type="text" id="mcqModuleId" placeholder="MOD01">
+          <div class="grid2">
+            <div class="field">
+              <label>Module ID</label>
+              <input type="text" id="mcqMod" placeholder="MOD01">
+            </div>
+            <div class="field">
+              <label>Step Number</label>
+              <input type="number" id="mcqStep" placeholder="1">
+            </div>
           </div>
-          <div class="field">
-            <label>Step Number</label>
-            <input type="number" id="mcqStepNum" placeholder="1" min="1">
-          </div>
+
           <div class="field">
             <label>Question</label>
-            <textarea id="mcqQuestion" placeholder="What is...?"></textarea>
+            <textarea id="mcqQ" placeholder="What is...?"></textarea>
           </div>
-          <div class="field">
-            <label>Option A</label>
-            <input type="text" id="mcqOptA" placeholder="Answer option A">
+
+          <div class="grid2">
+            <div class="field">
+              <label>A)</label>
+              <input type="text" id="mcqA" placeholder="Option A">
+            </div>
+            <div class="field">
+              <label>B)</label>
+              <input type="text" id="mcqB" placeholder="Option B">
+            </div>
+            <div class="field">
+              <label>C)</label>
+              <input type="text" id="mcqC" placeholder="Option C">
+            </div>
+            <div class="field">
+              <label>D)</label>
+              <input type="text" id="mcqD" placeholder="Option D">
+            </div>
           </div>
-          <div class="field">
-            <label>Option B</label>
-            <input type="text" id="mcqOptB" placeholder="Answer option B">
-          </div>
-          <div class="field">
-            <label>Option C</label>
-            <input type="text" id="mcqOptC" placeholder="Answer option C">
-          </div>
-          <div class="field">
-            <label>Option D</label>
-            <input type="text" id="mcqOptD" placeholder="Answer option D">
-          </div>
+
           <div class="field">
             <label>Correct Answer</label>
             <select id="mcqCorrect">
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
+              <option>A</option>
+              <option>B</option>
+              <option>C</option>
+              <option>D</option>
             </select>
           </div>
-          <button class="btn btn-primary" onclick="addMCQ()"><i class="fa-solid fa-plus"></i> Add MCQ</button>
+
+          <button class="btn btn-primary" onclick="addMCQ()">+ Add MCQ</button>
         </div>
 
+        <!-- Match Form -->
         <div id="matchForm" class="hidden">
+          <div class="grid2">
+            <div class="field">
+              <label>Module ID</label>
+              <input type="text" id="matchMod" placeholder="MOD01">
+            </div>
+            <div class="field">
+              <label>Step Number</label>
+              <input type="number" id="matchStep" placeholder="1">
+            </div>
+          </div>
+
           <div class="field">
-            <label>Module ID</label>
-            <input type="text" id="matchModuleId" placeholder="MOD01">
+            <label>Question</label>
+            <textarea id="matchQ" placeholder="Match the following..."></textarea>
           </div>
-          <div class="field">
-            <label>Step Number</label>
-            <input type="number" id="matchStepNum" placeholder="1" min="1">
+
+          <div class="grid2">
+            <div class="field">
+              <label>Left 1</label>
+              <input type="text" id="ml1">
+            </div>
+            <div class="field">
+              <label>Right 1</label>
+              <input type="text" id="mr1">
+            </div>
+            <div class="field">
+              <label>Left 2</label>
+              <input type="text" id="ml2">
+            </div>
+            <div class="field">
+              <label>Right 2</label>
+              <input type="text" id="mr2">
+            </div>
+            <div class="field">
+              <label>Left 3</label>
+              <input type="text" id="ml3">
+            </div>
+            <div class="field">
+              <label>Right 3</label>
+              <input type="text" id="mr3">
+            </div>
+            <div class="field">
+              <label>Left 4</label>
+              <input type="text" id="ml4">
+            </div>
+            <div class="field">
+              <label>Right 4</label>
+              <input type="text" id="mr4">
+            </div>
+            <div class="field">
+              <label>Left 5</label>
+              <input type="text" id="ml5">
+            </div>
+            <div class="field">
+              <label>Right 5</label>
+              <input type="text" id="mr5">
+            </div>
           </div>
-          <div class="field">
-            <label>Question/Instruction</label>
-            <textarea id="matchQuestion" placeholder="Match the following..."></textarea>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="field"><label>Left 1</label><input type="text" id="matchLeft1"></div>
-            <div class="field"><label>Right 1</label><input type="text" id="matchRight1"></div>
-            <div class="field"><label>Left 2</label><input type="text" id="matchLeft2"></div>
-            <div class="field"><label>Right 2</label><input type="text" id="matchRight2"></div>
-            <div class="field"><label>Left 3</label><input type="text" id="matchLeft3"></div>
-            <div class="field"><label>Right 3</label><input type="text" id="matchRight3"></div>
-            <div class="field"><label>Left 4</label><input type="text" id="matchLeft4"></div>
-            <div class="field"><label>Right 4</label><input type="text" id="matchRight4"></div>
-            <div class="field"><label>Left 5</label><input type="text" id="matchLeft5"></div>
-            <div class="field"><label>Right 5</label><input type="text" id="matchRight5"></div>
-          </div>
-          <button class="btn btn-primary" onclick="addMatch()"><i class="fa-solid fa-plus"></i> Add Match</button>
+
+          <button class="btn btn-primary" onclick="addMatch()">+ Add Match</button>
         </div>
 
-        <div id="questionsPreview" style="margin-top: 20px;"></div>
+        <div id="qList" style="margin-top: 20px;"></div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+          <button class="btn btn-primary" onclick="goStep(3)">Review & Submit →</button>
+        </div>
       </div>
 
-      <!-- Excel Tab -->
-      <div class="tab-content" id="tab-excel">
-        <label class="upload-zone" onclick="document.getElementById('excelFile').click()">
-          <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)">
-          <div style="font-size: 32px; margin-bottom: 8px;"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-          <strong>Click to upload</strong> or drag &amp; drop your Excel file
-          <div style="font-size: 11px; color: var(--muted); margin-top: 8px;">.xlsx, .xls or .csv format</div>
-        </label>
-        <div id="excelPreview" style="margin-top: 16px;"></div>
+      <!-- STEP 3 -->
+      <div class="card hidden" id="step3">
+        <h1>Step 3: Submit</h1>
+        
+        <div id="summary" style="background: #1c2638; padding: 15px; border-radius: 8px; margin-bottom: 15px;"></div>
+
+        <button class="btn btn-primary" onclick="submit()">Submit Questions</button>
+        <button class="btn btn-ghost" onclick="goStep(2)" style="margin-left: 10px;">← Back</button>
+
+        <div id="result" style="margin-top: 20px;"></div>
       </div>
-
-      <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" onclick="goToStep(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
-        <button class="btn btn-primary" onclick="goToStep(3)"><i class="fa-solid fa-arrow-right"></i> Review &amp; Submit</button>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════ STEP 3 ═══ -->
-    <div class="card hidden" id="step3">
-      <h2><i class="fa-solid fa-paper-plane"></i> Step 3: Submit</h2>
-      <p class="sub">Review and submit your questions to all selected classes.</p>
-
-      <div id="submitSummary" style="background: var(--surface2); padding: 14px; border-radius: 8px; margin-bottom: 14px;"></div>
-
-      <button class="btn btn-primary" onclick="submitQuestions()"><i class="fa-solid fa-paper-plane"></i> Submit to All Classes</button>
-      <button class="btn btn-ghost" onclick="goToStep(2)" style="margin-left: 10px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
-
-      <div id="submitResult" style="margin-top: 20px;"></div>
     </div>
   </div>
 
   <script>
-    const SECRET = '123456';
-    let cfg = {
-      scriptUrl: localStorage.getItem('scm_scriptUrl') || '',
-      secret: localStorage.getItem('scm_secret') || '123456'
-    };
-
-    let state = {
-      selectedClasses: [],
+    const state = {
+      scriptUrl: localStorage.getItem('scriptUrl') || '',
+      secret: localStorage.getItem('secret') || '123456',
+      classes: [],
+      subjects: [],
+      selectedClass: '',
       selectedSubject: '',
       questions: [],
-      currentStep: 1,
-      questionsData: [],
-      subjectMap: {}
+      step: 1
     };
 
-    // ═══════════════════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════════════════
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('cfgScriptUrl').value = cfg.scriptUrl;
-      document.getElementById('cfgSecret').value = cfg.secret;
-      
-      if (cfg.scriptUrl) {
-        loadClasses();
-      } else {
-        document.getElementById('settingsPanel').open = true;
-      }
+    document.getElementById('scriptUrl').value = state.scriptUrl;
+    document.getElementById('secret').value = state.secret;
 
-      document.getElementById('questionType').addEventListener('change', (e) => {
-        const isMCQ = e.target.value === 'MCQ';
-        document.getElementById('mcqForm').classList.toggle('hidden', !isMCQ);
-        document.getElementById('matchForm').classList.toggle('hidden', isMCQ);
-      });
-    });
-
-    // ═══════════════════════════════════════════════════════════════════
-    // CONNECTION
-    // ═══════════════════════════════════════════════════════════════════
+    // Test Connection
     async function testConnection() {
-      const url = document.getElementById('cfgScriptUrl').value.trim();
-      const secret = document.getElementById('cfgSecret').value;
-      const statusDiv = document.getElementById('connStatus');
+      const url = document.getElementById('scriptUrl').value.trim();
+      const secret = document.getElementById('secret').value;
+      const status = document.getElementById('connStatus');
 
       if (!url) {
-        statusDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color: var(--red);"></i> Enter URL first';
+        status.innerHTML = '<div class="alert err">Enter URL</div>';
         return;
       }
 
-      statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+      status.innerHTML = '<div class="alert ok">Testing...</div>';
 
       try {
         const res = await fetch(`${url}?action=getClassLevels&secret=${encodeURIComponent(secret)}`);
         const data = await res.json();
 
         if (data.success) {
-          cfg.scriptUrl = url;
-          cfg.secret = secret;
-          localStorage.setItem('scm_scriptUrl', url);
-          localStorage.setItem('scm_secret', secret);
-          statusDiv.innerHTML = '<i class="fa-solid fa-circle-check" style="color: var(--green);"></i> ✓ Connected! ' + data.classes.length + ' classes found';
+          state.scriptUrl = url;
+          state.secret = secret;
+          localStorage.setItem('scriptUrl', url);
+          localStorage.setItem('secret', secret);
+          state.classes = data.classes;
+          status.innerHTML = '<div class="alert ok">✓ Connected! ' + data.classes.length + ' classes found</div>';
           loadClasses();
-          setTimeout(() => document.getElementById('settingsPanel').open = false, 1000);
+          document.getElementById('mainApp').classList.remove('hidden');
         } else {
-          statusDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color: var(--red);"></i> ' + data.message;
+          status.innerHTML = '<div class="alert err">' + data.message + '</div>';
         }
       } catch (err) {
-        statusDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color: var(--red);"></i> ' + err.message;
+        status.innerHTML = '<div class="alert err">Failed: ' + err.message + '</div>';
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // LOAD DATA
-    // ═══════════════════════════════════════════════════════════════════
+    // Load Classes
     async function loadClasses() {
+      const select = document.getElementById('selClass');
+      
       try {
-        const res = await fetch(`${cfg.scriptUrl}?action=getClassLevels&secret=${encodeURIComponent(cfg.secret)}`);
+        const res = await fetch(`${state.scriptUrl}?action=getClassLevels&secret=${encodeURIComponent(state.secret)}`);
         const data = await res.json();
 
-        if (!data.success) throw new Error(data.message);
-
-        const container = document.getElementById('classCheckboxes');
-        const html = data.classes.map(cls => `
-          <label class="checkbox-item">
-            <input type="checkbox" class="classCheckbox" value="${cls}" onchange="updateSelectedClasses()">
-            <span>${cls}</span>
-          </label>
-        `).join('');
-
-        container.innerHTML = html || '<div class="callout err">No classes found</div>';
+        if (data.success) {
+          state.classes = data.classes;
+          select.innerHTML = '<option value="">Choose class...</option>' + 
+            state.classes.map(c => `<option value="${c}">${c}</option>`).join('');
+        } else {
+          select.innerHTML = '<option value="">Error: ' + data.message + '</option>';
+        }
       } catch (err) {
-        document.getElementById('classCheckboxes').innerHTML = `<div class="callout err">Error: ${err.message}</div>`;
+        select.innerHTML = '<option value="">Error: ' + err.message + '</option>';
       }
     }
 
+    // Load Subjects
     async function loadSubjects() {
+      state.selectedClass = document.getElementById('selClass').value;
+      
       try {
-        const res = await fetch(`${cfg.scriptUrl}?action=getSubjectMap&secret=${encodeURIComponent(cfg.secret)}`);
+        const res = await fetch(`${state.scriptUrl}?action=getSubjects&secret=${encodeURIComponent(state.secret)}`);
         const data = await res.json();
-
-        if (!data.success) throw new Error(data.message);
-
-        state.subjectMap = data.subjectMap;
-        updateSubjectDropdown();
+        
+        if (data.success) {
+          state.subjects = data.subjects;
+          const select = document.getElementById('selSubject');
+          select.innerHTML = '<option value="">Choose subject...</option>' + 
+            state.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+          
+          // Show reorganise option if class selected
+          const reorganiseOpt = document.getElementById('reorganiseOption');
+          reorganiseOpt.classList.toggle('hidden', !state.selectedClass);
+        }
       } catch (err) {
         console.error('Error loading subjects:', err);
       }
     }
 
-    function updateSelectedClasses() {
-      state.selectedClasses = Array.from(document.querySelectorAll('.classCheckbox:checked')).map(el => el.value);
-      loadSubjects();
-      updateReorganiseOption();
-    }
-
-    function updateSubjectDropdown() {
-      const select = document.getElementById('selSubject');
-      
-      if (state.selectedClasses.length === 0) {
-        select.innerHTML = '<option value="">Select classes first</option>';
-        return;
-      }
-
-      const availableSubjects = new Set();
-      for (const subject in state.subjectMap) {
-        for (const cls of state.selectedClasses) {
-          if (state.subjectMap[subject][cls]) {
-            availableSubjects.add(subject);
-            break;
-          }
-        }
-      }
-
-      select.innerHTML = '<option value="">Choose subject...</option>' + 
-        Array.from(availableSubjects).sort().map(s => `<option value="${s}">${s}</option>`).join('');
-    }
-
-    function updateReorganiseOption() {
-      const opt = document.getElementById('reorganiseOption');
-      if (state.selectedClasses.length > 0 && document.getElementById('selSubject').value) {
-        opt.classList.remove('hidden');
-      } else {
-        opt.classList.add('hidden');
-      }
-    }
-
-    document.getElementById('selSubject').addEventListener('change', () => {
-      state.selectedSubject = document.getElementById('selSubject').value;
-      updateReorganiseOption();
-    });
-
-    // ═══════════════════════════════════════════════════════════════════
-    // QUESTIONS
-    // ═══════════════════════════════════════════════════════════════════
+    // Add MCQ
     function addMCQ() {
       const q = {
         type: 'MCQ',
-        moduleId: document.getElementById('mcqModuleId').value,
-        stepNum: document.getElementById('mcqStepNum').value,
-        question: document.getElementById('mcqQuestion').value,
-        optA: document.getElementById('mcqOptA').value,
-        optB: document.getElementById('mcqOptB').value,
-        optC: document.getElementById('mcqOptC').value,
-        optD: document.getElementById('mcqOptD').value,
+        moduleId: document.getElementById('mcqMod').value,
+        stepNum: document.getElementById('mcqStep').value,
+        question: document.getElementById('mcqQ').value,
+        optA: document.getElementById('mcqA').value,
+        optB: document.getElementById('mcqB').value,
+        optC: document.getElementById('mcqC').value,
+        optD: document.getElementById('mcqD').value,
         correct: document.getElementById('mcqCorrect').value
       };
 
@@ -450,245 +344,149 @@
         return;
       }
 
-      state.questionsData.push(q);
-      
-      // Clear form
-      document.getElementById('mcqModuleId').value = '';
-      document.getElementById('mcqStepNum').value = '';
-      document.getElementById('mcqQuestion').value = '';
-      document.getElementById('mcqOptA').value = '';
-      document.getElementById('mcqOptB').value = '';
-      document.getElementById('mcqOptC').value = '';
-      document.getElementById('mcqOptD').value = '';
-      
-      updatePreview();
+      state.questions.push(q);
+      document.getElementById('mcqMod').value = '';
+      document.getElementById('mcqStep').value = '';
+      document.getElementById('mcqQ').value = '';
+      showQuestions();
     }
 
+    // Add Match
     function addMatch() {
       const q = {
-        type: 'MatchTheFollowing',
-        moduleId: document.getElementById('matchModuleId').value,
-        stepNum: document.getElementById('matchStepNum').value,
-        question: document.getElementById('matchQuestion').value,
-        left1: document.getElementById('matchLeft1').value,
-        right1: document.getElementById('matchRight1').value,
-        left2: document.getElementById('matchLeft2').value,
-        right2: document.getElementById('matchRight2').value,
-        left3: document.getElementById('matchLeft3').value,
-        right3: document.getElementById('matchRight3').value,
-        left4: document.getElementById('matchLeft4').value,
-        right4: document.getElementById('matchRight4').value,
-        left5: document.getElementById('matchLeft5').value,
-        right5: document.getElementById('matchRight5').value,
+        type: 'Match',
+        moduleId: document.getElementById('matchMod').value,
+        stepNum: document.getElementById('matchStep').value,
+        question: document.getElementById('matchQ').value,
+        left1: document.getElementById('ml1').value,
+        right1: document.getElementById('mr1').value,
+        left2: document.getElementById('ml2').value,
+        right2: document.getElementById('mr2').value,
+        left3: document.getElementById('ml3').value,
+        right3: document.getElementById('mr3').value,
+        left4: document.getElementById('ml4').value,
+        right4: document.getElementById('mr4').value,
+        left5: document.getElementById('ml5').value,
+        right5: document.getElementById('mr5').value,
       };
 
-      state.questionsData.push(q);
-
-      // Clear form
-      document.getElementById('matchModuleId').value = '';
-      document.getElementById('matchStepNum').value = '';
-      document.getElementById('matchQuestion').value = '';
-      
-      updatePreview();
+      state.questions.push(q);
+      showQuestions();
     }
 
-    function updatePreview() {
-      const container = document.getElementById('questionsPreview');
-      const html = state.questionsData.map((q, i) => `
-        <div style="background: var(--surface2); padding: 12px; border-radius: 8px; margin-bottom: 8px;">
-          <div style="display: flex; justify-content: space-between;">
-            <strong>#${i+1} ${q.type}</strong>
-            <button class="btn btn-ghost" onclick="removeQuestion(${i})" style="padding: 4px 8px;"><i class="fa-solid fa-trash"></i></button>
-          </div>
-          <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">
-            Module: ${q.moduleId || '—'} | Step: ${q.stepNum || '—'}
-          </div>
+    function showQuestions() {
+      const list = document.getElementById('qList');
+      list.innerHTML = state.questions.map((q, i) => `
+        <div style="background: #1c2638; padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <div><strong>#${i+1} ${q.type}</strong></div>
+          <button class="btn btn-ghost" onclick="removeQ(${i})" style="padding: 4px 8px;">✕</button>
         </div>
       `).join('');
-
-      container.innerHTML = html || '<div class="callout info">No questions added yet</div>';
     }
 
-    function removeQuestion(idx) {
-      state.questionsData.splice(idx, 1);
-      updatePreview();
+    function removeQ(i) {
+      state.questions.splice(i, 1);
+      showQuestions();
     }
 
-    function handleExcelUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    // Question type toggle
+    document.getElementById('qType').addEventListener('change', (e) => {
+      const isMCQ = e.target.value === 'MCQ';
+      document.getElementById('mcqForm').classList.toggle('hidden', !isMCQ);
+      document.getElementById('matchForm').classList.toggle('hidden', isMCQ);
+    });
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const workbook = XLSX.read(e.target.result, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const data = XLSX.utils.sheet_to_json(worksheet);
-
-          state.questionsData = data.map(row => ({
-            type: row['Question Type'] || 'MCQ',
-            moduleId: row['Module ID'] || '',
-            stepNum: row['Step Number'] || '',
-            question: row['Question'] || '',
-            optA: row['Option A'] || row['Left 1'] || '',
-            optB: row['Option B'] || row['Right 1'] || '',
-            optC: row['Option C'] || row['Left 2'] || '',
-            optD: row['Option D'] || row['Right 2'] || '',
-            correct: row['Correct'] || 'A'
-          }));
-
-          document.getElementById('excelPreview').innerHTML = `
-            <div class="callout ok">
-              <i class="fa-solid fa-circle-check"></i>
-              <div><strong>${state.questionsData.length} questions</strong> loaded from Excel</div>
-            </div>
-          `;
-
-          updatePreview();
-        } catch (err) {
-          document.getElementById('excelPreview').innerHTML = `<div class="callout err"><i class="fa-solid fa-circle-exclamation"></i> Error: ${err.message}</div>`;
-        }
-      };
-      reader.readAsArrayBuffer(file);
+    // Navigation
+    function goStep(n) {
+      if (n === 1) {
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step3').classList.add('hidden');
+      } else if (n === 2) {
+        document.getElementById('step2').classList.remove('hidden');
+        document.getElementById('step3').classList.add('hidden');
+      } else if (n === 3) {
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step3').classList.remove('hidden');
+        state.selectedSubject = document.getElementById('selSubject').value;
+        document.getElementById('summary').innerHTML = `
+          <div><strong>Class:</strong> ${state.selectedClass}</div>
+          <div><strong>Subject:</strong> ${state.selectedSubject}</div>
+          <div><strong>Questions:</strong> ${state.questions.length}</div>
+        `;
+      }
+      state.step = n;
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // SUBMIT
-    // ═══════════════════════════════════════════════════════════════════
-    async function submitQuestions() {
-      if (state.questionsData.length === 0) {
-        alert('Add at least one question');
+    // Submit
+    async function submit() {
+      if (!state.questions.length) {
+        alert('Add questions first');
         return;
       }
 
       const btn = event.target;
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+      btn.textContent = '⏳ Submitting...';
 
       try {
-        const results = [];
-        for (const cls of state.selectedClasses) {
-          const payload = {
-            action: 'uploadQuestions',
-            secret: cfg.secret,
-            class: cls,
-            subject: state.selectedSubject,
-            questions: state.questionsData,
-            questionType: state.questionsData[0].type
-          };
+        const payload = {
+          action: 'uploadQuestions',
+          secret: state.secret,
+          class: state.selectedClass,
+          subject: state.selectedSubject,
+          questions: state.questions
+        };
 
-          const res = await fetch(cfg.scriptUrl, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
+        const res = await fetch(state.scriptUrl, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
 
-          const data = await res.json();
-          results.push({ class: cls, success: data.success, message: data.message });
-        }
+        const data = await res.json();
 
-        const allSuccess = results.every(r => r.success);
-        const html = `
-          <div class="callout ${allSuccess ? 'ok' : 'err'}">
-            <i class="fa-solid fa-${allSuccess ? 'circle-check' : 'circle-exclamation'}"></i>
-            <div>
-              ${results.map(r => `<div>${r.success ? '✓' : '✗'} ${r.class}: ${r.message}</div>`).join('')}
-            </div>
-          </div>
-        `;
-        document.getElementById('submitResult').innerHTML = html;
-
-        if (allSuccess) {
+        if (data.success) {
+          document.getElementById('result').innerHTML = `<div class="alert ok">✓ ${data.message}</div>`;
           setTimeout(() => location.reload(), 2000);
+        } else {
+          document.getElementById('result').innerHTML = `<div class="alert err">✗ ${data.message}</div>`;
         }
+      } catch (err) {
+        document.getElementById('result').innerHTML = `<div class="alert err">✗ ${err.message}</div>`;
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit to All Classes';
+        btn.textContent = 'Submit Questions';
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // NAVIGATION
-    // ═══════════════════════════════════════════════════════════════════
-    function goToStep(n) {
-      document.querySelectorAll('.card[id^="step"]').forEach(c => c.classList.add('hidden'));
-      document.getElementById(`step${n}`).classList.remove('hidden');
-      document.querySelectorAll('.rail .step').forEach(el => {
-        el.classList.toggle('active', el.dataset.step == n);
-        el.classList.toggle('done', el.dataset.step < n);
-      });
-      state.currentStep = n;
-      window.scrollTo(0, 0);
-    }
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(`tab-${tab}`).classList.add('active');
-      event.target.classList.add('active');
-    }
-
-    function continueToUpload() {
-      document.getElementById('reorganiseOption').classList.add('hidden');
-      goToStep(2);
-    }
-
+    // Reorganise
     async function startReorganise() {
-      const btn = event.target;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Reorganising...';
+      state.selectedSubject = document.getElementById('selSubject').value;
+      
+      const payload = {
+        action: 'reorganise',
+        secret: state.secret,
+        class: state.selectedClass,
+        subject: state.selectedSubject
+      };
 
       try {
-        const results = [];
-        for (const cls of state.selectedClasses) {
-          const payload = {
-            action: 'reorganiseSubject',
-            secret: cfg.secret,
-            class: cls,
-            subject: state.selectedSubject
-          };
+        const res = await fetch(state.scriptUrl, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
 
-          const res = await fetch(cfg.scriptUrl, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-
-          const data = await res.json();
-          results.push({
-            class: cls,
-            success: data.success,
-            message: data.message,
-            duplicatesMarked: data.duplicatesMarked || 0
-          });
-        }
-
-        const allSuccess = results.every(r => r.success);
-        alert(allSuccess ? 
-          'Reorganised successfully!\n' + results.map(r => `${r.class}: ${r.duplicatesMarked} duplicates marked`).join('\n') :
-          'Some classes failed: ' + results.filter(r => !r.success).map(r => r.message).join('\n'));
-
-        if (allSuccess) {
+        const data = await res.json();
+        
+        if (data.success) {
+          alert('✓ Reorganised!\n' + data.duplicates + ' duplicates marked in pink');
           location.reload();
+        } else {
+          alert('✗ ' + data.message);
         }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Reorganise';
+      } catch (err) {
+        alert('✗ Error: ' + err.message);
       }
     }
-
-    // Update step 3 summary
-    document.addEventListener('click', () => {
-      if (state.currentStep === 3) {
-        document.getElementById('submitSummary').innerHTML = `
-          <div><strong>Classes:</strong> ${state.selectedClasses.join(', ')}</div>
-          <div><strong>Subject:</strong> ${state.selectedSubject}</div>
-          <div><strong>Questions:</strong> ${state.questionsData.length}</div>
-        `;
-      }
-    });
-
-    // Load subjects on init
-    loadSubjects();
   </script>
 </body>
 </html>
