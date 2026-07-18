@@ -5,7 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subject Content Manager v4.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <!-- XLSX Library - Essential for Excel upload -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js" defer></script>
+    <!-- Backup XLSX Library if CDN fails -->
+    <script>
+        // Check XLSX after a delay (for CDN loading)
+        window.addEventListener('load', function() {
+            if (typeof XLSX === 'undefined') {
+                // Load backup from alternative CDN
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
+                script.onload = function() {
+                    console.log('✅ XLSX library loaded from backup CDN');
+                    if (window.xlsxLoaded) window.xlsxLoaded();
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load XLSX from both CDNs');
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('✅ XLSX library loaded successfully');
+            }
+        });
+    </script>
     <style>
         * {
             margin: 0;
@@ -457,17 +479,23 @@
                 <div class="alert info">
                     <i class="fas fa-info-circle"></i>
                     <div>
-                        <strong>Optional Step:</strong> You can select an existing chapter here, or skip this step. 
+                        <strong>Optional Step:</strong> You can select an existing chapter from the dropdown, or skip this step. 
                         When you upload the Excel file, the system will automatically detect chapters from the "Module Title" column.
                     </div>
                 </div>
                 
                 <div class="field">
                     <label>Chapter Title (Optional)</label>
-                    <input type="text" id="chapterSearch" placeholder="Search existing chapters or type new name..." onkeyup="updateChapterList()">
-                    <div class="chapter-list" id="chapterList"></div>
-                    <input type="hidden" id="selectedChapter">
-                    <small>Leave empty to auto-detect chapters from uploaded file</small>
+                    <select id="chapterDropdown" onchange="onChapterSelected()">
+                        <option value="">-- Select Existing Chapter or Create New --</option>
+                    </select>
+                    <small>Choose from existing chapters or skip to auto-detect from Excel file</small>
+                </div>
+
+                <div style="margin-top: 15px;" id="newChapterField" class="field hidden">
+                    <label>New Chapter Name</label>
+                    <input type="text" id="newChapterName" placeholder="Enter new chapter name...">
+                    <small>You selected "Create New" - enter the chapter name</small>
                 </div>
 
                 <div style="margin-top: 20px; display: flex; gap: 10px;">
@@ -477,7 +505,7 @@
                     <button class="btn btn-ghost" onclick="skipChapterSelection()">
                         <i class="fas fa-forward"></i> Skip (Auto-detect)
                     </button>
-                    <button class="btn btn-primary" onclick="goToStep3()" id="step2NextBtn">
+                    <button class="btn btn-primary" onclick="goToStep3()">
                         <i class="fas fa-arrow-right"></i> Next with Selection
                     </button>
                 </div>
@@ -973,21 +1001,104 @@
             hideAllSteps();
             document.getElementById('step2').style.display = 'block';
             updateStepNumbers(2);
-            updateChapterList();
-        }
-
-        function goToStep3() {
-            // Chapter selection is now optional
-            hideAllSteps();
-            document.getElementById('step3').style.display = 'block';
-            updateStepNumbers(3);
+            populateChapterDropdown();
         }
 
         function skipChapterSelection() {
             // Skip Step 2 and go to Step 3 (auto-detect from Excel)
             state.selectedChapter = null;  // Clear any selection
+            document.getElementById('newChapterName').value = '';
             goToStep3();
         }
+
+        // ========================================================================
+        // CHAPTER DROPDOWN
+        // ========================================================================
+
+        function populateChapterDropdown() {
+            const dropdown = document.getElementById('chapterDropdown');
+            dropdown.innerHTML = '<option value="">-- Select Existing Chapter or Create New --</option>';
+
+            // Add existing chapters
+            if (state.existingChapters && state.existingChapters.length > 0) {
+                state.existingChapters.forEach(chapter => {
+                    const option = document.createElement('option');
+                    option.value = 'existing:' + chapter.title;
+                    option.textContent = chapter.title + ' (' + chapter.moduleId + ')';
+                    dropdown.appendChild(option);
+                });
+
+                // Add separator
+                const separator = document.createElement('option');
+                separator.disabled = true;
+                separator.textContent = '─────────────';
+                dropdown.appendChild(separator);
+            }
+
+            // Add "Create New" option
+            const createNew = document.createElement('option');
+            createNew.value = 'new';
+            createNew.textContent = '+ Create New Chapter';
+            dropdown.appendChild(createNew);
+
+            console.log('✅ Chapter dropdown populated with', state.existingChapters.length, 'chapters');
+        }
+
+        function onChapterSelected() {
+            const dropdown = document.getElementById('chapterDropdown');
+            const value = dropdown.value;
+            const newChapterField = document.getElementById('newChapterField');
+
+            if (value === 'new') {
+                // Show input field for new chapter
+                newChapterField.classList.remove('hidden');
+                state.selectedChapter = null;
+            } else if (value.startsWith('existing:')) {
+                // Selected existing chapter
+                const chapterName = value.substring(9); // Remove 'existing:' prefix
+                state.selectedChapter = chapterName;
+                newChapterField.classList.add('hidden');
+                document.getElementById('newChapterName').value = '';
+                console.log('✅ Selected chapter:', chapterName);
+            } else {
+                // Nothing selected
+                state.selectedChapter = null;
+                newChapterField.classList.add('hidden');
+                document.getElementById('newChapterName').value = '';
+            }
+        }
+
+        function goToStep3() {
+            // Get chapter name from either selection or new chapter input
+            const dropdown = document.getElementById('chapterDropdown');
+            const value = dropdown.value;
+
+            if (value === 'new') {
+                // User selected "Create New"
+                const newName = document.getElementById('newChapterName').value.trim();
+                if (!newName) {
+                    alert('Please enter a chapter name or select an existing chapter');
+                    return;
+                }
+                state.selectedChapter = newName;
+                console.log('✅ Creating new chapter:', newName);
+            } else if (value.startsWith('existing:')) {
+                // Already handled in onChapterSelected
+                console.log('✅ Using existing chapter:', state.selectedChapter);
+            } else if (value === '') {
+                // No selection - this is OK, will be auto-detected
+                state.selectedChapter = null;
+                console.log('✅ No chapter selected, will auto-detect from Excel');
+            }
+
+            hideAllSteps();
+            document.getElementById('step3').style.display = 'block';
+            updateStepNumbers(3);
+        }
+
+        // ========================================================================
+        // TAB SWITCHING
+        // ========================================================================
 
         function hideAllSteps() {
             document.getElementById('step1').style.display = 'none';
@@ -1005,55 +1116,6 @@
                 }
             });
         }
-
-        // ========================================================================
-        // CHAPTER SELECTION
-        // ========================================================================
-
-        function updateChapterList() {
-            const search = document.getElementById('chapterSearch').value.toLowerCase();
-            const list = document.getElementById('chapterList');
-            list.innerHTML = '';
-
-            // Filter existing chapters
-            const filtered = state.existingChapters.filter(ch => 
-                ch.title.toLowerCase().includes(search)
-            );
-
-            // Show existing chapters
-            filtered.forEach(chapter => {
-                const item = document.createElement('div');
-                item.className = 'chapter-item';
-                item.textContent = chapter.title + ' (' + chapter.moduleId + ')';
-                item.onclick = () => selectChapter(chapter.title, chapter.moduleId);
-                list.appendChild(item);
-            });
-
-            // Show "Create New" option if search is not empty
-            if (search && !filtered.some(ch => ch.title.toLowerCase() === search)) {
-                const item = document.createElement('div');
-                item.className = 'chapter-item';
-                item.style.fontWeight = 'bold';
-                item.style.color = '#10b981';
-                item.textContent = '+ Create New: "' + document.getElementById('chapterSearch').value + '"';
-                item.onclick = () => selectChapter(document.getElementById('chapterSearch').value, null);
-                list.appendChild(item);
-            }
-
-            // Step 2 is now optional, so button is always enabled
-            // Enable next button regardless of chapter selection
-        }
-
-        function selectChapter(title, moduleId) {
-            state.selectedChapter = title;
-            state.selectedChapterModule = moduleId;  // Can be null for new chapters
-            document.getElementById('chapterSearch').value = title;
-            updateChapterList();
-        }
-
-        // ========================================================================
-        // TAB SWITCHING
-        // ========================================================================
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -1239,17 +1301,39 @@
             const file = event.target.files[0];
             if (!file) return;
 
+            // Wait for XLSX library to be available
+            let retries = 10;
+            while (typeof XLSX === 'undefined' && retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                retries--;
+            }
+
+            if (typeof XLSX === 'undefined') {
+                document.getElementById('excelPreview').innerHTML = `
+                    <div class="alert err">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <strong>Excel library failed to load.</strong>
+                        <p style="margin-top: 10px;">
+                            Try these solutions:
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li><strong>Refresh the page</strong> (F5) and try again</li>
+                                <li>Check your <strong>internet connection</strong></li>
+                                <li>Try a different browser</li>
+                                <li>Check browser console (F12) for errors</li>
+                            </ul>
+                        </p>
+                    </div>
+                `;
+                document.getElementById('excelFile').value = '';
+                return;
+            }
+
             const progress = document.getElementById('excelProgress');
             progress.classList.remove('hidden');
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    // Check if XLSX library is loaded
-                    if (typeof XLSX === 'undefined') {
-                        throw new Error('Excel library (XLSX) failed to load. Please refresh the page and try again.');
-                    }
-
                     const workbook = XLSX.read(e.target.result, { type: 'array' });
                     let allData = [];
 
@@ -1457,11 +1541,17 @@
             }
         }
 
-        function downloadTemplate() {
+        async function downloadTemplate() {
             try {
-                // Check if XLSX library is loaded
+                // Wait for XLSX library to be available
+                let retries = 10;
+                while (typeof XLSX === 'undefined' && retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    retries--;
+                }
+
                 if (typeof XLSX === 'undefined') {
-                    alert('Excel library failed to load. Please refresh the page and try again.');
+                    alert('Excel library failed to load.\n\nTry:\n1. Refresh the page (F5)\n2. Check internet connection\n3. Try a different browser');
                     return;
                 }
 
