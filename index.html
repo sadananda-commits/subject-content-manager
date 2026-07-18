@@ -450,11 +450,11 @@
         <div class="content">
             <!-- STEP 1: SELECT CLASS & SUBJECT -->
             <div class="step active" id="step1">
-                <h2><span class="step-number">1</span> Select Class & Subject</h2>
+                <h2><span class="step-number">1</span> Select Class(es) & Subject</h2>
                 
                 <div class="grid2">
                     <div class="field">
-                        <label>Class Level *</label>
+                        <label>Primary Class Level *</label>
                         <select id="classSelect" onchange="onClassChange()">
                             <option value="">Select a class...</option>
                         </select>
@@ -464,6 +464,28 @@
                         <select id="subjectSelect" onchange="onSubjectChange()">
                             <option value="">Select a subject...</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- ADDITIONAL CLASSES (Optional) -->
+                <div style="margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 8px; border-left: 3px solid #0ea5e9;">
+                    <h3 style="color: #cbd5e1; margin-bottom: 15px; font-size: 14px;">
+                        <i class="fas fa-plus-circle"></i> Add Another Class (Optional)
+                    </h3>
+                    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 15px;">
+                        Same questions can be uploaded to multiple classes if they share the same subject.
+                    </p>
+                    <div id="additionalClassesContainer"></div>
+                    <button class="btn btn-ghost btn-small" onclick="addAdditionalClass()" style="margin-top: 10px;">
+                        <i class="fas fa-plus"></i> Add Class
+                    </button>
+                </div>
+
+                <!-- SUMMARY OF SELECTED CLASSES -->
+                <div style="margin-top: 20px; padding: 12px; background: #0f172a; border-radius: 6px; border: 1px solid #334155;">
+                    <strong style="color: #cbd5e1;">Selected for upload:</strong>
+                    <div id="selectedClassesSummary" style="margin-top: 8px; color: #a1a5b3; font-size: 13px;">
+                        <i style="color: #94a3b8;">Select a class above...</i>
                     </div>
                 </div>
 
@@ -705,6 +727,7 @@
             scriptUrl: localStorage.getItem('deploymentUrl') || '', // Load from storage
             secret: '123456',
             selectedClass: null,
+            selectedClasses: [],  // NEW: Multiple classes support
             selectedSubject: null,
             selectedChapter: null,
             selectedChapterModule: null,
@@ -901,6 +924,8 @@
 
             if (!classLevel) {
                 document.getElementById('subjectSelect').innerHTML = '<option value="">Select a subject...</option>';
+                updateNextButtonState();
+                updateSelectedClassesSummary();
                 return;
             }
 
@@ -936,6 +961,13 @@
                 });
 
                 console.log('✅ Subjects loaded:', state.allSubjects);
+                
+                // Clear additional classes when primary class changes
+                document.getElementById('additionalClassesContainer').innerHTML = '';
+                additionalClassCount = 0;
+                
+                updateNextButtonState();
+                updateSelectedClassesSummary();
             } catch (err) {
                 console.error('❌ Error loading subjects:', err);
                 alert('Error loading subjects: ' + err.message);
@@ -945,11 +977,117 @@
         async function onSubjectChange() {
             const subject = document.getElementById('subjectSelect').value;
             state.selectedSubject = subject;
-            document.getElementById('nextBtn').disabled = !subject;
+            updateNextButtonState();
 
             // Load existing chapters when subject changes
             if (subject) {
                 await loadExistingChapters(subject);
+            }
+
+            updateSelectedClassesSummary();
+        }
+
+        // ========================================================================
+        // MULTI-CLASS SUPPORT
+        // ========================================================================
+
+        let additionalClassCount = 0;
+
+        function addAdditionalClass() {
+            if (!state.selectedClass) {
+                alert('Please select primary class first');
+                return;
+            }
+
+            additionalClassCount++;
+            const container = document.getElementById('additionalClassesContainer');
+            
+            const classBlock = document.createElement('div');
+            classBlock.id = `additionalClass_${additionalClassCount}`;
+            classBlock.style.cssText = 'margin-bottom: 12px; padding: 12px; background: #0f172a; border-radius: 6px; display: flex; gap: 10px; align-items: flex-end;';
+            
+            classBlock.innerHTML = `
+                <div class="field" style="flex: 1; margin: 0;">
+                    <label style="font-size: 12px;">Additional Class ${additionalClassCount}</label>
+                    <select onchange="onAdditionalClassChange(${additionalClassCount})" class="additionalClassSelect" data-index="${additionalClassCount}">
+                        <option value="">Select a class...</option>
+                    </select>
+                </div>
+                <button class="btn btn-ghost btn-small" onclick="removeAdditionalClass(${additionalClassCount})" style="height: 36px;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            
+            container.appendChild(classBlock);
+            
+            // Populate dropdown with available classes (not the primary class)
+            const select = classBlock.querySelector('select');
+            state.allClasses.forEach(cls => {
+                if (cls !== state.selectedClass) {  // Don't show primary class
+                    const option = document.createElement('option');
+                    option.value = cls;
+                    option.textContent = cls;
+                    select.appendChild(option);
+                }
+            });
+
+            console.log('✅ Added additional class block', additionalClassCount);
+            updateSelectedClassesSummary();
+        }
+
+        function onAdditionalClassChange(index) {
+            updateSelectedClassesSummary();
+        }
+
+        function removeAdditionalClass(index) {
+            const block = document.getElementById(`additionalClass_${index}`);
+            if (block) {
+                block.remove();
+            }
+            updateSelectedClassesSummary();
+        }
+
+        function updateSelectedClassesSummary() {
+            // Collect all selected classes
+            const classes = [state.selectedClass];
+            
+            // Add additional classes
+            const additionalSelects = document.querySelectorAll('.additionalClassSelect');
+            additionalSelects.forEach(select => {
+                const value = select.value;
+                if (value) {
+                    classes.push(value);
+                }
+            });
+
+            // Store in state
+            state.selectedClasses = classes;
+
+            // Update summary display
+            const summary = document.getElementById('selectedClassesSummary');
+            if (classes.length > 0 && classes[0]) {
+                const classText = classes.join(' + ');
+                summary.innerHTML = `
+                    <strong style="color: #10b981;">
+                        <i class="fas fa-check-circle"></i> 
+                        ${classText}
+                    </strong>
+                    <br>
+                    <small style="color: #94a3b8;">Subject: ${state.selectedSubject || 'Not selected'}</small>
+                `;
+            } else {
+                summary.innerHTML = '<i style="color: #94a3b8;">Select a class above...</i>';
+            }
+
+            console.log('📚 Selected classes:', state.selectedClasses);
+        }
+
+        function updateNextButtonState() {
+            const nextBtn = document.getElementById('nextBtn');
+            if (state.selectedClass && state.selectedSubject) {
+                nextBtn.disabled = false;
+            } else {
+                nextBtn.disabled = true;
             }
         }
 
@@ -1619,35 +1757,54 @@
                 return;
             }
 
-            if (!state.selectedClass || !state.selectedSubject || !state.selectedChapter) {
-                alert('Select class, subject, and chapter');
+            if (!state.selectedClass || !state.selectedSubject) {
+                alert('Select class and subject');
                 return;
             }
 
+            // Chapter is optional - auto-detected from Excel or manual entry
+            // Chapter selection can be null
+
             try {
                 document.getElementById('submitBtn').disabled = true;
+                
+                // Get all selected classes
+                const selectedClasses = state.selectedClasses && state.selectedClasses.length > 0 
+                    ? state.selectedClasses 
+                    : [state.selectedClass];
 
-                const response = await fetch(state.scriptUrl, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'uploadQuestions',
-                        class: state.selectedClass,
-                        subject: state.selectedSubject,
-                        questions: state.questions,
-                        secret: state.secret
-                    })
-                });
+                console.log('📤 Submitting to classes:', selectedClasses);
+                
+                let totalUploaded = 0;
+                
+                // Upload to each selected class
+                for (const classLevel of selectedClasses) {
+                    const response = await fetch(state.scriptUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'uploadQuestions',
+                            class: classLevel,
+                            subject: state.selectedSubject,
+                            questions: state.questions,
+                            secret: state.secret
+                        })
+                    });
 
-                const result = await response.json();
+                    const result = await response.json();
 
-                if (result.uploadedCount !== undefined) {
-                    alert(`✅ Successfully uploaded ${result.uploadedCount} questions!`);
-                    state.questions = [];
-                    showQuestions();
-                    goToStep1();
-                } else {
-                    alert('Upload response: ' + JSON.stringify(result));
+                    if (result.uploadedCount !== undefined) {
+                        totalUploaded += result.uploadedCount;
+                        console.log(`✅ Uploaded ${result.uploadedCount} questions to ${classLevel}`);
+                    } else {
+                        throw new Error(`Upload to ${classLevel} failed: ${JSON.stringify(result)}`);
+                    }
                 }
+
+                alert(`✅ Successfully uploaded ${totalUploaded} questions to ${selectedClasses.length} class(es)!`);
+                state.questions = [];
+                state.selectedClasses = [];
+                showQuestions();
+                goToStep1();
             } catch (err) {
                 console.error('Error submitting:', err);
                 alert('Error: ' + err.message);
