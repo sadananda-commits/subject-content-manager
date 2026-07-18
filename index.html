@@ -370,6 +370,58 @@
         <div class="header">
             <h1><i class="fas fa-book"></i> Subject Content Manager v4.0</h1>
             <p>Smart question uploader with chapter detection</p>
+            <button class="btn btn-ghost" onclick="showSettings()" style="position: absolute; top: 20px; right: 20px; font-size: 16px;">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+
+        <!-- SETTINGS MODAL -->
+        <div id="settingsModal" class="hidden" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        ">
+            <div style="
+                background: #0f172a;
+                padding: 30px;
+                border-radius: 12px;
+                max-width: 600px;
+                width: 90%;
+                border: 2px solid #0ea5e9;
+            ">
+                <h2 style="color: #e2e8f0; margin-bottom: 20px;">⚙️ Settings</h2>
+
+                <div class="field">
+                    <label>Apps Script Deployment URL *</label>
+                    <input type="text" id="deploymentUrlInput" placeholder="https://script.google.com/macros/d/YOUR_ID/useweb" 
+                           value="" style="width: 100%;">
+                    <small style="color: #94a3b8; margin-top: 10px;">
+                        <strong>How to get this URL:</strong>
+                        <br>1. Open your Apps Script project
+                        <br>2. Click "Deploy" → "All deployments"
+                        <br>3. Copy the URL from the latest deployment
+                        <br>4. Paste it here
+                    </small>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="saveDeploymentUrl()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-ghost" onclick="closeSettings()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+
+                <div id="urlStatus" style="margin-top: 15px;"></div>
+            </div>
         </div>
 
         <div class="content">
@@ -603,7 +655,7 @@
         // ========================================================================
 
         const state = {
-            scriptUrl: 'https://script.google.com/macros/d/YOUR_DEPLOYMENT_ID/useweb', // UPDATE THIS
+            scriptUrl: localStorage.getItem('deploymentUrl') || '', // Load from storage
             secret: '123456',
             selectedClass: null,
             selectedSubject: null,
@@ -620,15 +672,94 @@
         let matchPairCount = 0;
 
         // ========================================================================
+        // SETTINGS & CONFIGURATION
+        // ========================================================================
+
+        function showSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.remove('hidden');
+            document.getElementById('deploymentUrlInput').value = state.scriptUrl;
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function saveDeploymentUrl() {
+            const url = document.getElementById('deploymentUrlInput').value.trim();
+            
+            if (!url) {
+                document.getElementById('urlStatus').innerHTML = `
+                    <div class="alert err">
+                        <i class="fas fa-exclamation-circle"></i> URL cannot be empty
+                    </div>
+                `;
+                return;
+            }
+
+            if (!url.includes('script.google.com') || !url.includes('/useweb')) {
+                document.getElementById('urlStatus').innerHTML = `
+                    <div class="alert err">
+                        <i class="fas fa-exclamation-circle"></i> URL doesn't look right. Should contain "script.google.com" and "/useweb"
+                    </div>
+                `;
+                return;
+            }
+
+            // Save to state and localStorage
+            state.scriptUrl = url;
+            localStorage.setItem('deploymentUrl', url);
+
+            document.getElementById('urlStatus').innerHTML = `
+                <div class="alert ok">
+                    <i class="fas fa-check-circle"></i> URL saved successfully!
+                </div>
+            `;
+
+            setTimeout(() => {
+                closeSettings();
+                // Reload to test connection
+                location.reload();
+            }, 1500);
+        }
+
+        // ========================================================================
         // INITIALIZATION
         // ========================================================================
 
         async function initApp() {
+            // Check if deployment URL is configured
+            if (!state.scriptUrl || state.scriptUrl === '') {
+                document.getElementById('step1').innerHTML = `
+                    <h2><span class="step-number">1</span> Configuration Required</h2>
+                    <div class="alert err">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>
+                            <strong>Deployment URL not configured!</strong>
+                            <p style="margin-top: 10px;">Click the ⚙️ button in the top right to configure the Apps Script deployment URL.</p>
+                            <p style="margin-top: 10px;"><strong>Where to get it:</strong></p>
+                            <ol style="margin-left: 20px; margin-top: 10px;">
+                                <li>Open your Apps Script project</li>
+                                <li>Click "Deploy" → "All deployments"</li>
+                                <li>Find the latest "Web app" deployment</li>
+                                <li>Copy the URL</li>
+                                <li>Paste it in Settings (⚙️)</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
             await loadClasses();
         }
 
         async function loadClasses() {
             try {
+                if (!state.scriptUrl) {
+                    throw new Error('Deployment URL not configured. Click ⚙️ to configure.');
+                }
+
                 const response = await fetch(state.scriptUrl, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -637,8 +768,27 @@
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 state.allClasses = data.classes || [];
+
+                if (state.allClasses.length === 0) {
+                    document.getElementById('step1').innerHTML = `
+                        <h2><span class="step-number">1</span> Select Class & Subject</h2>
+                        <div class="alert info">
+                            <i class="fas fa-info-circle"></i> No classes found. Check your backend configuration.
+                        </div>
+                    `;
+                    return;
+                }
 
                 const select = document.getElementById('classSelect');
                 state.allClasses.forEach(cls => {
@@ -647,9 +797,31 @@
                     option.textContent = cls;
                     select.appendChild(option);
                 });
+
+                console.log('✅ Classes loaded:', state.allClasses);
             } catch (err) {
-                console.error('Error loading classes:', err);
-                alert('Error loading classes: ' + err.message);
+                console.error('❌ Error loading classes:', err);
+                document.getElementById('step1').innerHTML = `
+                    <h2><span class="step-number">1</span> Select Class & Subject</h2>
+                    <div class="alert err">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <div>
+                            <strong>Error connecting to backend:</strong>
+                            <p style="margin-top: 10px; font-family: monospace; font-size: 12px; word-break: break-all;">
+                                ${err.message}
+                            </p>
+                            <p style="margin-top: 10px;">
+                                <strong>Solutions:</strong>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Check that deployment URL is correct (⚙️ Settings)</li>
+                                    <li>Make sure Apps Script is deployed as "Web app"</li>
+                                    <li>Verify the backend file is deployed</li>
+                                    <li>Check browser console (F12) for more details</li>
+                                </ul>
+                            </p>
+                        </div>
+                    </div>
+                `;
             }
         }
 
@@ -672,7 +844,16 @@
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 state.allSubjects = data.subjects || [];
 
                 const select = document.getElementById('subjectSelect');
@@ -683,8 +864,11 @@
                     option.textContent = subj;
                     select.appendChild(option);
                 });
+
+                console.log('✅ Subjects loaded:', state.allSubjects);
             } catch (err) {
-                console.error('Error loading subjects:', err);
+                console.error('❌ Error loading subjects:', err);
+                alert('Error loading subjects: ' + err.message);
             }
         }
 
@@ -710,11 +894,22 @@
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 state.existingChapters = data.chapters || [];
-                console.log('Loaded chapters:', state.existingChapters);
+                console.log('✅ Chapters loaded:', state.existingChapters.length, 'chapters');
             } catch (err) {
-                console.error('Error loading chapters:', err);
+                console.error('❌ Error loading chapters:', err);
+                // Don't alert - just continue, chapters may be empty for new subject
+                state.existingChapters = [];
             }
         }
 
