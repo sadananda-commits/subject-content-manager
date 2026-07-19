@@ -1990,6 +1990,55 @@
         // SUBMIT
         // ========================================================================
 
+        // Each batch is one POST to the backend, rather than one request for the
+        // whole file. With 2800+ questions, a single request risks the Apps
+        // Script execution timing out mid-way through (which drops the
+        // connection with no HTTP response - shown by the browser as a generic
+        // "Failed to fetch"). Smaller batches finish quickly, show real
+        // progress, and mean a hiccup only costs one batch, not the whole file.
+        const SUBMIT_BATCH_SIZE = 250;
+
+        // How many questions have already been successfully written, per class,
+        // for the CURRENT question set - so clicking "Submit & Upload" again
+        // after a failure resumes from where it left off instead of re-sending
+        // everything already written (which is what caused duplicate rows).
+        let uploadProgress = { signature: null, byClass: {} };
+
+        function getQuestionSetSignature() {
+            // Cheap fingerprint of the current question list. Saved progress is
+            // only reused when it matches this signature, so loading a
+            // different file never resumes against the wrong question set.
+            const q = state.questions;
+            const first = q[0] ? (q[0].question || '') : '';
+            const last = q[q.length - 1] ? (q[q.length - 1].question || '') : '';
+            return q.length + '|' + first + '|' + last;
+        }
+
+        async function postToBackend(body, attempt) {
+            attempt = attempt || 1;
+            try {
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(body)
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (err) {
+                // "Failed to fetch" is a network-level failure (dropped
+                // connection, timeout, brief offline blip) with no HTTP status
+                // at all. These are often transient, so retry a couple of times
+                // with backoff before giving up on this batch.
+                if (attempt < 3) {
+                    console.log(`⚠️ Batch request failed (attempt ${attempt}), retrying...`, err.message);
+                    await new Promise(r => setTimeout(r, attempt * 1500));
+                    return postToBackend(body, attempt + 1);
+                }
+                throw err;
+            }
+        }
+
         async function submitQuestions() {
             if (isSubmitting) {
                 console.log('⏳ Already submitting, please wait...');
@@ -2008,74 +2057,95 @@
             }
 
             isSubmitting = true;
-            
+            const submitBtn = document.getElementById('submitBtn');
+            const submitBtnDefaultHtml = submitBtn.innerHTML;
+
             try {
-                document.getElementById('submitBtn').disabled = true;
-                
+                submitBtn.disabled = true;
+
                 // Get all selected classes
-                const selectedClasses = state.selectedClasses && state.selectedClasses.length > 0 
-                    ? state.selectedClasses 
+                const selectedClasses = state.selectedClasses && state.selectedClasses.length > 0
+                    ? state.selectedClasses
                     : [state.selectedClass];
+
+                // Reset saved progress if this is a different question set than
+                // whatever we were previously part-way through uploading.
+                const signature = getQuestionSetSignature();
+                if (uploadProgress.signature !== signature) {
+                    uploadProgress = { signature: signature, byClass: {} };
+                }
 
                 console.log('📤 Starting submission...');
                 console.log('Classes:', selectedClasses);
                 console.log('Subject:', state.selectedSubject);
                 console.log('Questions:', state.questions.length);
-                
+
                 let totalUploaded = 0;
                 const failedClasses = [];
-                
-                // Upload to each selected class
+
+                // Upload to each selected class, in batches, resuming from
+                // wherever a previous attempt left off for that class.
                 for (const classLevel of selectedClasses) {
+                    const alreadyUploaded = uploadProgress.byClass[classLevel] || 0;
+
+                    if (alreadyUploaded >= state.questions.length) {
+                        console.log(`✅ ${classLevel} already fully uploaded from a previous attempt, skipping`);
+                        totalUploaded += alreadyUploaded;
+                        continue;
+                    }
+
+                    let classUploaded = alreadyUploaded;
+                    const classErrors = [];
+
                     try {
-                        console.log(`📤 Uploading to ${classLevel}...`);
-                        
-                        const response = await fetch(state.scriptUrl, {
-                            method: 'POST',
-                            body: JSON.stringify({
+                        for (let start = alreadyUploaded; start < state.questions.length; start += SUBMIT_BATCH_SIZE) {
+                            const end = Math.min(start + SUBMIT_BATCH_SIZE, state.questions.length);
+                            const batch = state.questions.slice(start, end);
+
+                            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${classLevel}: ${start}/${state.questions.length}`;
+                            console.log(`📤 Uploading ${classLevel} questions ${start + 1}-${end} of ${state.questions.length}...`);
+
+                            const result = await postToBackend({
                                 action: 'uploadQuestions',
                                 class: classLevel,
                                 subject: state.selectedSubject,
-                                questions: state.questions,
+                                questions: batch,
                                 secret: state.secret
-                            })
-                        });
+                            });
 
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            const uploaded = result.uploadedCount || 0;
+
+                            if (uploaded === 0) {
+                                // Backend reports a real reason (missing Class Subject Map
+                                // entry, missing tab/column, etc.) instead of silently
+                                // returning 0 as if nothing were wrong.
+                                throw new Error(result.error ||
+                                    ('0 of ' + batch.length + ' questions in this batch were uploaded. ' +
+                                     (result.errors && result.errors.length ? result.errors.join(' | ') : 'No further detail was returned - check Apps Script Executions log.')));
+                            }
+
+                            classUploaded += uploaded;
+                            // Save progress after EVERY batch (not just at the end), so a
+                            // failure partway through only costs the batch in flight.
+                            uploadProgress.byClass[classLevel] = classUploaded;
+
+                            if (uploaded < batch.length && result.errors && result.errors.length) {
+                                classErrors.push(...result.errors);
+                            }
                         }
 
-                        const result = await response.json();
+                        totalUploaded += (classUploaded - alreadyUploaded);
 
-                        if (result.error) {
-                            // Backend now reports a real reason (missing Class Subject Map
-                            // entry, missing tab/column, etc.) instead of silently
-                            // returning 0 as if nothing were wrong.
-                            throw new Error(result.error);
-                        }
-
-                        const uploaded = result.uploadedCount || 0;
-                        const total = result.totalQuestions !== undefined ? result.totalQuestions : state.questions.length;
-
-                        if (uploaded === 0) {
-                            throw new Error('0 of ' + total + ' questions were uploaded. ' +
-                                (result.errors && result.errors.length ? result.errors.join(' | ') : 'No further detail was returned - check Apps Script Executions log.'));
-                        }
-
-                        totalUploaded += uploaded;
-
-                        if (uploaded < total) {
-                            // Partial success within this single class - still record it
-                            // as a failure so the summary below is accurate, but don't
-                            // lose the count of what DID make it through.
-                            const detail = (result.errors && result.errors.length) ? result.errors.join(' | ') : 'some rows were rejected';
-                            failedClasses.push(`${classLevel}: only ${uploaded}/${total} uploaded - ${detail}`);
+                        if (classUploaded < state.questions.length) {
+                            const detail = classErrors.length ? classErrors.join(' | ') : 'some rows were rejected';
+                            failedClasses.push(`${classLevel}: only ${classUploaded}/${state.questions.length} uploaded - ${detail}`);
                         } else {
-                            console.log(`✅ Uploaded ${uploaded} questions to ${classLevel}`);
+                            console.log(`✅ Uploaded all ${classUploaded} questions to ${classLevel}`);
                         }
                     } catch (classErr) {
                         console.error(`❌ Failed to upload to ${classLevel}:`, classErr);
-                        failedClasses.push(`${classLevel}: ${classErr.message}`);
+                        totalUploaded += (uploadProgress.byClass[classLevel] || 0) - alreadyUploaded;
+                        failedClasses.push(`${classLevel}: ${classErr.message} (${uploadProgress.byClass[classLevel] || 0}/${state.questions.length} saved so far - click Submit & Upload again to resume, it will NOT duplicate what's already in)`);
                     }
                 }
 
@@ -2084,11 +2154,12 @@
                     // All successful
                     alert(`✅ SUCCESS!\n\n${totalUploaded} questions uploaded to ${selectedClasses.length} class(es)!\n\n${selectedClasses.join(' + ')}`);
                     console.log('✅ All uploads successful!');
-                    
+
                     // Clear and reset
                     state.questions = [];
                     state.selectedClasses = [];
                     excelData = [];
+                    uploadProgress = { signature: null, byClass: {} };
                     showQuestions();
                     goToStep1();
                 } else if (failedClasses.length < selectedClasses.length) {
@@ -2102,9 +2173,10 @@
                 }
             } catch (err) {
                 console.error('❌ Error submitting:', err);
-                alert(`❌ ERROR: ${err.message}\n\nPlease check:\n1. Internet connection\n2. Backend URL (⚙️ Settings)\n3. Browser console (F12) for details`);
+                alert(`❌ ERROR: ${err.message}\n\nProgress made before this error is safely saved - click "Submit & Upload" again to resume; it will NOT re-upload what already went through.\n\nPlease also check:\n1. Internet connection\n2. Backend URL (⚙️ Settings)\n3. Browser console (F12) for details`);
             } finally {
-                document.getElementById('submitBtn').disabled = false;
+                submitBtn.innerHTML = submitBtnDefaultHtml;
+                submitBtn.disabled = false;
                 isSubmitting = false;
             }
         }
