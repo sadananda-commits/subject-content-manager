@@ -447,6 +447,80 @@
             </div>
         </div>
 
+        <!-- REORGANISE SUBJECT: CONFIRMATION MODAL -->
+        <div id="reorganiseConfirmModal" class="hidden" style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        ">
+            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 520px; width: 90%; border: 2px solid #f59e0b;">
+                <h2 style="color: #e2e8f0; margin-bottom: 10px;">🎉 Reorganise Subject</h2>
+                <div id="reorganiseTargetLabel" style="color: #94a3b8; margin-bottom: 15px; font-size: 14px;"></div>
+
+                <p style="color: #cbd5e1; margin-bottom: 10px;">This operation will:</p>
+                <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.9; margin-bottom: 15px; padding-left: 20px;">
+                    <li>Regenerate Module IDs</li>
+                    <li>Update all Module references</li>
+                    <li>Renumber Learning Steps</li>
+                    <li>Detect duplicate questions</li>
+                    <li>Detect duplicate long answers</li>
+                    <li>Highlight duplicates in pink</li>
+                    <li>Preserve every question</li>
+                    <li style="color: #34d399;"><strong>Delete nothing</strong></li>
+                </ul>
+
+                <div id="reorganiseCurrentStats" style="background: #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #94a3b8;">
+                    Loading current counts...
+                </div>
+
+                <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">This process may take a few moments.</p>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="confirmReorganiseSubject()">
+                        <i class="fas fa-check"></i> Reorganise
+                    </button>
+                    <button class="btn btn-ghost" onclick="closeReorganiseConfirm()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REORGANISE SUBJECT: PROGRESS MODAL -->
+        <div id="reorganiseProgressModal" class="hidden" style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1001;
+        ">
+            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%; border: 2px solid #0ea5e9;">
+                <h2 style="color: #e2e8f0; margin-bottom: 15px;"><i class="fas fa-cog fa-spin"></i> Reorganising Subject...</h2>
+                <div class="progress-text" id="reorganiseStageText">Starting...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="reorganiseProgressFill"></div>
+                </div>
+                <div class="progress-text" style="text-align: right;"><span id="reorganiseProgressPercent">0</span>%</div>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 15px;">Please don't close this window while reorganisation is in progress.</p>
+            </div>
+        </div>
+
+        <!-- REORGANISE SUBJECT: COMPLETION SUMMARY MODAL -->
+        <div id="reorganiseSummaryModal" class="hidden" style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        ">
+            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%; border: 2px solid #10b981;">
+                <h2 id="reorganiseSummaryTitle" style="color: #e2e8f0; margin-bottom: 15px;">✅ Reorganisation Complete</h2>
+                <div id="reorganiseSummaryBody" style="color: #cbd5e1; font-size: 14px; line-height: 1.9;"></div>
+                <button class="btn btn-primary" onclick="closeReorganiseSummary()" style="margin-top: 20px;">
+                    <i class="fas fa-check"></i> Done
+                </button>
+            </div>
+        </div>
+
         <div class="content">
             <!-- STEP 1: SELECT CLASS & SUBJECT -->
             <div class="step active" id="step1">
@@ -487,6 +561,19 @@
                     <div id="selectedClassesSummary" style="margin-top: 8px; color: #a1a5b3; font-size: 13px;">
                         <i style="color: #94a3b8;">Select a class above...</i>
                     </div>
+                </div>
+
+                <!-- REORGANISE SUBJECT (available once Class + Subject are both selected) -->
+                <div id="reorganiseSection" class="hidden" style="margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 8px; border-left: 3px solid #f59e0b;">
+                    <h3 style="color: #cbd5e1; margin-bottom: 8px; font-size: 14px;">
+                        <i class="fas fa-broom"></i> Maintenance
+                    </h3>
+                    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 12px;">
+                        Clean up Module IDs, step numbering, and flag likely duplicate questions for this Class + Subject. Never deletes anything.
+                    </p>
+                    <button class="btn btn-ghost" onclick="openReorganiseConfirm()">
+                        🎉 Reorganise Subject
+                    </button>
                 </div>
 
                 <button class="btn btn-primary" onclick="goToStep2()" id="nextBtn" disabled style="margin-top: 20px;">
@@ -938,11 +1025,14 @@
         async function onClassChange() {
             const classLevel = document.getElementById('classSelect').value;
             state.selectedClass = classLevel;
+            state.selectedSubject = '';
+            updateReorganiseSectionVisibility();
 
             if (!classLevel) {
                 document.getElementById('subjectSelect').innerHTML = '<option value="">Select a subject...</option>';
                 updateNextButtonState();
                 updateSelectedClassesSummary();
+                updateReorganiseSectionVisibility();
                 return;
             }
 
@@ -1002,6 +1092,16 @@
             }
 
             updateSelectedClassesSummary();
+            updateReorganiseSectionVisibility();
+        }
+
+        function updateReorganiseSectionVisibility() {
+            const section = document.getElementById('reorganiseSection');
+            if (state.selectedClass && state.selectedSubject) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
         }
 
         // ========================================================================
@@ -2007,6 +2107,160 @@
                 document.getElementById('submitBtn').disabled = false;
                 isSubmitting = false;
             }
+        }
+
+        // ========================================================================
+        // REORGANISE SUBJECT
+        // ========================================================================
+
+        let isReorganising = false;
+
+        async function openReorganiseConfirm() {
+            if (!state.selectedClass || !state.selectedSubject) {
+                alert('Select a Class and Subject first.');
+                return;
+            }
+
+            document.getElementById('reorganiseTargetLabel').textContent =
+                `${state.selectedClass} · ${state.selectedSubject}`;
+            document.getElementById('reorganiseCurrentStats').textContent = 'Loading current counts...';
+            document.getElementById('reorganiseConfirmModal').classList.remove('hidden');
+
+            // Best-effort: show real current module/question counts so the
+            // confirmation dialog isn't just generic boilerplate text.
+            try {
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getModuleInfo',
+                        class: state.selectedClass,
+                        subject: state.selectedSubject,
+                        secret: state.secret
+                    })
+                });
+                const data = await response.json();
+                const modules = data.moduleInfo || [];
+                document.getElementById('reorganiseCurrentStats').innerHTML =
+                    `Currently: <strong>${modules.length}</strong> module(s) found for ${state.selectedClass} · ${state.selectedSubject}.`;
+            } catch (err) {
+                document.getElementById('reorganiseCurrentStats').textContent =
+                    'Could not load current counts (will still show a full summary after running).';
+            }
+        }
+
+        function closeReorganiseConfirm() {
+            document.getElementById('reorganiseConfirmModal').classList.add('hidden');
+        }
+
+        // Apps Script's doPost is a single synchronous call - there's no
+        // real server-side progress stream to subscribe to. This timed
+        // sequence gives honest, informative feedback ("what phase is
+        // probably running right now") while the one real network request
+        // is in flight, and always snaps to the real result the moment the
+        // response actually arrives (whichever happens first).
+        const REORGANISE_STAGES = [
+            'Reading Learning Modules...',
+            'Updating Module IDs...',
+            'Updating Learning Steps...',
+            'Renumbering Steps...',
+            'Checking Duplicate Questions...',
+            'Checking Duplicate Answers...',
+            'Applying Highlights...',
+            'Saving Changes...'
+        ];
+
+        async function confirmReorganiseSubject() {
+            if (isReorganising) return;
+            isReorganising = true;
+
+            closeReorganiseConfirm();
+            document.getElementById('reorganiseProgressModal').classList.remove('hidden');
+
+            let stageIndex = 0;
+            const totalStages = REORGANISE_STAGES.length;
+            const setStage = (i) => {
+                const pct = Math.round(((i + 1) / (totalStages + 1)) * 100); // leave headroom for "Completed"
+                document.getElementById('reorganiseStageText').textContent = REORGANISE_STAGES[i];
+                document.getElementById('reorganiseProgressPercent').textContent = pct;
+                document.getElementById('reorganiseProgressFill').style.width = pct + '%';
+            };
+            setStage(0);
+
+            const stageInterval = setInterval(() => {
+                stageIndex = Math.min(stageIndex + 1, totalStages - 1);
+                setStage(stageIndex);
+            }, 700);
+
+            try {
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'reorganise',
+                        class: state.selectedClass,
+                        subject: state.selectedSubject,
+                        secret: state.secret
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                clearInterval(stageInterval);
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                document.getElementById('reorganiseProgressPercent').textContent = '100';
+                document.getElementById('reorganiseProgressFill').style.width = '100%';
+                document.getElementById('reorganiseStageText').textContent = 'Completed';
+
+                showReorganiseSummary(result);
+            } catch (err) {
+                clearInterval(stageInterval);
+                console.error('❌ Reorganise error:', err);
+                document.getElementById('reorganiseProgressModal').classList.add('hidden');
+                alert(`❌ REORGANISE FAILED\n\n${err.message}\n\nNothing was deleted - your existing data is unchanged. Check the browser console (F12) or the Apps Script Executions log for more detail.`);
+            } finally {
+                isReorganising = false;
+            }
+        }
+
+        function showReorganiseSummary(result) {
+            document.getElementById('reorganiseProgressModal').classList.add('hidden');
+
+            const errors = result.errors || [];
+            const hasErrors = errors.length > 0;
+
+            document.getElementById('reorganiseSummaryTitle').textContent =
+                hasErrors ? '⚠️ Reorganisation Complete (with warnings)' : '✅ Reorganisation Complete';
+
+            let body = `
+                <div>Modules Processed: <strong>${result.modulesProcessed ?? 0}</strong></div>
+                <div>Learning Steps Updated: <strong>${result.learningStepsUpdated ?? 0}</strong></div>
+                <div>Module IDs Regenerated: <strong>${result.moduleIdsRegenerated ?? 0}</strong></div>
+                <div>Questions Checked: <strong>${result.questionsChecked ?? 0}</strong></div>
+                <div>Duplicate Questions Found: <strong>${result.duplicateQuestionsFound ?? 0}</strong></div>
+                <div>Duplicate Answers Found: <strong>${result.duplicateAnswersFound ?? 0}</strong></div>
+                <div>Rows Highlighted: <strong>${result.rowsHighlighted ?? 0}</strong></div>
+                <div>Errors: <strong>${errors.length}</strong></div>
+                <div style="margin-top: 10px; color: #34d399;">No questions were deleted.</div>
+            `;
+
+            if (hasErrors) {
+                body += `<div style="margin-top: 12px; padding: 10px; background: #1e293b; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; color: #fbbf24;">
+                    ${errors.map(e => `• ${e}`).join('<br>')}
+                </div>`;
+            }
+
+            document.getElementById('reorganiseSummaryBody').innerHTML = body;
+            document.getElementById('reorganiseSummaryModal').classList.remove('hidden');
+        }
+
+        function closeReorganiseSummary() {
+            document.getElementById('reorganiseSummaryModal').classList.add('hidden');
         }
 
         // Initialize on load
