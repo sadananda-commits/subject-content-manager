@@ -1,757 +1,2282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Subject Content Manager — Vedanta Portal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-  :root{
-    --bg:#0d1320; --surface:#161e2e; --surface2:#1c2638; --line:#26324a;
-    --teal:#00c6a7; --teal-dim:rgba(0,198,167,.14);
-    --amber:#f5a623; --amber-dim:rgba(245,166,35,.14);
-    --red:#ef5b5b; --red-dim:rgba(239,91,91,.14);
-    --green:#22c55e; --green-dim:rgba(34,197,94,.14);
-    --ink:#e8edf6; --muted:#8b97ad; --muted2:#5e6a82;
-    --fd:'Sora',sans-serif; --fb:'Inter',sans-serif; --fm:'JetBrains Mono',monospace;
-    --radius:12px;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:14.5px;line-height:1.5;}
-  a{color:var(--teal);}
-  .wrap{max-width:1140px;margin:0 auto;padding:28px 24px 120px;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subject Content Manager v4.0</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- XLSX Library - Essential for Excel upload -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js" defer></script>
+    <!-- Backup XLSX Library if CDN fails -->
+    <script>
+        // Check XLSX after a delay (for CDN loading)
+        window.addEventListener('load', function() {
+            if (typeof XLSX === 'undefined') {
+                // Load backup from alternative CDN
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
+                script.onload = function() {
+                    console.log('✅ XLSX library loaded from backup CDN');
+                    if (window.xlsxLoaded) window.xlsxLoaded();
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load XLSX from both CDNs');
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('✅ XLSX library loaded successfully');
+            }
+        });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  /* ── Header ───────────────────────────────────────────────────────── */
-  .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px;flex-wrap:wrap;}
-  .hdr h1{font-family:var(--fd);font-size:24px;font-weight:700;margin:0 0 4px;}
-  .hdr p{margin:0;color:var(--muted);max-width:560px;}
-  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--teal-dim);color:var(--teal);
-    border:1px solid rgba(0,198,167,.3);border-radius:999px;padding:4px 12px;font-family:var(--fm);font-size:11.5px;font-weight:600;letter-spacing:.03em;}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-  /* ── Settings (collapsible) ──────────────────────────────────────── */
-  details.settings{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:24px;}
-  details.settings summary{cursor:pointer;padding:14px 18px;font-family:var(--fd);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;list-style:none;}
-  details.settings summary::-webkit-details-marker{display:none;}
-  details.settings summary i{color:var(--muted);transition:transform .15s;}
-  details.settings[open] summary i{transform:rotate(90deg);}
-  .settings-body{padding:4px 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .settings-body .full{grid-column:1/-1;}
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #0f172a;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
 
-  /* ── Progress rail ───────────────────────────────────────────────── */
-  .rail{display:flex;gap:6px;margin-bottom:24px;}
-  .rail .step{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
-    display:flex;align-items:center;gap:10px;opacity:.5;transition:all .15s;}
-  .rail .step.active{opacity:1;border-color:rgba(0,198,167,.4);background:var(--teal-dim);}
-  .rail .step.done{opacity:1;}
-  .rail .num{width:22px;height:22px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;
-    font-family:var(--fm);font-size:11.5px;font-weight:600;flex-shrink:0;}
-  .rail .step.active .num{background:var(--teal);color:#06231d;}
-  .rail .step.done .num{background:var(--green);color:#04220f;}
-  .rail .step.done .num::before{content:'✓';}
-  .rail .label{font-size:12.5px;font-weight:600;font-family:var(--fd);}
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
 
-  /* ── Cards / sections ────────────────────────────────────────────── */
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;}
-  .card h2{font-family:var(--fd);font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
-  .card .sub{color:var(--muted);font-size:13px;margin:0 0 18px;}
-  .hidden{display:none !important;}
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
 
-  .field{margin-bottom:14px;}
-  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;}
-  input[type=text],input[type=url],input[type=number],input[type=password],select,textarea{
-    width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:8px;color:var(--ink);
-    padding:10px 12px;font-family:var(--fb);font-size:13.5px;transition:border-color .15s;
-  }
-  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);}
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
 
-  /* ── Multi-class selection ────────────────────────────────────────── */
-  .class-selector{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
-  .class-selector .group-label{font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:10px;}
-  .class-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .class-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);
-    border-radius:8px;cursor:pointer;transition:all .15s;}
-  .class-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal);cursor:pointer;}
-  .class-item:has(input:checked){border-color:var(--teal);background:var(--teal-dim);}
-  .class-item label{flex:1;cursor:pointer;font-size:13.5px;font-weight:500;margin:0;}
-  
-  .selected-classes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
-  .selected-classes .chip{background:var(--teal-dim);border-color:rgba(0,198,167,.35);}
+        .content {
+            padding: 30px;
+        }
 
-  .callout{border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
-  .callout i{margin-top:1px;}
-  .callout.warn{background:var(--amber-dim);border:1px solid rgba(245,166,35,.3);color:#f5c777;}
-  .callout.err{background:var(--red-dim);border:1px solid rgba(239,91,91,.3);color:#f59b9b;}
-  .callout.ok{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:#86e7ab;}
-  .callout.info{background:var(--surface2);border:1px solid var(--line);color:var(--muted);}
-  .callout.debug{background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);color:#ffb84d;}
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #1e293b;
+            border-radius: 8px;
+            border-left: 4px solid #0ea5e9;
+        }
 
-  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);
-    border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:12.5px;}
-  .chip.id{background:var(--teal-dim);border-color:rgba(0,198,167,.35);color:var(--teal);font-weight:600;}
+        .step.active {
+            border-left-color: #10b981;
+            background: #1e293b;
+        }
 
-  /* ── Buttons ──────────────────────────────────────────────────────── */
-  .btn{font-family:var(--fd);font-weight:600;font-size:13.5px;border-radius:9px;padding:11px 20px;border:1px solid transparent;
-    cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s;}
-  .btn-primary{background:var(--teal);color:#06231d;}
-  .btn-primary:hover{filter:brightness(1.08);}
-  .btn-primary:disabled{opacity:.4;cursor:not-allowed;filter:none;}
-  .btn-ghost{background:transparent;border-color:var(--line);color:var(--ink);}
-  .btn-ghost:hover{border-color:var(--muted2);}
-  .btn-sm{padding:7px 13px;font-size:12.5px;}
-  .btn-group{display:flex;gap:8px;margin-top:14px;}
+        .step h2 {
+            color: #e2e8f0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
 
-  .manual-input{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
-  .manual-input textarea{font-size:12px;font-family:var(--fm);}
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
 
-  [hidden]{display:none !important;}
-</style>
+        .step.active .step-number {
+            background: #10b981;
+        }
+
+        .field {
+            margin-bottom: 15px;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .field input, .field select, .field textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .field small {
+            display: block;
+            margin-top: 5px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .grid3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0284c7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #334155;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-ghost {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .btn-ghost:hover {
+            background: #475569;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .alert.ok {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .alert.err {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .alert.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .alert i {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #10b981;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #cbd5e1;
+            margin-bottom: 5px;
+        }
+
+        .status-message {
+            font-size: 14px;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background: #1e293b;
+            color: #cbd5e1;
+        }
+
+        .status-message.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-message.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .question-card {
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid #0ea5e9;
+        }
+
+        .question-card.mcq {
+            border-left-color: #8b5cf6;
+        }
+
+        .question-card.match {
+            border-left-color: #ec4899;
+        }
+
+        .question-info {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .question-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .question-type.mcq {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .question-type.match {
+            background: #fce7f3;
+            color: #831843;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .tab-button {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            color: #0ea5e9;
+            border-bottom-color: #0ea5e9;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chapter-select-wrapper {
+            position: relative;
+        }
+
+        .chapter-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            background: #0f172a;
+            margin-top: 8px;
+        }
+
+        .chapter-item {
+            padding: 10px;
+            cursor: pointer;
+            color: #cbd5e1;
+            border-bottom: 1px solid #334155;
+            transition: background 0.2s;
+        }
+
+        .chapter-item:hover {
+            background: #1e293b;
+        }
+
+        .chapter-item.selected {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .chapter-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <!-- Header -->
-  <div class="hdr">
-    <div>
-      <h1><i class="fa-solid fa-book-open"></i> Content Manager</h1>
-      <p>Upload questions to multiple classes with the same subject</p>
-    </div>
-  </div>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-book"></i> Subject Content Manager v4.0</h1>
+            <p>Smart question uploader with chapter detection</p>
+            <button class="btn btn-ghost" onclick="showSettings()" style="position: absolute; top: 20px; right: 20px; font-size: 16px;">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
 
-  <!-- Debug Info -->
-  <details class="settings">
-    <summary>
-      <i class="fa-solid fa-bug"></i> Debug & Setup Info
-    </summary>
-    <div class="settings-body">
-      <div class="full">
-        <div class="callout debug">
-          <i class="fa-solid fa-info-circle"></i>
-          <div>
-            <strong>GAS_URL Status:</strong>
-            <div style="font-family:monospace;font-size:11px;margin-top:6px;word-break:break-all;" id="gasUrlDisplay">Loading...</div>
-            <div style="margin-top:8px;font-size:12px;">
-              <strong>How to fix if classes don't load:</strong>
-              <ol style="margin:8px 0;padding-left:20px;">
-                <li>Check your deployment URL is correct</li>
-                <li>Replace YOUR_DEPLOYMENT_ID with actual ID</li>
-                <li>Check browser console (F12 → Console tab) for errors</li>
-                <li>Check Apps Script logs for failed requests</li>
-                <li>Use "Manual Class Input" below to test</li>
-              </ol>
+        <!-- SETTINGS MODAL -->
+        <div id="settingsModal" class="hidden" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        " onclick="closeSettingsOnBackdropClick(event)">
+            <div style="
+                background: #0f172a;
+                padding: 30px;
+                border-radius: 12px;
+                max-width: 600px;
+                width: 90%;
+                border: 2px solid #0ea5e9;
+            " onclick="event.stopPropagation()">
+                <h2 style="color: #e2e8f0; margin-bottom: 20px;">⚙️ Settings</h2>
+
+                <div class="field">
+                    <label>Apps Script Deployment URL *</label>
+                    <input type="text" id="deploymentUrlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" 
+                           value="" style="width: 100%;">
+                    <small style="color: #94a3b8; margin-top: 10px;">
+                        <strong>How to get this URL:</strong>
+                        <br>1. Open your Apps Script project
+                        <br>2. Click "Deploy" → "All deployments"
+                        <br>3. Copy the URL ending with <strong>/exec</strong> (preferred for API calls)
+                        <br>4. Format: <code>https://script.google.com/macros/s/YOUR_ID/exec</code>
+                        <br>5. Paste it here
+                    </small>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="saveDeploymentUrl()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-ghost" onclick="closeSettings()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+
+                <div id="urlStatus" style="margin-top: 15px;"></div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  </details>
 
-  <!-- Progress Rail -->
-  <div class="rail">
-    <div class="step active" id="step1Indicator">
-      <div class="num">1</div>
-      <div class="label">Select Classes & Subject</div>
-    </div>
-    <div class="step" id="step2Indicator">
-      <div class="num">2</div>
-      <div class="label">Upload Questions</div>
-    </div>
-    <div class="step" id="step3Indicator">
-      <div class="num">3</div>
-      <div class="label">Review & Submit</div>
-    </div>
-  </div>
+        <!-- REORGANISE SUBJECT: CONFIRMATION MODAL -->
+        <div id="reorganiseConfirmModal" class="hidden" style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        ">
+            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 540px; width: 90%; border: 2px solid #f59e0b;">
+                <h2 style="color: #e2e8f0; margin-bottom: 10px;">🎉 Reorganise Subject</h2>
+                <div id="reorganiseTargetLabel" style="color: #94a3b8; margin-bottom: 15px; font-size: 14px;"></div>
 
-  <!-- STEP 1: Class & Subject Selection -->
-  <div id="step1" class="card">
-    <h2><i class="fa-solid fa-list-check"></i> Select Classes & Subject</h2>
-    <p class="sub">Choose one or more classes and the subject to upload questions to</p>
+                <p style="color: #cbd5e1; margin-bottom: 10px;">This operation will:</p>
+                <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.9; margin-bottom: 15px; padding-left: 20px;">
+                    <li>Regenerate Module IDs and update all Module references</li>
+                    <li>Renumber Learning Steps</li>
+                    <li>Detect duplicate questions and duplicate long answers</li>
+                    <li>Highlight duplicates with a reason, for you to review</li>
+                    <li>Normalize Question Type to "MCQ" / "MatchTheFollowing"</li>
+                    <li>Set "Active" to TRUE for every valid row</li>
+                    <li style="color: #34d399;"><strong>Preserve every question by default</strong></li>
+                    <li style="color: #fbbf24;">Delete <strong>only</strong> rows YOU previously marked "OK to Delete" in the Review Status column</li>
+                </ul>
 
-    <!-- Auto-load Classes Section -->
-    <div class="field">
-      <label><i class="fa-solid fa-sitemap"></i> Classes (select multiple)</label>
-      <div id="autoLoadSection">
-        <div class="callout info">
-          <i class="fa-solid fa-spinner fa-spin"></i> Loading classes from your master sheet...
+                <div id="reorganiseCurrentStats" style="background: #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #94a3b8;">
+                    Loading current counts...
+                </div>
+
+                <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">This process may take a few moments.</p>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="confirmReorganiseSubject()">
+                        <i class="fas fa-check"></i> Reorganise
+                    </button>
+                    <button class="btn btn-ghost" onclick="closeReorganiseConfirm()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-      <div id="selectedClassesDisplay" style="display:none;">
-        <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;font-weight:600;">Selected:</div>
-        <div id="selectedClassesChips" class="selected-classes"></div>
-      </div>
-    </div>
 
-    <!-- Manual Class Input (Fallback) -->
-    <div class="manual-input">
-      <div style="margin-bottom:10px;">
-        <strong style="font-size:13.5px;">💡 Classes not loading? Use manual input:</strong>
-      </div>
-      <div class="field">
-        <label>Enter class names (one per line)</label>
-        <textarea id="manualClassInput" placeholder="Example:&#10;Class 6&#10;Class 7&#10;Class 8&#10;Class 9" style="font-family:monospace;min-height:100px;"></textarea>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="loadManualClasses()">
-        <i class="fa-solid fa-upload"></i> Load These Classes
-      </button>
-    </div>
-
-    <!-- Subject Selection -->
-    <div class="field">
-      <label for="selSubject"><i class="fa-solid fa-book"></i> Subject</label>
-      <select id="selSubject">
-        <option value="">— Choose a subject —</option>
-      </select>
-    </div>
-
-    <div class="callout info">
-      <i class="fa-solid fa-circle-info"></i>
-      <div>
-        <strong>Multi-class Upload:</strong> Select 2 or more classes that share the same subject. 
-        When you upload questions, they will be written to all selected class-subject folders automatically.
-      </div>
-    </div>
-
-    <button class="btn btn-primary" onclick="proceedToUpload()" id="proceedBtn">
-      <i class="fa-solid fa-arrow-right"></i> Proceed to Upload
-    </button>
-  </div>
-
-  <!-- STEP 2: Question Upload -->
-  <div id="step2" class="card hidden">
-    <h2><i class="fa-solid fa-cloud-arrow-up"></i> Upload Questions</h2>
-    <p class="sub">Upload an Excel file with your questions</p>
-
-    <div id="selectedClassesInfo" style="background:var(--teal-dim);border:1px solid rgba(0,198,167,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-      <strong style="display:block;margin-bottom:8px;color:var(--teal);">Selected Classes:</strong>
-      <div id="classListDisplay" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-    </div>
-
-    <div class="field">
-      <label><i class="fa-solid fa-book"></i> Selected Subject: <strong id="subjectDisplay"></strong></label>
-    </div>
-
-    <div style="margin-bottom:16px;padding:12px;background:var(--green-dim);border:1px solid rgba(34,197,94,.3);border-radius:8px;color:#86e7ab;">
-      <i class="fa-solid fa-check-circle"></i> Ready to upload to <strong id="classCountDisplay">0</strong> classes
-    </div>
-
-    <div class="btn-group">
-      <button class="btn btn-ghost" onclick="backToSelection()">
-        <i class="fa-solid fa-arrow-left"></i> Back
-      </button>
-      <button class="btn btn-primary" onclick="proceedToReview()" id="reviewBtn">
-        <i class="fa-solid fa-arrow-right"></i> Proceed to Upload
-      </button>
-    </div>
-  </div>
-
-  <!-- STEP 3: Quick Question Entry -->
-  <div id="step3" class="card hidden">
-    <h2><i class="fa-solid fa-pencil"></i> Add Questions</h2>
-    <p class="sub">Enter your questions (minimum 1 required)</p>
-
-    <div id="questionContainer"></div>
-    
-    <button class="btn btn-ghost" onclick="addQuestionBlock()">
-      <i class="fa-solid fa-plus"></i> Add Another Question
-    </button>
-
-    <div class="btn-group" style="margin-top:24px;">
-      <button class="btn btn-ghost" onclick="backToStep2()">
-        <i class="fa-solid fa-arrow-left"></i> Back
-      </button>
-      <button class="btn btn-primary" onclick="submitQuestions()" id="submitBtn">
-        <i class="fa-solid fa-paper-plane"></i> Submit to All Classes
-      </button>
-    </div>
-  </div>
-
-  <!-- Results Dialog -->
-  <div id="resultsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center;">
-    <div id="resultsDialog" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;"></div>
-  </div>
-</div>
-
-<script>
-const GAS_URL = 'https://script.google.com/macros/d/1W_PcxVdbGlR6otgXXkJpvKVgKrtbUHNk2coAXX5tj9UbmrZDKZjiipsr/usercontent';
-const SHARED_SECRET = '123456';
-
-let appState = {
-  selectedClasses: [],
-  selectedSubject: '',
-  questionData: [],
-  classLevels: [],
-  subjectMap: {}
-};
-
-// ════════════════════════════════════════════════════════════════════════
-// INITIALIZATION & DEBUG
-// ════════════════════════════════════════════════════════════════════════
-function debugLog(title, message) {
-  console.log(`[${title}] ${message}`);
-  console.log(message);
-}
-
-(function init() {
-  debugLog('INIT', 'Checking GAS_URL...');
-  console.log('GAS_URL:', GAS_URL);
-  
-  if (GAS_URL.includes('YOUR_DEPLOYMENT_ID')) {
-    document.getElementById('gasUrlDisplay').innerHTML = `
-      <span style="color:#ff6b6b;">❌ GAS_URL NOT CONFIGURED</span><br/>
-      <span style="color:var(--muted);">${GAS_URL}</span><br/>
-      <strong style="color:#ffb84d;">Action Required:</strong> Replace YOUR_DEPLOYMENT_ID with your actual deployment ID
-    `;
-    console.error('❌ GAS_URL not configured! Replace YOUR_DEPLOYMENT_ID');
-  } else {
-    document.getElementById('gasUrlDisplay').innerHTML = `
-      <span style="color:#86e7ab;">✓ GAS_URL configured</span><br/>
-      <span style="color:var(--muted);">${GAS_URL}</span>
-    `;
-    debugLog('INIT', 'GAS_URL is configured, attempting to load classes...');
-    loadClassLevels();
-  }
-  
-  addQuestionBlock();
-  loadSubjectMap();
-})();
-
-// ════════════════════════════════════════════════════════════════════════
-// LOAD CLASSES FROM BACKEND
-// ════════════════════════════════════════════════════════════════════════
-async function loadClassLevels() {
-  try {
-    debugLog('LOAD_CLASSES', 'Fetching from ' + GAS_URL + '?action=getClassLevels');
-    
-    const url = `${GAS_URL}?action=getClassLevels&secret=${SHARED_SECRET}`;
-    console.log('Fetch URL:', url);
-    
-    const response = await fetch(url);
-    console.log('Response status:', response.status);
-    
-    const data = await response.json();
-    console.log('Response data:', data);
-    
-    if (data.success && data.classes && data.classes.length > 0) {
-      appState.classLevels = data.classes;
-      debugLog('LOAD_CLASSES', 'Loaded ' + data.classes.length + ' classes: ' + data.classes.join(', '));
-      renderClassSelector();
-    } else {
-      throw new Error('No classes returned or request failed: ' + (data.message || 'Unknown error'));
-    }
-  } catch (err) {
-    debugLog('LOAD_CLASSES', '❌ Error: ' + err.message);
-    console.error('Full error:', err);
-    
-    // Show error and fallback
-    document.getElementById('autoLoadSection').innerHTML = `
-      <div class="callout err">
-        <i class="fa-solid fa-exclamation-circle"></i>
-        <div>
-          <strong>Error loading classes:</strong><br/>
-          ${err.message}<br/><br/>
-          <strong>Quick fix:</strong>
-          <ol style="margin:8px 0;padding-left:20px;font-size:12px;">
-            <li>Check your GAS_URL is correct above</li>
-            <li>Make sure Apps Script is deployed</li>
-            <li>Or use "Manual Class Input" below</li>
-          </ol>
+        <!-- REORGANISE SUBJECT: PROGRESS MODAL -->
+        <div id="reorganiseProgressModal" class="hidden" style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1001;
+        ">
+            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%; border: 2px solid #0ea5e9;">
+                <h2 style="color: #e2e8f0; margin-bottom: 15px;"><i class="fas fa-cog fa-spin"></i> Reorganising Subject...</h2>
+                <div class="progress-text" id="reorganiseStageText">Starting...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="reorganiseProgressFill"></div>
+                </div>
+                <div class="progress-text" style="text-align: right;"><span id="reorganiseProgressPercent">0</span>%</div>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 15px;">Please don't close this window while reorganisation is in progress.</p>
+            </div>
         </div>
-      </div>
-    `;
-  }
-}
 
-// ════════════════════════════════════════════════════════════════════════
-// MANUAL CLASS INPUT (Fallback)
-// ════════════════════════════════════════════════════════════════════════
-function loadManualClasses() {
-  const input = document.getElementById('manualClassInput').value;
-  if (!input.trim()) {
-    alert('Please enter class names');
-    return;
-  }
-  
-  const classes = input.split('\n')
-    .map(c => c.trim())
-    .filter(c => c.length > 0);
-  
-  if (classes.length === 0) {
-    alert('No valid classes entered');
-    return;
-  }
-  
-  appState.classLevels = classes;
-  debugLog('MANUAL_CLASSES', 'Loaded ' + classes.length + ' classes manually: ' + classes.join(', '));
-  
-  document.getElementById('autoLoadSection').innerHTML = `
-    <div class="callout ok">
-      <i class="fa-solid fa-check-circle"></i>
-      <div>Loaded <strong>${classes.length}</strong> classes manually. Click checkboxes below to select.</div>
+        <!-- REORGANISE SUBJECT: COMPLETION SUMMARY MODAL -->
+        <div id="reorganiseSummaryModal" class="hidden" style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        ">
+            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%; border: 2px solid #10b981;">
+                <h2 id="reorganiseSummaryTitle" style="color: #e2e8f0; margin-bottom: 15px;">✅ Reorganisation Complete</h2>
+                <div id="reorganiseSummaryBody" style="color: #cbd5e1; font-size: 14px; line-height: 1.9;"></div>
+                <button class="btn btn-primary" onclick="closeReorganiseSummary()" style="margin-top: 20px;">
+                    <i class="fas fa-check"></i> Done
+                </button>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- STEP 1: SELECT CLASS & SUBJECT -->
+            <div class="step active" id="step1">
+                <h2><span class="step-number">1</span> Select Class(es) & Subject</h2>
+                
+                <div class="grid2">
+                    <div class="field">
+                        <label>Primary Class Level *</label>
+                        <select id="classSelect" onchange="onClassChange()">
+                            <option value="">Select a class...</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Subject *</label>
+                        <select id="subjectSelect" onchange="onSubjectChange()">
+                            <option value="">Select a subject...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ADDITIONAL CLASSES (Optional) -->
+                <div style="margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 8px; border-left: 3px solid #0ea5e9;">
+                    <h3 style="color: #cbd5e1; margin-bottom: 15px; font-size: 14px;">
+                        <i class="fas fa-plus-circle"></i> Add Another Class (Optional)
+                    </h3>
+                    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 15px;">
+                        Same questions can be uploaded to multiple classes if they share the same subject.
+                    </p>
+                    <div id="additionalClassesContainer"></div>
+                    <button class="btn btn-ghost btn-small" onclick="addAdditionalClass()" style="margin-top: 10px;">
+                        <i class="fas fa-plus"></i> Add Class
+                    </button>
+                </div>
+
+                <!-- SUMMARY OF SELECTED CLASSES -->
+                <div style="margin-top: 20px; padding: 12px; background: #0f172a; border-radius: 6px; border: 1px solid #334155;">
+                    <strong style="color: #cbd5e1;">Selected for upload:</strong>
+                    <div id="selectedClassesSummary" style="margin-top: 8px; color: #a1a5b3; font-size: 13px;">
+                        <i style="color: #94a3b8;">Select a class above...</i>
+                    </div>
+                </div>
+
+                <!-- REORGANISE SUBJECT (available once Class + Subject are both selected) -->
+                <div id="reorganiseSection" class="hidden" style="margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 8px; border-left: 3px solid #f59e0b;">
+                    <h3 style="color: #cbd5e1; margin-bottom: 8px; font-size: 14px;">
+                        <i class="fas fa-broom"></i> Maintenance
+                    </h3>
+                    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 12px;">
+                        Clean up Module IDs, step numbering, and flag likely duplicate questions for this Class + Subject.
+                    </p>
+                    <button class="btn btn-ghost" onclick="openReorganiseConfirm()">
+                        🎉 Reorganise Subject
+                    </button>
+                </div>
+
+                <button class="btn btn-primary" onclick="goToStep2()" id="nextBtn" disabled style="margin-top: 20px;">
+                    <i class="fas fa-arrow-right"></i> Next
+                </button>
+            </div>
+
+            <!-- STEP 2: SELECT CHAPTER (OPTIONAL) -->
+            <div class="step" id="step2" style="display: none;">
+                <h2><span class="step-number">2</span> Select Chapter (Optional)</h2>
+                
+                <div class="alert info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Optional Step:</strong> You can select an existing chapter from the dropdown, or skip this step. 
+                        When you upload the Excel file, the system will automatically detect chapters from the "Module Title" column.
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label>Chapter Title (Optional)</label>
+                    <select id="chapterDropdown" onchange="onChapterSelected()">
+                        <option value="">-- Select Existing Chapter or Create New --</option>
+                    </select>
+                    <small>Choose from existing chapters or skip to auto-detect from Excel file</small>
+                </div>
+
+                <div style="margin-top: 15px;" id="newChapterField" class="field hidden">
+                    <label>New Chapter Name</label>
+                    <input type="text" id="newChapterName" placeholder="Enter new chapter name...">
+                    <small>You selected "Create New" - enter the chapter name</small>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button class="btn btn-ghost" onclick="goToStep1()">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button class="btn btn-ghost" onclick="skipChapterSelection()">
+                        <i class="fas fa-forward"></i> Skip (Auto-detect)
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep3()">
+                        <i class="fas fa-arrow-right"></i> Next with Selection
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 3: UPLOAD QUESTIONS -->
+            <div class="step" id="step3" style="display: none;">
+                <h2><span class="step-number">3</span> Upload Questions</h2>
+
+                <div class="alert info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>v4.0 Features:</strong> Single sheet with "Question Type" column. 
+                        The system will scan your Excel file and automatically detect chapters from the "Module Title" column.
+                        If a chapter exists, it will reuse it. If not, it will create a new one.
+                    </div>
+                </div>
+
+                <!-- TABS -->
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="switchTab('manual')">Manual Entry</button>
+                    <button class="tab-button" onclick="switchTab('excel')">Upload Excel</button>
+                    <button class="tab-button" onclick="switchTab('download')">Download Template</button>
+                </div>
+
+                <!-- MANUAL ENTRY TAB -->
+                <div id="tab-manual" class="tab-content active">
+                    <h3 style="color: #e2e8f0; margin-bottom: 15px;">Add Questions Manually</h3>
+
+                    <div class="field">
+                        <label>Chapter/Module Title (Optional)</label>
+                        <input type="text" id="manualChapterTitle" placeholder="If not selected in Step 2...">
+                        <small>If you didn't select a chapter in Step 2, you can enter it here</small>
+                    </div>
+
+                    <div class="field">
+                        <label>Question Type *</label>
+                        <select id="qType" onchange="updateQuestionForm()">
+                            <option value="MCQ">Multiple Choice (MCQ)</option>
+                            <option value="MatchTheFollowing">Match the Following</option>
+                        </select>
+                    </div>
+
+                    <!-- MCQ FORM -->
+                    <div id="mcqForm">
+                        <div class="grid2">
+                            <div class="field">
+                                <label>Question Text *</label>
+                                <textarea id="mcqQ" placeholder="What is...?"></textarea>
+                            </div>
+                            <div class="field">
+                                <label>Explanation (Optional)</label>
+                                <textarea id="mcqExpl" placeholder="Why is this answer correct?"></textarea>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top: 20px; color: #00c6a7;">Answer Options</h3>
+                        <div class="grid2">
+                            <div class="field">
+                                <label>A) *</label>
+                                <input type="text" id="mcqA" placeholder="Option A">
+                            </div>
+                            <div class="field">
+                                <label>B) *</label>
+                                <input type="text" id="mcqB" placeholder="Option B">
+                            </div>
+                            <div class="field">
+                                <label>C) *</label>
+                                <input type="text" id="mcqC" placeholder="Option C">
+                            </div>
+                            <div class="field">
+                                <label>D) *</label>
+                                <input type="text" id="mcqD" placeholder="Option D">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label>Correct Answer *</label>
+                            <select id="mcqCorrect">
+                                <option>A</option>
+                                <option>B</option>
+                                <option>C</option>
+                                <option>D</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="addMCQ()" style="margin-top: 15px;">
+                            <i class="fas fa-plus"></i> Add MCQ
+                        </button>
+                    </div>
+
+                    <!-- MATCH FORM -->
+                    <div id="matchForm" class="hidden">
+                        <div class="field">
+                            <label>Question Text *</label>
+                            <textarea id="matchQ" placeholder="Match the following..."></textarea>
+                        </div>
+
+                        <h3 style="margin-top: 20px; color: #00c6a7;">Matching Pairs (Min 2, Max 5)</h3>
+                        <div id="matchPairsContainer"></div>
+
+                        <button class="btn btn-ghost btn-small" onclick="addMatchPair()" style="margin: 10px 0;">
+                            <i class="fas fa-plus"></i> Add Pair
+                        </button>
+
+                        <div class="field" style="margin-top: 20px;">
+                            <label>Explanation (Optional)</label>
+                            <textarea id="matchExpl" placeholder="Explain the correct matches..."></textarea>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="addMatch()" style="margin-top: 15px;">
+                            <i class="fas fa-plus"></i> Add Match
+                        </button>
+                    </div>
+
+                    <!-- QUESTIONS LIST -->
+                    <div style="margin-top: 30px;">
+                        <h3 style="color: #e2e8f0;">Questions Added: <span id="questionCount" style="color: #00c6a7;">0</span></h3>
+                        <div id="qList"></div>
+                    </div>
+                </div>
+
+                <!-- EXCEL UPLOAD TAB -->
+                <div id="tab-excel" class="tab-content">
+                    <h3 style="color: #e2e8f0; margin-bottom: 15px;">Upload from Excel</h3>
+
+                    <div class="alert info">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>v4.0 Single Sheet:</strong> Upload one "Questions" sheet with "Question Type" column.
+                            Include: Module Title, Question, Options/Pairs, etc.
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Select Excel File</label>
+                        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)">
+                    </div>
+
+                    <div id="excelProgress" class="hidden" style="margin: 20px 0;">
+                        <div class="progress-text">Processing: <span id="progressPercent">0</span>%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div id="progressStatus" style="font-size: 12px; color: #8b97ad;"></div>
+                    </div>
+
+                    <div id="excelPreview"></div>
+
+                    <div id="excelTableContainer" class="hidden" style="margin-top: 20px; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; color: #cbd5e1; font-size: 13px;">
+                            <thead id="excelTableHead" style="background: #1e293b; border-bottom: 2px solid #334155;"></thead>
+                            <tbody id="excelTableBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="excelButtons" style="margin-top: 20px; display: flex; gap: 10px;" class="hidden">
+                        <button class="btn btn-primary" onclick="confirmExcelUpload()">
+                            <i class="fas fa-check"></i> Confirm & Upload
+                        </button>
+                        <button class="btn btn-ghost" onclick="clearExcelPreview()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DOWNLOAD TEMPLATE TAB -->
+                <div id="tab-download" class="tab-content">
+                    <h3 style="color: #e2e8f0; margin-bottom: 15px;">Download Template</h3>
+
+                    <p style="color: #cbd5e1; margin-bottom: 15px;">Use this template to prepare questions for upload in v4.0 format (single sheet with Question Type)</p>
+
+                    <button class="btn btn-primary" onclick="downloadTemplate()">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div style="margin-top: 30px;">
+                    <!-- SUBMISSION SUMMARY -->
+                    <div id="submissionSummary" style="display: none; padding: 15px; background: #1e293b; border-radius: 8px; border-left: 4px solid #0ea5e9; margin-bottom: 20px;">
+                        <h3 style="color: #cbd5e1; margin-bottom: 10px;">
+                            <i class="fas fa-check-circle"></i> Ready to Submit
+                        </h3>
+                        <div style="color: #a1a5b3; font-size: 13px;">
+                            <div><strong>Classes:</strong> <span id="summaryClasses"></span></div>
+                            <div><strong>Subject:</strong> <span id="summarySubject"></span></div>
+                            <div><strong>Questions:</strong> <span id="summaryQCount"></span></div>
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #334155;">
+                                <em>Click "Submit & Upload" to proceed</em>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-ghost" onclick="goToStep2()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button class="btn btn-primary" onclick="submitQuestions()" id="submitBtn" disabled>
+                            <i class="fas fa-upload"></i> Submit & Upload
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  `;
-  
-  renderClassSelector();
-  
-  // Hide manual input section
-  document.querySelector('.manual-input').style.display = 'none';
-}
 
-// ════════════════════════════════════════════════════════════════════════
-// CLASS SELECTION
-// ════════════════════════════════════════════════════════════════════════
-function renderClassSelector() {
-  const classList = document.getElementById('classList');
-  
-  // Create the class list if it doesn't exist
-  if (!classList) {
-    const container = document.getElementById('autoLoadSection');
-    container.innerHTML = `
-      <div class="class-selector" id="classSelector">
-        <div class="group-label">Available Classes - Click to select:</div>
-        <div class="class-list" id="classList"></div>
-      </div>
-    `;
-  }
-  
-  const list = document.getElementById('classList');
-  list.innerHTML = '';
-  
-  appState.classLevels.forEach((cls, idx) => {
-    const isChecked = appState.selectedClasses.includes(cls);
-    const html = `
-      <label class="class-item" key="${idx}">
-        <input type="checkbox" value="${cls}" ${isChecked ? 'checked' : ''} onchange="toggleClass('${cls}')">
-        <span style="flex:1;cursor:pointer;font-size:13.5px;font-weight:500;">${cls}</span>
-      </label>
-    `;
-    list.innerHTML += html;
-  });
-  
-  debugLog('RENDER', 'Rendered ' + appState.classLevels.length + ' class checkboxes');
-  updateSelectedClassesDisplay();
-}
+    <script>
+        // ========================================================================
+        // STATE MANAGEMENT
+        // ========================================================================
 
-function toggleClass(cls) {
-  if (appState.selectedClasses.includes(cls)) {
-    appState.selectedClasses = appState.selectedClasses.filter(c => c !== cls);
-    debugLog('TOGGLE', 'Removed: ' + cls);
-  } else {
-    appState.selectedClasses.push(cls);
-    debugLog('TOGGLE', 'Added: ' + cls);
-  }
-  updateSelectedClassesDisplay();
-}
+        const state = {
+            scriptUrl: localStorage.getItem('deploymentUrl') || '', // Load from storage
+            secret: '123456',
+            selectedClass: null,
+            selectedClasses: [],  // NEW: Multiple classes support
+            selectedSubject: null,
+            selectedChapter: null,
+            selectedChapterModule: null,
+            questions: [],
+            allClasses: [],
+            allSubjects: [],
+            existingChapters: [],
+            allModules: []
+        };
 
-function updateSelectedClassesDisplay() {
-  const display = document.getElementById('selectedClassesDisplay');
-  const chips = document.getElementById('selectedClassesChips');
-  
-  if (appState.selectedClasses.length === 0) {
-    display.style.display = 'none';
-    chips.innerHTML = '';
-  } else {
-    display.style.display = 'block';
-    chips.innerHTML = appState.selectedClasses.map(cls => 
-      `<div class="chip"><i class="fa-solid fa-check"></i> ${cls}</div>`
-    ).join('');
-    debugLog('DISPLAY', 'Selected: ' + appState.selectedClasses.join(', '));
-  }
-}
+        let excelData = [];
+        let matchPairCount = 0;
 
-// ════════════════════════════════════════════════════════════════════════
-// SUBJECT SELECTION
-// ════════════════════════════════════════════════════════════════════════
-async function loadSubjectMap() {
-  try {
-    const url = `${GAS_URL}?action=getSubjectMap&secret=${SHARED_SECRET}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.success && data.subjectMap) {
-      appState.subjectMap = data.subjectMap;
-      renderSubjectOptions();
-      debugLog('LOAD_SUBJECTS', 'Loaded ' + Object.keys(data.subjectMap).length + ' subjects');
-    }
-  } catch (err) {
-    debugLog('LOAD_SUBJECTS', '⚠️ Could not load subjects: ' + err.message);
-  }
-}
+        // ========================================================================
+        // SETTINGS & CONFIGURATION
+        // ========================================================================
 
-function renderSubjectOptions() {
-  const select = document.getElementById('selSubject');
-  const subjects = Object.keys(appState.subjectMap).sort();
-  
-  subjects.forEach(subject => {
-    const option = document.createElement('option');
-    option.value = subject;
-    option.textContent = subject;
-    select.appendChild(option);
-  });
-  
-  select.addEventListener('change', (e) => {
-    appState.selectedSubject = e.target.value;
-    document.getElementById('subjectDisplay').textContent = e.target.value || 'None selected';
-    updateProceedButton();
-  });
-}
+        function showSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+            document.getElementById('deploymentUrlInput').value = state.scriptUrl;
+            document.getElementById('urlStatus').innerHTML = '';  // Clear any previous status
+        }
 
-function updateProceedButton() {
-  const btn = document.getElementById('proceedBtn');
-  const hasClasses = appState.selectedClasses.length > 0;
-  const hasSubject = appState.selectedSubject !== '';
-  btn.disabled = !(hasClasses && hasSubject);
-}
+        function closeSettings() {
+            const modal = document.getElementById('settingsModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        }
 
-// ════════════════════════════════════════════════════════════════════════
-// NAVIGATION
-// ════════════════════════════════════════════════════════════════════════
-function showStep(step) {
-  document.getElementById('step1').classList.toggle('hidden', step !== 1);
-  document.getElementById('step2').classList.toggle('hidden', step !== 2);
-  document.getElementById('step3').classList.toggle('hidden', step !== 3);
-  
-  ['step1Indicator', 'step2Indicator', 'step3Indicator'].forEach((id, i) => {
-    const el = document.getElementById(id);
-    el.classList.toggle('active', (i + 1) === step);
-    el.classList.toggle('done', (i + 1) < step);
-  });
-}
+        function closeSettingsOnBackdropClick(event) {
+            // Only close if clicking on the background (not the modal content)
+            if (event.target.id === 'settingsModal') {
+                closeSettings();
+            }
+        }
 
-function proceedToUpload() {
-  if (appState.selectedClasses.length === 0) {
-    alert('Please select at least one class');
-    return;
-  }
-  if (!appState.selectedSubject) {
-    alert('Please select a subject');
-    return;
-  }
-  
-  const classListDisplay = document.getElementById('classListDisplay');
-  classListDisplay.innerHTML = appState.selectedClasses.map(cls => 
-    `<div class="chip" style="background:var(--teal-dim);border-color:rgba(0,198,167,.35);"><strong>${cls}</strong></div>`
-  ).join('');
-  
-  document.getElementById('subjectDisplay').textContent = appState.selectedSubject;
-  document.getElementById('classCountDisplay').textContent = appState.selectedClasses.length;
-  
-  debugLog('PROCEED', 'Moving to step 2 with ' + appState.selectedClasses.length + ' classes');
-  showStep(2);
-}
-
-function backToSelection() {
-  showStep(1);
-}
-
-function backToStep2() {
-  showStep(2);
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// QUESTIONS
-// ════════════════════════════════════════════════════════════════════════
-function addQuestionBlock() {
-  const container = document.getElementById('questionContainer');
-  const idx = appState.questionData.length;
-  const qData = appState.questionData[idx] || {
-    moduleId: '', stepNum: '', question: '', optA: '', optB: '', optC: '', optD: '', correct: 'A'
-  };
-  appState.questionData[idx] = qData;
-  
-  const html = `
-    <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;" id="qblock${idx}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="background:var(--teal-dim);color:var(--teal);border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;">Q${idx + 1}</span>
-        <button class="btn btn-ghost btn-sm" onclick="removeQuestionBlock(${idx})"><i class="fa-solid fa-trash"></i></button>
-      </div>
-      
-      <div class="field">
-        <label>Module ID</label>
-        <input type="text" value="${qData.moduleId}" onchange="updateQuestion(${idx}, 'moduleId', this.value)">
-      </div>
-      <div class="field">
-        <label>Step Number</label>
-        <input type="number" value="${qData.stepNum}" onchange="updateQuestion(${idx}, 'stepNum', this.value)">
-      </div>
-      <div class="field">
-        <label>Question</label>
-        <textarea onchange="updateQuestion(${idx}, 'question', this.value)">${qData.question}</textarea>
-      </div>
-      
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field">
-          <label>A)</label>
-          <input type="text" value="${qData.optA}" onchange="updateQuestion(${idx}, 'optA', this.value)">
-        </div>
-        <div class="field">
-          <label>B)</label>
-          <input type="text" value="${qData.optB}" onchange="updateQuestion(${idx}, 'optB', this.value)">
-        </div>
-        <div class="field">
-          <label>C)</label>
-          <input type="text" value="${qData.optC}" onchange="updateQuestion(${idx}, 'optC', this.value)">
-        </div>
-        <div class="field">
-          <label>D)</label>
-          <input type="text" value="${qData.optD}" onchange="updateQuestion(${idx}, 'optD', this.value)">
-        </div>
-      </div>
-      
-      <div class="field">
-        <label>Correct Answer</label>
-        <select onchange="updateQuestion(${idx}, 'correct', this.value)">
-          <option value="A" ${qData.correct === 'A' ? 'selected' : ''}>A</option>
-          <option value="B" ${qData.correct === 'B' ? 'selected' : ''}>B</option>
-          <option value="C" ${qData.correct === 'C' ? 'selected' : ''}>C</option>
-          <option value="D" ${qData.correct === 'D' ? 'selected' : ''}>D</option>
-        </select>
-      </div>
-    </div>
-  `;
-  
-  if (idx === 0 || !document.getElementById(`qblock${idx}`)) {
-    container.innerHTML += html;
-  }
-}
-
-function updateQuestion(idx, field, value) {
-  if (!appState.questionData[idx]) appState.questionData[idx] = {};
-  appState.questionData[idx][field] = value;
-  debugLog('UPDATE_Q', 'Question ' + (idx+1) + ' field ' + field + ' = ' + value);
-}
-
-function removeQuestionBlock(idx) {
-  appState.questionData.splice(idx, 1);
-  document.getElementById('questionContainer').innerHTML = '';
-  appState.questionData.forEach((_, i) => {
-    addQuestionBlock();
-  });
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// SUBMIT
-// ════════════════════════════════════════════════════════════════════════
-async function proceedToReview() {
-  if (appState.questionData.length === 0) {
-    alert('Please add at least one question');
-    return;
-  }
-  debugLog('PROCEED', 'Moving to step 3 (question entry)');
-  showStep(3);
-}
-
-async function submitQuestions() {
-  const submitBtn = document.getElementById('submitBtn');
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
-  
-  try {
-    debugLog('SUBMIT', 'Starting submission to ' + appState.selectedClasses.length + ' classes');
-    const results = [];
-    
-    for (const className of appState.selectedClasses) {
-      try {
-        debugLog('SUBMIT', 'Uploading to class: ' + className);
-        
-        const response = await fetch(GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            secret: SHARED_SECRET,
-            action: 'uploadQuestions',
-            class: className,
-            subject: appState.selectedSubject,
-            questions: appState.questionData
-          })
+        // Add escape key handler
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('settingsModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeSettings();
+                }
+            }
         });
-        
-        const data = await response.json();
-        debugLog('SUBMIT', 'Response for ' + className + ':', data);
-        
-        results.push({
-          class: className,
-          success: data.success,
-          message: data.message,
-          stepsAdded: data.stepsAdded || 0
-        });
-      } catch (err) {
-        debugLog('SUBMIT', '❌ Error uploading to ' + className + ': ' + err.message);
-        results.push({
-          class: className,
-          success: false,
-          message: err.message
-        });
-      }
-    }
-    
-    showResultsDialog(results);
-    
-  } catch (err) {
-    debugLog('SUBMIT', '❌ Fatal error: ' + err.message);
-    alert('Submission failed: ' + err.message);
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit to All Classes';
-  }
-}
 
-function showResultsDialog(results) {
-  const allSuccess = results.every(r => r.success);
-  const overlay = document.getElementById('resultsOverlay');
-  const dialog = document.getElementById('resultsDialog');
-  
-  let html = `
-    <div style="background:${allSuccess ? 'var(--green-dim)' : 'var(--red-dim)'};border:1px solid ${allSuccess ? 'rgba(34,197,94,.3)' : 'rgba(239,91,91,.3)'};border-radius:10px;padding:16px;margin-bottom:16px;">
-      <div style="display:flex;align-items:flex-start;gap:12px;color:${allSuccess ? '#86e7ab' : '#f59b9b'};">
-        <i class="fa-solid fa-${allSuccess ? 'circle-check' : 'circle-exclamation'}" style="margin-top:2px;flex-shrink:0;font-size:20px;"></i>
-        <div style="flex:1;">
-          <strong style="font-size:15px;display:block;margin-bottom:12px;">
-            ${allSuccess ? '✓ Questions Uploaded Successfully!' : '✗ Upload Completed with Issues'}
-          </strong>
-          <div style="font-size:13px;line-height:1.8;">
-  `;
-  
-  results.forEach(r => {
-    const icon = r.success ? '✓' : '✗';
-    const color = r.success ? '#86e7ab' : '#f59b9b';
-    html += `
-      <div style="padding:8px;margin-bottom:6px;background:rgba(0,0,0,.1);border-radius:6px;border-left:3px solid ${color};">
-        <strong>${icon} ${r.class}:</strong> ${r.stepsAdded || 0} questions added
-      </div>
-    `;
-  });
-  
-  html += `
-          </div>
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-ghost" onclick="resetApp()">
-        <i class="fa-solid fa-arrow-left"></i> Upload More
-      </button>
-    </div>
-  `;
-  
-  dialog.innerHTML = html;
-  overlay.style.display = 'flex';
-}
+        function saveDeploymentUrl() {
+            const url = document.getElementById('deploymentUrlInput').value.trim();
+            
+            if (!url) {
+                document.getElementById('urlStatus').innerHTML = `
+                    <div class="alert err">
+                        <i class="fas fa-exclamation-circle"></i> URL cannot be empty
+                    </div>
+                `;
+                return;
+            }
 
-function resetApp() {
-  document.getElementById('resultsOverlay').style.display = 'none';
-  appState = {
-    selectedClasses: [],
-    selectedSubject: '',
-    questionData: [],
-    classLevels: appState.classLevels,
-    subjectMap: appState.subjectMap
-  };
-  document.getElementById('selSubject').value = '';
-  document.getElementById('questionContainer').innerHTML = '';
-  renderClassSelector();
-  addQuestionBlock();
-  showStep(1);
-}
-</script>
+            if (!url.includes('script.google.com') || (!url.includes('/exec') && !url.includes('/useweb'))) {
+                document.getElementById('urlStatus').innerHTML = `
+                    <div class="alert err">
+                        <i class="fas fa-exclamation-circle"></i> URL doesn't look right. Should contain "script.google.com" and either "/exec" or "/useweb"
+                    </div>
+                `;
+                return;
+            }
+
+            // Save to state and localStorage
+            state.scriptUrl = url;
+            localStorage.setItem('deploymentUrl', url);
+
+            document.getElementById('urlStatus').innerHTML = `
+                <div class="alert ok">
+                    <i class="fas fa-check-circle"></i> URL saved successfully!
+                </div>
+            `;
+
+            setTimeout(() => {
+                closeSettings();
+                // Reload to test connection
+                location.reload();
+            }, 1500);
+        }
+
+        // ========================================================================
+        // INITIALIZATION
+        // ========================================================================
+
+        async function initApp() {
+            // Check if deployment URL is configured
+            if (!state.scriptUrl || state.scriptUrl === '') {
+                document.getElementById('step1').innerHTML = `
+                    <h2><span class="step-number">1</span> Configuration Required</h2>
+                    <div class="alert err">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>
+                            <strong>Deployment URL not configured!</strong>
+                            <p style="margin-top: 10px;">Click the ⚙️ button in the top right to configure the Apps Script deployment URL.</p>
+                            <p style="margin-top: 10px;"><strong>Where to get it:</strong></p>
+                            <ol style="margin-left: 20px; margin-top: 10px;">
+                                <li>Open your Apps Script project</li>
+                                <li>Click "Deploy" → "All deployments"</li>
+                                <li>Find the latest "Web app" deployment</li>
+                                <li>Copy the URL</li>
+                                <li>Paste it in Settings (⚙️)</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            await loadClasses();
+        }
+
+        async function loadClasses() {
+            try {
+                if (!state.scriptUrl) {
+                    throw new Error('Deployment URL not configured. Click ⚙️ to configure.');
+                }
+
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getClasses',
+                        secret: state.secret
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                state.allClasses = data.classes || [];
+
+                if (state.allClasses.length === 0) {
+                    document.getElementById('step1').innerHTML = `
+                        <h2><span class="step-number">1</span> Select Class & Subject</h2>
+                        <div class="alert info">
+                            <i class="fas fa-info-circle"></i> No classes found. Check your backend configuration.
+                        </div>
+                    `;
+                    return;
+                }
+
+                const select = document.getElementById('classSelect');
+                state.allClasses.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls;
+                    option.textContent = cls;
+                    select.appendChild(option);
+                });
+
+                console.log('✅ Classes loaded:', state.allClasses);
+            } catch (err) {
+                console.error('❌ Error loading classes:', err);
+                document.getElementById('step1').innerHTML = `
+                    <h2><span class="step-number">1</span> Select Class & Subject</h2>
+                    <div class="alert err">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <div>
+                            <strong>Error connecting to backend:</strong>
+                            <p style="margin-top: 10px; font-family: monospace; font-size: 12px; word-break: break-all;">
+                                ${err.message}
+                            </p>
+                            <p style="margin-top: 10px;">
+                                <strong>Solutions:</strong>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Check that deployment URL is correct (⚙️ Settings)</li>
+                                    <li>Make sure Apps Script is deployed as "Web app"</li>
+                                    <li>Verify the backend file is deployed</li>
+                                    <li>Check browser console (F12) for more details</li>
+                                </ul>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function onClassChange() {
+            const classLevel = document.getElementById('classSelect').value;
+            state.selectedClass = classLevel;
+            state.selectedSubject = '';
+            updateReorganiseSectionVisibility();
+
+            if (!classLevel) {
+                document.getElementById('subjectSelect').innerHTML = '<option value="">Select a subject...</option>';
+                updateNextButtonState();
+                updateSelectedClassesSummary();
+                return;
+            }
+
+            try {
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getSubjects',
+                        class: classLevel,
+                        secret: state.secret
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                state.allSubjects = data.subjects || [];
+
+                const select = document.getElementById('subjectSelect');
+                select.innerHTML = '<option value="">Select a subject...</option>';
+                state.allSubjects.forEach(subj => {
+                    const option = document.createElement('option');
+                    option.value = subj;
+                    option.textContent = subj;
+                    select.appendChild(option);
+                });
+
+                console.log('✅ Subjects loaded:', state.allSubjects);
+                
+                // Clear additional classes when primary class changes
+                document.getElementById('additionalClassesContainer').innerHTML = '';
+                additionalClassCount = 0;
+                
+                updateNextButtonState();
+                updateSelectedClassesSummary();
+            } catch (err) {
+                console.error('❌ Error loading subjects:', err);
+                alert('Error loading subjects: ' + err.message);
+            }
+        }
+
+        async function onSubjectChange() {
+            const subject = document.getElementById('subjectSelect').value;
+            state.selectedSubject = subject;
+            updateNextButtonState();
+
+            // Load existing chapters when subject changes
+            if (subject) {
+                await loadExistingChapters(subject);
+            }
+
+            updateSelectedClassesSummary();
+            updateReorganiseSectionVisibility();
+        }
+
+        function updateReorganiseSectionVisibility() {
+            const section = document.getElementById('reorganiseSection');
+            if (state.selectedClass && state.selectedSubject) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+
+        // ========================================================================
+        // MULTI-CLASS SUPPORT
+        // ========================================================================
+
+        let additionalClassCount = 0;
+
+        function addAdditionalClass() {
+            if (!state.selectedClass) {
+                alert('Please select primary class first');
+                return;
+            }
+
+            additionalClassCount++;
+            const container = document.getElementById('additionalClassesContainer');
+            
+            const classBlock = document.createElement('div');
+            classBlock.id = `additionalClass_${additionalClassCount}`;
+            classBlock.style.cssText = 'margin-bottom: 12px; padding: 12px; background: #0f172a; border-radius: 6px; display: flex; gap: 10px; align-items: flex-end;';
+            
+            classBlock.innerHTML = `
+                <div class="field" style="flex: 1; margin: 0;">
+                    <label style="font-size: 12px;">Additional Class ${additionalClassCount}</label>
+                    <select onchange="onAdditionalClassChange(${additionalClassCount})" class="additionalClassSelect" data-index="${additionalClassCount}">
+                        <option value="">Select a class...</option>
+                    </select>
+                </div>
+                <button class="btn btn-ghost btn-small" onclick="removeAdditionalClass(${additionalClassCount})" style="height: 36px;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            
+            container.appendChild(classBlock);
+            
+            // Populate dropdown with available classes (not the primary class)
+            const select = classBlock.querySelector('select');
+            state.allClasses.forEach(cls => {
+                if (cls !== state.selectedClass) {  // Don't show primary class
+                    const option = document.createElement('option');
+                    option.value = cls;
+                    option.textContent = cls;
+                    select.appendChild(option);
+                }
+            });
+
+            console.log('✅ Added additional class block', additionalClassCount);
+            updateSelectedClassesSummary();
+        }
+
+        function onAdditionalClassChange(index) {
+            updateSelectedClassesSummary();
+        }
+
+        function removeAdditionalClass(index) {
+            const block = document.getElementById(`additionalClass_${index}`);
+            if (block) {
+                block.remove();
+            }
+            updateSelectedClassesSummary();
+        }
+
+        function updateSelectedClassesSummary() {
+            // Collect all selected classes
+            const classes = [state.selectedClass];
+            
+            // Add additional classes
+            const additionalSelects = document.querySelectorAll('.additionalClassSelect');
+            additionalSelects.forEach(select => {
+                const value = select.value;
+                if (value) {
+                    classes.push(value);
+                }
+            });
+
+            // Store in state
+            state.selectedClasses = classes;
+
+            // Update summary display
+            const summary = document.getElementById('selectedClassesSummary');
+            if (classes.length > 0 && classes[0]) {
+                const classText = classes.join(' + ');
+                summary.innerHTML = `
+                    <strong style="color: #10b981;">
+                        <i class="fas fa-check-circle"></i> 
+                        ${classText}
+                    </strong>
+                    <br>
+                    <small style="color: #94a3b8;">Subject: ${state.selectedSubject || 'Not selected'}</small>
+                `;
+            } else {
+                summary.innerHTML = '<i style="color: #94a3b8;">Select a class above...</i>';
+            }
+
+            console.log('📚 Selected classes:', state.selectedClasses);
+        }
+
+        function updateNextButtonState() {
+            const nextBtn = document.getElementById('nextBtn');
+            if (state.selectedClass && state.selectedSubject) {
+                nextBtn.disabled = false;
+            } else {
+                nextBtn.disabled = true;
+            }
+        }
+
+        async function loadExistingChapters(subject) {
+            try {
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getExistingChapters',
+                        subject: subject,
+                        secret: state.secret
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                state.existingChapters = data.chapters || [];
+                console.log('✅ Chapters loaded:', state.existingChapters.length, 'chapters');
+            } catch (err) {
+                console.error('❌ Error loading chapters:', err);
+                // Don't alert - just continue, chapters may be empty for new subject
+                state.existingChapters = [];
+            }
+        }
+
+        // ========================================================================
+        // STEP NAVIGATION
+        // ========================================================================
+
+        function goToStep1() {
+            hideAllSteps();
+            document.getElementById('step1').style.display = 'block';
+            updateStepNumbers(1);
+        }
+
+        function goToStep2() {
+            if (!state.selectedClass || !state.selectedSubject) {
+                alert('Please select class and subject first');
+                return;
+            }
+            hideAllSteps();
+            document.getElementById('step2').style.display = 'block';
+            updateStepNumbers(2);
+            populateChapterDropdown();
+        }
+
+        function skipChapterSelection() {
+            // Skip Step 2 and go to Step 3 (auto-detect from Excel)
+            state.selectedChapter = null;  // Clear any selection
+            document.getElementById('newChapterName').value = '';
+            goToStep3();
+        }
+
+        // ========================================================================
+        // CHAPTER DROPDOWN
+        // ========================================================================
+
+        function populateChapterDropdown() {
+            const dropdown = document.getElementById('chapterDropdown');
+            dropdown.innerHTML = '<option value="">-- Select Existing Chapter or Create New --</option>';
+
+            // Add existing chapters
+            if (state.existingChapters && state.existingChapters.length > 0) {
+                state.existingChapters.forEach(chapter => {
+                    const option = document.createElement('option');
+                    option.value = 'existing:' + chapter.title;
+                    option.textContent = chapter.title + ' (' + chapter.moduleId + ')';
+                    dropdown.appendChild(option);
+                });
+
+                // Add separator
+                const separator = document.createElement('option');
+                separator.disabled = true;
+                separator.textContent = '─────────────';
+                dropdown.appendChild(separator);
+            }
+
+            // Add "Create New" option
+            const createNew = document.createElement('option');
+            createNew.value = 'new';
+            createNew.textContent = '+ Create New Chapter';
+            dropdown.appendChild(createNew);
+
+            console.log('✅ Chapter dropdown populated with', state.existingChapters.length, 'chapters');
+        }
+
+        function onChapterSelected() {
+            const dropdown = document.getElementById('chapterDropdown');
+            const value = dropdown.value;
+            const newChapterField = document.getElementById('newChapterField');
+
+            if (value === 'new') {
+                // Show input field for new chapter
+                newChapterField.classList.remove('hidden');
+                state.selectedChapter = null;
+            } else if (value.startsWith('existing:')) {
+                // Selected existing chapter
+                const chapterName = value.substring(9); // Remove 'existing:' prefix
+                state.selectedChapter = chapterName;
+                newChapterField.classList.add('hidden');
+                document.getElementById('newChapterName').value = '';
+                console.log('✅ Selected chapter:', chapterName);
+            } else {
+                // Nothing selected
+                state.selectedChapter = null;
+                newChapterField.classList.add('hidden');
+                document.getElementById('newChapterName').value = '';
+            }
+        }
+
+        function goToStep3() {
+            // Get chapter name from either selection or new chapter input
+            const dropdown = document.getElementById('chapterDropdown');
+            const value = dropdown.value;
+
+            if (value === 'new') {
+                // User selected "Create New"
+                const newName = document.getElementById('newChapterName').value.trim();
+                if (!newName) {
+                    alert('Please enter a chapter name or select an existing chapter');
+                    return;
+                }
+                state.selectedChapter = newName;
+                console.log('✅ Creating new chapter:', newName);
+            } else if (value.startsWith('existing:')) {
+                // Already handled in onChapterSelected
+                console.log('✅ Using existing chapter:', state.selectedChapter);
+            } else if (value === '') {
+                // No selection - this is OK, will be auto-detected
+                state.selectedChapter = null;
+                console.log('✅ No chapter selected, will auto-detect from Excel');
+            }
+
+            hideAllSteps();
+            document.getElementById('step3').style.display = 'block';
+            updateStepNumbers(3);
+        }
+
+        // ========================================================================
+        // TAB SWITCHING
+        // ========================================================================
+
+        function hideAllSteps() {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+        }
+
+        function updateStepNumbers(activeStep) {
+            ['step1', 'step2', 'step3'].forEach((id, i) => {
+                const step = document.getElementById(id);
+                if (i + 1 <= activeStep) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ========================================================================
+        // MANUAL QUESTION ENTRY
+        // ========================================================================
+
+        function updateQuestionForm() {
+            const type = document.getElementById('qType').value;
+            if (type === 'MCQ') {
+                document.getElementById('mcqForm').classList.remove('hidden');
+                document.getElementById('matchForm').classList.add('hidden');
+            } else {
+                document.getElementById('mcqForm').classList.add('hidden');
+                document.getElementById('matchForm').classList.remove('hidden');
+                initMatchPairs();
+            }
+        }
+
+        function addMCQ() {
+            const question = document.getElementById('mcqQ').value.trim();
+            const optA = document.getElementById('mcqA').value.trim();
+            const optB = document.getElementById('mcqB').value.trim();
+            const optC = document.getElementById('mcqC').value.trim();
+            const optD = document.getElementById('mcqD').value.trim();
+            const correct = document.getElementById('mcqCorrect').value;
+            const explanation = document.getElementById('mcqExpl').value.trim();
+
+            if (!question || !optA || !optB || !optC || !optD) {
+                alert('Fill in all required fields');
+                return;
+            }
+
+            const q = {
+                type: 'MCQ',
+                moduleTitle: state.selectedChapter || document.getElementById('manualChapterTitle').value || 'Untitled Chapter',
+                question,
+                optionA: optA,
+                optionB: optB,
+                optionC: optC,
+                optionD: optD,
+                correctAnswer: correct,
+                explanation
+            };
+
+            state.questions.push(q);
+            showQuestions();
+
+            // Clear form
+            document.getElementById('mcqQ').value = '';
+            document.getElementById('mcqA').value = '';
+            document.getElementById('mcqB').value = '';
+            document.getElementById('mcqC').value = '';
+            document.getElementById('mcqD').value = '';
+            document.getElementById('mcqExpl').value = '';
+        }
+
+        function initMatchPairs() {
+            const container = document.getElementById('matchPairsContainer');
+            container.innerHTML = '';
+            matchPairCount = 2;
+
+            for (let i = 1; i <= 2; i++) {
+                const pairDiv = document.createElement('div');
+                pairDiv.className = 'grid2';
+                pairDiv.innerHTML = `
+                    <div class="field">
+                        <label>Left ${i}</label>
+                        <input type="text" id="ml${i}" placeholder="Left side">
+                    </div>
+                    <div class="field">
+                        <label>Right ${i}</label>
+                        <input type="text" id="mr${i}" placeholder="Right side">
+                    </div>
+                `;
+                container.appendChild(pairDiv);
+            }
+        }
+
+        function addMatchPair() {
+            matchPairCount++;
+            if (matchPairCount > 5) {
+                alert('Maximum 5 pairs');
+                matchPairCount--;
+                return;
+            }
+
+            const container = document.getElementById('matchPairsContainer');
+            const pairDiv = document.createElement('div');
+            pairDiv.className = 'grid2';
+            pairDiv.innerHTML = `
+                <div class="field">
+                    <label>Left ${matchPairCount}</label>
+                    <input type="text" id="ml${matchPairCount}" placeholder="Left side">
+                </div>
+                <div class="field">
+                    <label>Right ${matchPairCount}</label>
+                    <input type="text" id="mr${matchPairCount}" placeholder="Right side">
+                </div>
+            `;
+            container.appendChild(pairDiv);
+        }
+
+        function addMatch() {
+            const question = document.getElementById('matchQ').value.trim();
+            const explanation = document.getElementById('matchExpl').value.trim();
+
+            if (!question) {
+                alert('Enter a question');
+                return;
+            }
+
+            let pairs = [];
+            for (let i = 1; i <= matchPairCount; i++) {
+                const left = document.getElementById(`ml${i}`).value.trim();
+                const right = document.getElementById(`mr${i}`).value.trim();
+                if (left && right) {
+                    pairs.push({ left, right });
+                }
+            }
+
+            if (pairs.length < 2) {
+                alert('Add at least 2 matching pairs');
+                return;
+            }
+
+            const q = {
+                type: 'MatchTheFollowing',
+                moduleTitle: state.selectedChapter || document.getElementById('manualChapterTitle').value || 'Untitled Chapter',
+                question,
+                pairs,
+                explanation
+            };
+
+            state.questions.push(q);
+            showQuestions();
+
+            // Clear form
+            document.getElementById('matchQ').value = '';
+            document.getElementById('matchExpl').value = '';
+            initMatchPairs();
+        }
+
+        function showQuestions() {
+            const list = document.getElementById('qList');
+            const count = document.getElementById('questionCount');
+            count.textContent = state.questions.length;
+
+            list.innerHTML = state.questions.map((q, i) => `
+                <div class="question-card ${q.type === 'MCQ' ? 'mcq' : 'match'}">
+                    <div class="question-info">
+                        <span class="question-type ${q.type === 'MCQ' ? 'mcq' : 'match'}">
+                            ${q.type === 'MCQ' ? 'MCQ' : 'MATCH'}
+                        </span>
+                        <strong>${q.question.substring(0, 50)}...</strong>
+                        <br><small style="color: #94a3b8;">Module: ${q.moduleTitle}</small>
+                    </div>
+                    <button class="btn btn-ghost btn-small" onclick="removeQuestion(${i})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Update submission summary
+            if (state.questions.length > 0) {
+                const selectedClasses = (state.selectedClasses && state.selectedClasses.length > 0) 
+                    ? state.selectedClasses 
+                    : [state.selectedClass];
+                
+                document.getElementById('summaryClasses').textContent = selectedClasses.join(' + ');
+                document.getElementById('summarySubject').textContent = state.selectedSubject || 'Not selected';
+                document.getElementById('summaryQCount').textContent = state.questions.length;
+                document.getElementById('submissionSummary').style.display = 'block';
+                document.getElementById('submitBtn').disabled = false;
+            } else {
+                document.getElementById('submissionSummary').style.display = 'none';
+                document.getElementById('submitBtn').disabled = true;
+            }
+        }
+
+        function removeQuestion(index) {
+            state.questions.splice(index, 1);
+            showQuestions();
+        }
+
+        // ========================================================================
+        // EXCEL UPLOAD
+        // ========================================================================
+
+        async function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Wait for XLSX library to be available
+            let retries = 10;
+            while (typeof XLSX === 'undefined' && retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                retries--;
+            }
+
+            if (typeof XLSX === 'undefined') {
+                document.getElementById('excelPreview').innerHTML = `
+                    <div class="alert err">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <strong>Excel library failed to load.</strong>
+                        <p style="margin-top: 10px;">
+                            Try these solutions:
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li><strong>Refresh the page</strong> (F5) and try again</li>
+                                <li>Check your <strong>internet connection</strong></li>
+                                <li>Try a different browser</li>
+                                <li>Check browser console (F12) for errors</li>
+                            </ul>
+                        </p>
+                    </div>
+                `;
+                document.getElementById('excelFile').value = '';
+                return;
+            }
+
+            const progress = document.getElementById('excelProgress');
+            progress.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'array' });
+                    let allData = [];
+
+                    // Read the "Questions" sheet (v4.0 single sheet format)
+                    for (const sheetName of workbook.SheetNames) {
+                        if (sheetName.toLowerCase().includes('instruction')) {
+                            continue;  // Skip instructions
+                        }
+
+                        const worksheet = workbook.Sheets[sheetName];
+                        const sheetData = XLSX.utils.sheet_to_json(worksheet);
+
+                        // Filter out empty rows
+                        for (let row of sheetData) {
+                            if (row && Object.keys(row).length > 0) {
+                                allData.push(row);
+                            }
+                        }
+                    }
+
+                    excelData = allData;
+
+                    // Show progress
+                    const total = allData.length;
+                    for (let i = 0; i <= 100; i += 10) {
+                        setTimeout(() => {
+                            document.getElementById('progressPercent').textContent = i;
+                            document.getElementById('progressFill').style.width = i + '%';
+                            if (i === 100) {
+                                if (total === 0) {
+                                    document.getElementById('progressStatus').innerHTML = `
+                                        <div class="status-message warning">
+                                            <i class="fas fa-exclamation-circle"></i> No questions found. Make sure file has data.
+                                        </div>
+                                    `;
+                                } else {
+                                    document.getElementById('progressStatus').innerHTML = `
+                                        <div class="status-message success">
+                                            <i class="fas fa-check-circle"></i> File processed: ${total} questions found
+                                        </div>
+                                    `;
+                                }
+                                showExcelPreview(allData);
+                            }
+                        }, i * 2);
+                    }
+                } catch (err) {
+                    document.getElementById('excelPreview').innerHTML = `
+                        <div class="alert err">
+                            <i class="fas fa-circle-exclamation"></i>
+                            Error reading file: ${err.message}
+                        </div>
+                    `;
+                    progress.classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showExcelPreview(data) {
+            if (data.length === 0) return;
+
+            const preview = document.getElementById('excelPreview');
+            preview.innerHTML = `
+                <div class="alert ok">
+                    <i class="fas fa-circle-check"></i>
+                    <strong>${data.length} questions ready to upload</strong>
+                </div>
+            `;
+
+            const thead = document.getElementById('excelTableHead');
+            const tbody = document.getElementById('excelTableBody');
+
+            const allHeaders = Object.keys(data[0]);
+            const headers = allHeaders.filter(h => !h.startsWith('__'));
+
+            thead.innerHTML = headers.map(h => `<th style="padding: 8px; text-align: left; border-bottom: 1px solid #334155;">${h}</th>`).join('');
+
+            tbody.innerHTML = data.slice(0, 10).map(row => `
+                <tr>
+                    ${headers.map(h => `<td style="padding: 8px; border-bottom: 1px solid #334155;">${row[h] || '—'}</td>`).join('')}
+                </tr>
+            `).join('');
+
+            if (data.length > 10) {
+                tbody.innerHTML += `<tr><td colspan="${headers.length}" style="text-align: center; color: #8b97ad; padding: 8px;">... and ${data.length - 10} more rows</td></tr>`;
+            }
+
+            document.getElementById('excelTableContainer').classList.remove('hidden');
+            document.getElementById('excelButtons').classList.remove('hidden');
+            document.getElementById('excelProgress').classList.add('hidden');
+        }
+
+        function clearExcelPreview() {
+            document.getElementById('excelFile').value = '';
+            // Note: Don't clear excelPreview - keep it visible for reference
+            // document.getElementById('excelPreview').innerHTML = '';
+            document.getElementById('excelTableContainer').classList.add('hidden');
+            document.getElementById('excelButtons').classList.add('hidden');
+            // Note: Don't clear excelData - in case user wants to retry
+            // excelData = [];
+        }
+
+        // ========================================================================
+        // PROCESSING STATE
+        // ========================================================================
+        
+        let isProcessingExcel = false;
+        let isSubmitting = false;
+
+        async function confirmExcelUpload() {
+            if (isProcessingExcel) {
+                console.log('⏳ Already processing, please wait...');
+                return;
+            }
+            
+            isProcessingExcel = true;
+            
+            const progressStatus = document.getElementById('progressStatus');
+            progressStatus.innerHTML = '';
+
+            if (excelData.length === 0) {
+                alert('Upload a file first');
+                return;
+            }
+
+            try {
+                console.log('📤 Starting Excel upload processing...', excelData.length, 'rows');
+                document.getElementById('excelProgress').classList.remove('hidden');
+                
+                // Clear previous questions for fresh import
+                const initialCount = state.questions.length;
+                
+                // Process each row
+                let processedCount = 0;
+                let validCount = 0;
+                let invalidCount = 0;
+
+                for (let i = 0; i < excelData.length; i++) {
+                    const row = excelData[i];
+                    const percent = Math.round((i / excelData.length) * 100);
+
+                    document.getElementById('progressPercent').textContent = percent;
+                    document.getElementById('progressFill').style.width = percent + '%';
+                    document.getElementById('progressStatus').innerHTML = `
+                        <div class="status-message">
+                            <i class="fas fa-spinner"></i> Processing ${i + 1} of ${excelData.length}...
+                        </div>
+                    `;
+
+                    processedCount++;
+                    
+                    // Validate row has required fields
+                    if (!row || Object.keys(row).length === 0) {
+                        console.log('⚠️ Row', i + 1, 'is empty');
+                        continue;
+                    }
+
+                    // Determine question type from "Question Type" column
+                    let qType = row['Question Type'] || 'MCQ';
+                    qType = qType.toUpperCase().trim();
+
+                    console.log('📝 Row', i + 1, '- Type:', qType, 'Title:', row['Module Title']);
+
+                    if (qType.includes('MCQ') || qType.includes('MULTIPLE')) {
+                        // MCQ Question
+                        const question = (row['Question'] || '').toString().trim();
+                        const optA = (row['Option A'] || row['A'] || '').toString().trim();
+                        const optB = (row['Option B'] || row['B'] || '').toString().trim();
+                        const optC = (row['Option C'] || row['C'] || '').toString().trim();
+                        const optD = (row['Option D'] || row['D'] || '').toString().trim();
+
+                        if (question && optA && optB && optC && optD) {
+                            const q = {
+                                type: 'MCQ',
+                                moduleTitle: (row['Module Title'] || state.selectedChapter || 'Untitled').toString().trim(),
+                                question: question,
+                                optionA: optA,
+                                optionB: optB,
+                                optionC: optC,
+                                optionD: optD,
+                                correctAnswer: (row['Correct Answer'] || row['Correct Option'] || 'A').toString().toUpperCase(),
+                                explanation: (row['Explanation'] || '').toString().trim(),
+                                teaching: (row['Teaching Notes'] || row['Teaching'] || '').toString().trim()
+                            };
+                            
+                            state.questions.push(q);
+                            validCount++;
+                            console.log('✅ Row', i + 1, 'MCQ added');
+                        } else {
+                            invalidCount++;
+                            const missing = [];
+                            if (!question) missing.push('Question');
+                            if (!optA) missing.push('Option A');
+                            if (!optB) missing.push('Option B');
+                            if (!optC) missing.push('Option C');
+                            if (!optD) missing.push('Option D');
+                            
+                            progressStatus.innerHTML += `
+                                <div class="status-message warning">
+                                    <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: Missing ${missing.join(', ')}
+                                </div>
+                            `;
+                            console.log('⚠️ Row', i + 1, 'MCQ invalid - missing:', missing.join(', '));
+                        }
+                    } else if (qType.includes('MATCH')) {
+                        // Match Question
+                        const question = (row['Question'] || '').toString().trim();
+                        let pairs = [];
+                        
+                        for (let j = 1; j <= 10; j++) {
+                            const left = (row[`Left ${j}`] || '').toString().trim();
+                            const right = (row[`Right ${j}`] || '').toString().trim();
+                            if (left && right) {
+                                pairs.push({ left, right });
+                            }
+                        }
+
+                        if (question && pairs.length >= 2) {
+                            const q = {
+                                type: 'MatchTheFollowing',
+                                moduleTitle: (row['Module Title'] || state.selectedChapter || 'Untitled').toString().trim(),
+                                question: question,
+                                pairs: pairs,
+                                explanation: (row['Explanation'] || '').toString().trim(),
+                                teaching: (row['Teaching Notes'] || row['Teaching'] || '').toString().trim()
+                            };
+                            
+                            state.questions.push(q);
+                            validCount++;
+                            console.log('✅ Row', i + 1, 'Match added with', pairs.length, 'pairs');
+                        } else {
+                            invalidCount++;
+                            const issues = [];
+                            if (!question) issues.push('Question');
+                            if (pairs.length < 2) issues.push(`Only ${pairs.length} pairs (need min 2)`);
+                            
+                            progressStatus.innerHTML += `
+                                <div class="status-message warning">
+                                    <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: ${issues.join(' - ')}
+                                </div>
+                            `;
+                            console.log('⚠️ Row', i + 1, 'Match invalid:', issues.join(' - '));
+                        }
+                    } else {
+                        invalidCount++;
+                        progressStatus.innerHTML += `
+                            <div class="status-message warning">
+                                <i class="fas fa-exclamation-circle"></i> Row ${i + 1}: Unknown question type "${qType}"
+                            </div>
+                        `;
+                        console.log('⚠️ Row', i + 1, 'Unknown type:', qType);
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+
+                // Final status
+                document.getElementById('progressPercent').textContent = '100';
+                document.getElementById('progressFill').style.width = '100%';
+                
+                const newCount = state.questions.length - initialCount;
+                console.log('✅ Excel import complete:', newCount, 'new questions added, Total:', state.questions.length);
+
+                if (newCount > 0) {
+                    progressStatus.innerHTML = `
+                        <div class="alert ok">
+                            <i class="fas fa-check-circle"></i> 
+                            <strong>Success!</strong> ${newCount} questions added from Excel
+                            <br><small style="color: #94a3b8; margin-top: 8px;">
+                                ${validCount} valid questions loaded, ${invalidCount} skipped due to errors
+                            </small>
+                        </div>
+                    `;
+                    
+                    // Don't clear Excel UI - let user see what was loaded
+                    // clearExcelPreview();
+                    showQuestions();
+                    document.getElementById('submitBtn').disabled = false;
+                    
+                    // Hide the upload buttons and show submit button
+                    document.getElementById('excelButtons').classList.add('hidden');
+                } else {
+                    progressStatus.innerHTML = `
+                        <div class="alert err">
+                            <i class="fas fa-circle-exclamation"></i> 
+                            <strong>No valid questions found!</strong>
+                            <br><small>Check that all required columns exist and data is complete</small>
+                        </div>
+                    `;
+                    console.error('❌ No valid questions loaded from Excel');
+                }
+
+            } catch (err) {
+                console.error('❌ Error in confirmExcelUpload:', err);
+                console.error('Stack:', err.stack);
+                document.getElementById('progressStatus').innerHTML = `
+                    <div class="alert err">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <strong>Error Processing File:</strong> ${err.message}
+                        <p style="margin-top: 10px; font-size: 12px;">
+                            Check console (F12) for details. Make sure:
+                            <ul style="margin-left: 20px;">
+                                <li>File is valid Excel (.xlsx)</li>
+                                <li>Column headers match template</li>
+                                <li>All required fields are filled</li>
+                            </ul>
+                        </p>
+                    </div>
+                `;
+            } finally {
+                isProcessingExcel = false;
+            }
+        }
+
+        async function downloadTemplate() {
+            try {
+                // Wait for XLSX library to be available
+                let retries = 10;
+                while (typeof XLSX === 'undefined' && retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    retries--;
+                }
+
+                if (typeof XLSX === 'undefined') {
+                    alert('Excel library failed to load.\n\nTry:\n1. Refresh the page (F5)\n2. Check internet connection\n3. Try a different browser');
+                    return;
+                }
+
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+
+                // Create instructions sheet
+                const instructionsData = [
+                    ['SUBJECT CONTENT UPLOADER - v4.0 (SINGLE SHEET)'],
+                    [''],
+                    ['WHAT\'S NEW IN v4.0'],
+                    [''],
+                    ['1. SINGLE SHEET UPLOAD', 'Use ONE sheet with both MCQ and Match questions'],
+                    ['2. CHAPTER SELECTION', 'System automatically detects chapters from "Module Title" column'],
+                    ['3. FLEXIBLE COLUMNS', 'Works with various column names and positions'],
+                    ['4. SEQUENTIAL NUMBERING', 'Questions auto-number within chapters'],
+                    [''],
+                    ['HOW TO USE'],
+                    [''],
+                    ['1. Column: Question Type', 'Enter MCQ or MatchTheFollowing (no spaces)'],
+                    ['2. Column: Module Title', 'Name of the chapter/section (required)'],
+                    ['3. MCQ Questions', 'Fill: Question, Option A/B/C/D, Correct Answer'],
+                    ['4. Match Questions', 'Fill: Question, Left 1, Right 1, Left 2, Right 2, etc.'],
+                    ['5. Optional Columns', 'Chapter Description, Subtopics, Teaching Notes, Explanation'],
+                    [''],
+                    ['IMPORTANT NOTES'],
+                    [''],
+                    ['• System auto-detects if chapter exists', '→ reuses it, else creates new one'],
+                    ['• Step numbers auto-increment', '→ continues from last step in chapter'],
+                    ['• Leave Module ID blank', '→ auto-generated by system'],
+                    ['• All text fields should be TEXT format', '→ not numbers']
+                ];
+
+                const instructionsSheet = XLSX.utils.aoa_to_sheet(instructionsData);
+                instructionsSheet['!cols'] = [{wch: 45}, {wch: 50}];
+                XLSX.utils.book_append_sheet(wb, instructionsSheet, 'Instructions');
+
+                // Create Questions sheet
+                const questionsData = [
+                    ['Question Type*', 'Module Title*', 'Question*', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
+                    ['MCQ', 'Percentage', 'What is 25% of 100?', '10', '20', '25', '30', 'C', '', '', '', '', '', '', '', '', '', '', 'Understand percentage as parts per hundred', 'Fractions, Decimals', 'Step 1: 25% means 25 out of 100', '25% of 100 equals 25', '', ''],
+                    ['MatchTheFollowing', 'Parts of Speech', 'Match words with parts', '', '', '', '', '', 'Happy', 'Adjective', 'Run', 'Verb', 'The', 'Article', '', '', '', '', 'Word classification', 'Nouns, Verbs, Adjectives', 'Review word functions', 'Different word types', '', '']
+                ];
+
+                const questionsSheet = XLSX.utils.aoa_to_sheet(questionsData);
+                questionsSheet['!cols'] = Array(questionsData[0].length).fill({wch: 15});
+                XLSX.utils.book_append_sheet(wb, questionsSheet, 'Questions');
+
+                // Download
+                XLSX.writeFile(wb, 'Question_Upload_Template_V4.xlsx');
+                console.log('✅ Template downloaded successfully');
+            } catch (err) {
+                console.error('❌ Error downloading template:', err);
+                alert('Error downloading template: ' + err.message + '\n\nTry refreshing the page and try again.');
+            }
+        }
+
+        // ========================================================================
+        // SUBMIT
+        // ========================================================================
+
+        async function submitQuestions() {
+            if (isSubmitting) {
+                console.log('⏳ Already submitting, please wait...');
+                alert('Submission already in progress, please wait...');
+                return;
+            }
+
+            if (state.questions.length === 0) {
+                alert('❌ No questions to upload. Please add questions first.');
+                return;
+            }
+
+            if (!state.selectedClass || !state.selectedSubject) {
+                alert('❌ Please select class and subject');
+                return;
+            }
+
+            isSubmitting = true;
+            
+            try {
+                document.getElementById('submitBtn').disabled = true;
+                
+                // Get all selected classes
+                const selectedClasses = state.selectedClasses && state.selectedClasses.length > 0 
+                    ? state.selectedClasses 
+                    : [state.selectedClass];
+
+                console.log('📤 Starting submission...');
+                console.log('Classes:', selectedClasses);
+                console.log('Subject:', state.selectedSubject);
+                console.log('Questions:', state.questions.length);
+                
+                let totalUploaded = 0;
+                const failedClasses = [];
+                
+                // Upload to each selected class
+                for (const classLevel of selectedClasses) {
+                    try {
+                        console.log(`📤 Uploading to ${classLevel}...`);
+                        
+                        const response = await fetch(state.scriptUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'uploadQuestions',
+                                class: classLevel,
+                                subject: state.selectedSubject,
+                                questions: state.questions,
+                                secret: state.secret
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+
+                        const result = await response.json();
+
+                        if (result.error) {
+                            // Backend now reports a real reason (missing Class Subject Map
+                            // entry, missing tab/column, etc.) instead of silently
+                            // returning 0 as if nothing were wrong.
+                            throw new Error(result.error);
+                        }
+
+                        const uploaded = result.uploadedCount || 0;
+                        const total = result.totalQuestions !== undefined ? result.totalQuestions : state.questions.length;
+
+                        if (uploaded === 0) {
+                            throw new Error('0 of ' + total + ' questions were uploaded. ' +
+                                (result.errors && result.errors.length ? result.errors.join(' | ') : 'No further detail was returned - check Apps Script Executions log.'));
+                        }
+
+                        totalUploaded += uploaded;
+
+                        if (uploaded < total) {
+                            // Partial success within this single class - still record it
+                            // as a failure so the summary below is accurate, but don't
+                            // lose the count of what DID make it through.
+                            const detail = (result.errors && result.errors.length) ? result.errors.join(' | ') : 'some rows were rejected';
+                            failedClasses.push(`${classLevel}: only ${uploaded}/${total} uploaded - ${detail}`);
+                        } else {
+                            console.log(`✅ Uploaded ${uploaded} questions to ${classLevel}`);
+                        }
+                    } catch (classErr) {
+                        console.error(`❌ Failed to upload to ${classLevel}:`, classErr);
+                        failedClasses.push(`${classLevel}: ${classErr.message}`);
+                    }
+                }
+
+                // Show results
+                if (failedClasses.length === 0) {
+                    // All successful
+                    alert(`✅ SUCCESS!\n\n${totalUploaded} questions uploaded to ${selectedClasses.length} class(es)!\n\n${selectedClasses.join(' + ')}`);
+                    console.log('✅ All uploads successful!');
+                    
+                    // Clear and reset
+                    state.questions = [];
+                    state.selectedClasses = [];
+                    excelData = [];
+                    showQuestions();
+                    goToStep1();
+                } else if (failedClasses.length < selectedClasses.length) {
+                    // Partial success
+                    const successCount = selectedClasses.length - failedClasses.length;
+                    alert(`⚠️ PARTIAL SUCCESS\n\n${totalUploaded} questions uploaded to ${successCount} class(es).\n\nFailed:\n${failedClasses.join('\n')}`);
+                    console.log('⚠️ Partial upload completed');
+                } else {
+                    // All failed
+                    throw new Error(`Failed to upload to all classes:\n${failedClasses.join('\n')}`);
+                }
+            } catch (err) {
+                console.error('❌ Error submitting:', err);
+                alert(`❌ ERROR: ${err.message}\n\nPlease check:\n1. Internet connection\n2. Backend URL (⚙️ Settings)\n3. Browser console (F12) for details`);
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+                isSubmitting = false;
+            }
+        }
+
+        // Initialize on load
+        // ========================================================================
+        // REORGANISE SUBJECT
+        // ========================================================================
+
+        let isReorganising = false;
+
+        async function openReorganiseConfirm() {
+            if (!state.selectedClass || !state.selectedSubject) {
+                alert('Select a Class and Subject first.');
+                return;
+            }
+
+            document.getElementById('reorganiseTargetLabel').textContent =
+                `${state.selectedClass} · ${state.selectedSubject}`;
+            document.getElementById('reorganiseCurrentStats').textContent = 'Loading current counts...';
+            document.getElementById('reorganiseConfirmModal').classList.remove('hidden');
+
+            try {
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'getReorganisePreview',
+                        class: state.selectedClass,
+                        subject: state.selectedSubject,
+                        secret: state.secret
+                    })
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('reorganiseCurrentStats').textContent =
+                        'Could not load current counts: ' + data.error;
+                    return;
+                }
+
+                let statsHtml = `Currently: <strong>${data.moduleCount ?? '?'}</strong> module(s), <strong>${data.stepCount ?? '?'}</strong> question(s) for ${state.selectedClass} · ${state.selectedSubject}.`;
+                if (data.pendingDeleteCount > 0) {
+                    statsHtml += `<br><span style="color: #fbbf24;">⚠️ <strong>${data.pendingDeleteCount}</strong> row(s) are marked "OK to Delete" and will be permanently removed this run.</span>`;
+                }
+                document.getElementById('reorganiseCurrentStats').innerHTML = statsHtml;
+            } catch (err) {
+                document.getElementById('reorganiseCurrentStats').textContent =
+                    'Could not load current counts (will still show a full summary after running).';
+            }
+        }
+
+        function closeReorganiseConfirm() {
+            document.getElementById('reorganiseConfirmModal').classList.add('hidden');
+        }
+
+        // Apps Script's doPost is a single synchronous call - there's no
+        // real server-side progress stream to subscribe to. This timed
+        // sequence gives honest, informative feedback ("what phase is
+        // probably running right now") while the one real network request
+        // is in flight, and always snaps to the real result the moment the
+        // response actually arrives (whichever happens first).
+        const REORGANISE_STAGES = [
+            'Removing rows marked OK to Delete...',
+            'Reading Learning Modules...',
+            'Updating Module IDs...',
+            'Updating Learning Steps...',
+            'Renumbering Steps...',
+            'Normalizing Question Type & Active...',
+            'Checking Duplicate Questions...',
+            'Checking Duplicate Answers...',
+            'Applying Highlights...',
+            'Saving Changes...'
+        ];
+
+        async function confirmReorganiseSubject() {
+            if (isReorganising) return;
+            isReorganising = true;
+
+            closeReorganiseConfirm();
+            document.getElementById('reorganiseProgressModal').classList.remove('hidden');
+
+            let stageIndex = 0;
+            const totalStages = REORGANISE_STAGES.length;
+            const setStage = (i) => {
+                const pct = Math.round(((i + 1) / (totalStages + 1)) * 100); // leave headroom for "Completed"
+                document.getElementById('reorganiseStageText').textContent = REORGANISE_STAGES[i];
+                document.getElementById('reorganiseProgressPercent').textContent = pct;
+                document.getElementById('reorganiseProgressFill').style.width = pct + '%';
+            };
+            setStage(0);
+
+            const stageInterval = setInterval(() => {
+                stageIndex = Math.min(stageIndex + 1, totalStages - 1);
+                setStage(stageIndex);
+            }, 650);
+
+            try {
+                const response = await fetch(state.scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'reorganise',
+                        class: state.selectedClass,
+                        subject: state.selectedSubject,
+                        secret: state.secret
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                clearInterval(stageInterval);
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                document.getElementById('reorganiseProgressPercent').textContent = '100';
+                document.getElementById('reorganiseProgressFill').style.width = '100%';
+                document.getElementById('reorganiseStageText').textContent = 'Completed';
+
+                showReorganiseSummary(result);
+            } catch (err) {
+                clearInterval(stageInterval);
+                console.error('❌ Reorganise error:', err);
+                document.getElementById('reorganiseProgressModal').classList.add('hidden');
+                alert(`❌ REORGANISE FAILED\n\n${err.message}\n\nNo rows were deleted beyond what you had already approved - your other data is unchanged. Check the browser console (F12) or the Apps Script Executions log for more detail.`);
+            } finally {
+                isReorganising = false;
+            }
+        }
+
+        function showReorganiseSummary(result) {
+            document.getElementById('reorganiseProgressModal').classList.add('hidden');
+
+            const errors = result.errors || [];
+            const hasErrors = errors.length > 0;
+
+            document.getElementById('reorganiseSummaryTitle').textContent =
+                hasErrors ? '⚠️ Reorganisation Complete (with warnings)' : '✅ Reorganisation Complete';
+
+            let body = `
+                <div>Modules Processed: <strong>${result.modulesProcessed ?? 0}</strong></div>
+                <div>Learning Steps Updated: <strong>${result.learningStepsUpdated ?? 0}</strong></div>
+                <div>Module IDs Regenerated: <strong>${result.moduleIdsRegenerated ?? 0}</strong></div>
+                <div>Questions Checked: <strong>${result.questionsChecked ?? 0}</strong></div>
+                <div>Question Types Normalized: <strong>${result.questionTypesNormalized ?? 0}</strong></div>
+                <div>Active Flags Set: <strong>${result.activeFlagsSet ?? 0}</strong></div>
+                <div>Duplicate Questions Found: <strong>${result.duplicateQuestionsFound ?? 0}</strong></div>
+                <div>Duplicate Answers Found: <strong>${result.duplicateAnswersFound ?? 0}</strong></div>
+                <div>Rows Highlighted: <strong>${result.rowsHighlighted ?? 0}</strong></div>
+                <div>Rows Awaiting Review: <strong>${result.rowsAwaitingReview ?? 0}</strong></div>
+                <div>Rows Reviewed &amp; Kept: <strong>${result.rowsReviewedKept ?? 0}</strong></div>
+                <div style="margin-top: 6px; ${result.rowsDeleted > 0 ? 'color: #fbbf24;' : ''}">Rows Deleted (previously approved by you): <strong>${result.rowsDeleted ?? 0}</strong></div>
+                <div style="margin-top: 10px; color: #34d399;">No question was deleted unless you had already marked it "OK to Delete".</div>
+            `;
+
+            if (hasErrors) {
+                body += `<div style="margin-top: 12px; padding: 10px; background: #1e293b; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; color: #fbbf24;">
+                    ${errors.map(e => `• ${e}`).join('<br>')}
+                </div>`;
+            }
+
+            document.getElementById('reorganiseSummaryBody').innerHTML = body;
+            document.getElementById('reorganiseSummaryModal').classList.remove('hidden');
+        }
+
+        function closeReorganiseSummary() {
+            document.getElementById('reorganiseSummaryModal').classList.add('hidden');
+        }
+
+        window.addEventListener('load', initApp);
+    </script>
 </body>
 </html>
