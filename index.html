@@ -654,7 +654,7 @@
                         <label>Question Type *</label>
                         <select id="qType" onchange="updateQuestionForm()">
                             <option value="MCQ">Multiple Choice (MCQ)</option>
-                            <option value="Match the Following">Match the Following</option>
+                            <option value="MatchTheFollowing">Match the Following</option>
                         </select>
                     </div>
 
@@ -710,7 +710,7 @@
                     <div id="matchForm" class="hidden">
                         <div class="field">
                             <label>Question Text *</label>
-                            <textarea id="matchQ" placeholder="Match the following..."></textarea>
+                            <textarea id="matchQ" placeholder="MatchTheFollowing..."></textarea>
                         </div>
 
                         <h3 style="margin-top: 20px; color: #00c6a7;">Matching Pairs (Min 2, Max 5)</h3>
@@ -1504,7 +1504,7 @@
             }
 
             const q = {
-                type: 'Match the Following',
+                type: 'MatchTheFollowing',
                 moduleTitle: state.selectedChapter || document.getElementById('manualChapterTitle').value || 'Untitled Chapter',
                 question,
                 pairs,
@@ -1823,7 +1823,7 @@
 
                         if (question && pairs.length >= 2) {
                             const q = {
-                                type: 'Match the Following',
+                                type: 'MatchTheFollowing',
                                 moduleTitle: (row['Module Title'] || state.selectedChapter || 'Untitled').toString().trim(),
                                 question: question,
                                 pairs: pairs,
@@ -1970,7 +1970,7 @@
                 const questionsData = [
                     ['Question Type*', 'Module Title*', 'Question*', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
                     ['MCQ', 'Percentage', 'What is 25% of 100?', '10', '20', '25', '30', 'C', '', '', '', '', '', '', '', '', '', '', 'Understand percentage as parts per hundred', 'Fractions, Decimals', 'Step 1: 25% means 25 out of 100', '25% of 100 equals 25', '', ''],
-                    ['Match the Following', 'Parts of Speech', 'Match words with parts', '', '', '', '', '', 'Happy', 'Adjective', 'Run', 'Verb', 'The', 'Article', '', '', '', '', 'Word classification', 'Nouns, Verbs, Adjectives', 'Review word functions', 'Different word types', '', '']
+                    ['MatchTheFollowing', 'Parts of Speech', 'Match words with parts', '', '', '', '', '', 'Happy', 'Adjective', 'Run', 'Verb', 'The', 'Article', '', '', '', '', 'Word classification', 'Nouns, Verbs, Adjectives', 'Review word functions', 'Different word types', '', '']
                 ];
 
                 const questionsSheet = XLSX.utils.aoa_to_sheet(questionsData);
