@@ -454,20 +454,21 @@
             display: flex; align-items: center; justify-content: center;
             z-index: 1000;
         ">
-            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 520px; width: 90%; border: 2px solid #f59e0b;">
+            <div style="background: #0f172a; padding: 30px; border-radius: 12px; max-width: 540px; width: 90%; border: 2px solid #f59e0b;">
                 <h2 style="color: #e2e8f0; margin-bottom: 10px;">🎉 Reorganise Subject</h2>
                 <div id="reorganiseTargetLabel" style="color: #94a3b8; margin-bottom: 15px; font-size: 14px;"></div>
 
                 <p style="color: #cbd5e1; margin-bottom: 10px;">This operation will:</p>
                 <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.9; margin-bottom: 15px; padding-left: 20px;">
-                    <li>Regenerate Module IDs</li>
-                    <li>Update all Module references</li>
+                    <li>Regenerate Module IDs and update all Module references</li>
+                    <li>Recover any steps pointing at a missing Module ID into a new module, following the same ID rule</li>
                     <li>Renumber Learning Steps</li>
-                    <li>Detect duplicate questions</li>
-                    <li>Detect duplicate long answers</li>
-                    <li>Highlight duplicates in pink</li>
-                    <li>Preserve every question</li>
-                    <li style="color: #34d399;"><strong>Delete nothing</strong></li>
+                    <li>Detect duplicate questions and duplicate long answers</li>
+                    <li>Highlight duplicates with a reason, for you to review</li>
+                    <li>Normalize Question Type to "MCQ" / "MatchTheFollowing"</li>
+                    <li>Set "Active" to TRUE for every valid row</li>
+                    <li style="color: #34d399;"><strong>Preserve every question by default</strong></li>
+                    <li style="color: #fbbf24;">Delete <strong>only</strong> rows YOU previously marked "OK to Delete" in the Review Status column</li>
                 </ul>
 
                 <div id="reorganiseCurrentStats" style="background: #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #94a3b8;">
@@ -569,7 +570,7 @@
                         <i class="fas fa-broom"></i> Maintenance
                     </h3>
                     <p style="color: #94a3b8; font-size: 13px; margin-bottom: 12px;">
-                        Clean up Module IDs, step numbering, and flag likely duplicate questions for this Class + Subject. Never deletes anything.
+                        Clean up Module IDs, step numbering, and flag likely duplicate questions for this Class + Subject.
                     </p>
                     <button class="btn btn-ghost" onclick="openReorganiseConfirm()">
                         🎉 Reorganise Subject
@@ -654,7 +655,7 @@
                         <label>Question Type *</label>
                         <select id="qType" onchange="updateQuestionForm()">
                             <option value="MCQ">Multiple Choice (MCQ)</option>
-                            <option value="MatchTheFollowing">MatchTheFollowing</option>
+                            <option value="MatchTheFollowing">Match the Following</option>
                         </select>
                     </div>
 
@@ -710,7 +711,7 @@
                     <div id="matchForm" class="hidden">
                         <div class="field">
                             <label>Question Text *</label>
-                            <textarea id="matchQ" placeholder="MatchTheFollowing..."></textarea>
+                            <textarea id="matchQ" placeholder="Match the following..."></textarea>
                         </div>
 
                         <h3 style="margin-top: 20px; color: #00c6a7;">Matching Pairs (Min 2, Max 5)</h3>
@@ -1032,7 +1033,6 @@
                 document.getElementById('subjectSelect').innerHTML = '<option value="">Select a subject...</option>';
                 updateNextButtonState();
                 updateSelectedClassesSummary();
-                updateReorganiseSectionVisibility();
                 return;
             }
 
@@ -1948,7 +1948,7 @@
                     [''],
                     ['HOW TO USE'],
                     [''],
-                    ['1. Column: Question Type', 'Enter MCQ or MatchTheFollowing'],
+                    ['1. Column: Question Type', 'Enter MCQ or MatchTheFollowing (no spaces)'],
                     ['2. Column: Module Title', 'Name of the chapter/section (required)'],
                     ['3. MCQ Questions', 'Fill: Question, Option A/B/C/D, Correct Answer'],
                     ['4. Match Questions', 'Fill: Question, Left 1, Right 1, Left 2, Right 2, etc.'],
@@ -1968,7 +1968,7 @@
 
                 // Create Questions sheet
                 const questionsData = [
-                    ['Question Type', 'Module Title', 'Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
+                    ['Question Type*', 'Module Title*', 'Question*', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
                     ['MCQ', 'Percentage', 'What is 25% of 100?', '10', '20', '25', '30', 'C', '', '', '', '', '', '', '', '', '', '', 'Understand percentage as parts per hundred', 'Fractions, Decimals', 'Step 1: 25% means 25 out of 100', '25% of 100 equals 25', '', ''],
                     ['MatchTheFollowing', 'Parts of Speech', 'Match words with parts', '', '', '', '', '', 'Happy', 'Adjective', 'Run', 'Verb', 'The', 'Article', '', '', '', '', 'Word classification', 'Nouns, Verbs, Adjectives', 'Review word functions', 'Different word types', '', '']
                 ];
@@ -2109,6 +2109,7 @@
             }
         }
 
+        // Initialize on load
         // ========================================================================
         // REORGANISE SUBJECT
         // ========================================================================
@@ -2126,22 +2127,29 @@
             document.getElementById('reorganiseCurrentStats').textContent = 'Loading current counts...';
             document.getElementById('reorganiseConfirmModal').classList.remove('hidden');
 
-            // Best-effort: show real current module/question counts so the
-            // confirmation dialog isn't just generic boilerplate text.
             try {
                 const response = await fetch(state.scriptUrl, {
                     method: 'POST',
                     body: JSON.stringify({
-                        action: 'getModuleInfo',
+                        action: 'getReorganisePreview',
                         class: state.selectedClass,
                         subject: state.selectedSubject,
                         secret: state.secret
                     })
                 });
                 const data = await response.json();
-                const modules = data.moduleInfo || [];
-                document.getElementById('reorganiseCurrentStats').innerHTML =
-                    `Currently: <strong>${modules.length}</strong> module(s) found for ${state.selectedClass} · ${state.selectedSubject}.`;
+
+                if (data.error) {
+                    document.getElementById('reorganiseCurrentStats').textContent =
+                        'Could not load current counts: ' + data.error;
+                    return;
+                }
+
+                let statsHtml = `Currently: <strong>${data.moduleCount ?? '?'}</strong> module(s), <strong>${data.stepCount ?? '?'}</strong> question(s) for ${state.selectedClass} · ${state.selectedSubject}.`;
+                if (data.pendingDeleteCount > 0) {
+                    statsHtml += `<br><span style="color: #fbbf24;">⚠️ <strong>${data.pendingDeleteCount}</strong> row(s) are marked "OK to Delete" and will be permanently removed this run.</span>`;
+                }
+                document.getElementById('reorganiseCurrentStats').innerHTML = statsHtml;
             } catch (err) {
                 document.getElementById('reorganiseCurrentStats').textContent =
                     'Could not load current counts (will still show a full summary after running).';
@@ -2159,10 +2167,13 @@
         // is in flight, and always snaps to the real result the moment the
         // response actually arrives (whichever happens first).
         const REORGANISE_STAGES = [
+            'Removing rows marked OK to Delete...',
             'Reading Learning Modules...',
             'Updating Module IDs...',
+            'Recovering orphaned steps into modules...',
             'Updating Learning Steps...',
             'Renumbering Steps...',
+            'Normalizing Question Type & Active...',
             'Checking Duplicate Questions...',
             'Checking Duplicate Answers...',
             'Applying Highlights...',
@@ -2189,7 +2200,7 @@
             const stageInterval = setInterval(() => {
                 stageIndex = Math.min(stageIndex + 1, totalStages - 1);
                 setStage(stageIndex);
-            }, 700);
+            }, 650);
 
             try {
                 const response = await fetch(state.scriptUrl, {
@@ -2222,7 +2233,7 @@
                 clearInterval(stageInterval);
                 console.error('❌ Reorganise error:', err);
                 document.getElementById('reorganiseProgressModal').classList.add('hidden');
-                alert(`❌ REORGANISE FAILED\n\n${err.message}\n\nNothing was deleted - your existing data is unchanged. Check the browser console (F12) or the Apps Script Executions log for more detail.`);
+                alert(`❌ REORGANISE FAILED\n\n${err.message}\n\nNo rows were deleted beyond what you had already approved - your other data is unchanged. Check the browser console (F12) or the Apps Script Executions log for more detail.`);
             } finally {
                 isReorganising = false;
             }
@@ -2239,14 +2250,19 @@
 
             let body = `
                 <div>Modules Processed: <strong>${result.modulesProcessed ?? 0}</strong></div>
+                <div>Orphaned Modules Recovered: <strong>${result.orphanModulesCreated ?? 0}</strong></div>
                 <div>Learning Steps Updated: <strong>${result.learningStepsUpdated ?? 0}</strong></div>
                 <div>Module IDs Regenerated: <strong>${result.moduleIdsRegenerated ?? 0}</strong></div>
                 <div>Questions Checked: <strong>${result.questionsChecked ?? 0}</strong></div>
+                <div>Question Types Normalized: <strong>${result.questionTypesNormalized ?? 0}</strong></div>
+                <div>Active Flags Set: <strong>${result.activeFlagsSet ?? 0}</strong></div>
                 <div>Duplicate Questions Found: <strong>${result.duplicateQuestionsFound ?? 0}</strong></div>
                 <div>Duplicate Answers Found: <strong>${result.duplicateAnswersFound ?? 0}</strong></div>
                 <div>Rows Highlighted: <strong>${result.rowsHighlighted ?? 0}</strong></div>
-                <div>Errors: <strong>${errors.length}</strong></div>
-                <div style="margin-top: 10px; color: #34d399;">No questions were deleted.</div>
+                <div>Rows Awaiting Review: <strong>${result.rowsAwaitingReview ?? 0}</strong></div>
+                <div>Rows Reviewed &amp; Kept: <strong>${result.rowsReviewedKept ?? 0}</strong></div>
+                <div style="margin-top: 6px; ${result.rowsDeleted > 0 ? 'color: #fbbf24;' : ''}">Rows Deleted (previously approved by you): <strong>${result.rowsDeleted ?? 0}</strong></div>
+                <div style="margin-top: 10px; color: #34d399;">No question was deleted unless you had already marked it "OK to Delete".</div>
             `;
 
             if (hasErrors) {
@@ -2263,7 +2279,6 @@
             document.getElementById('reorganiseSummaryModal').classList.add('hidden');
         }
 
-        // Initialize on load
         window.addEventListener('load', initApp);
     </script>
 </body>
