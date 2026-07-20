@@ -464,11 +464,12 @@
                     <li>Recover any steps pointing at a missing Module ID into a new module, following the same ID rule</li>
                     <li>Renumber Learning Steps</li>
                     <li>Detect duplicate questions and duplicate long answers</li>
-                    <li>Highlight duplicates with a reason, for you to review</li>
+                    <li>Highlight partial duplicates with a reason, for you to review</li>
                     <li>Normalize Question Type to "MCQ" / "MatchTheFollowing"</li>
                     <li>Set "Active" to TRUE for every valid row</li>
                     <li style="color: #34d399;"><strong>Preserve every question by default</strong></li>
-                    <li style="color: #fbbf24;">Delete <strong>only</strong> rows YOU previously marked "OK to Delete" in the Review Status column</li>
+                    <li style="color: #f87171;">Automatically delete <strong>exact</strong> duplicates - rows with the identical question AND identical answer - keeping only the first copy</li>
+                    <li style="color: #fbbf24;">For every other duplicate (same question <em>or</em> same answer, not both), delete <strong>only</strong> rows YOU previously marked "OK to Delete" in the Review Status column</li>
                 </ul>
 
                 <div id="reorganiseCurrentStats" style="background: #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #94a3b8;">
@@ -2146,6 +2147,9 @@
                 }
 
                 let statsHtml = `Currently: <strong>${data.moduleCount ?? '?'}</strong> module(s), <strong>${data.stepCount ?? '?'}</strong> question(s) for ${state.selectedClass} · ${state.selectedSubject}.`;
+                if (data.exactDuplicatesPendingRemoval > 0) {
+                    statsHtml += `<br><span style="color: #f87171;">🗑️ <strong>${data.exactDuplicatesPendingRemoval}</strong> row(s) are exact duplicates (same question + same answer) and will be automatically removed this run.</span>`;
+                }
                 if (data.pendingDeleteCount > 0) {
                     statsHtml += `<br><span style="color: #fbbf24;">⚠️ <strong>${data.pendingDeleteCount}</strong> row(s) are marked "OK to Delete" and will be permanently removed this run.</span>`;
                 }
@@ -2168,6 +2172,7 @@
         // response actually arrives (whichever happens first).
         const REORGANISE_STAGES = [
             'Removing rows marked OK to Delete...',
+            'Removing exact duplicate questions...',
             'Reading Learning Modules...',
             'Updating Module IDs...',
             'Recovering orphaned steps into modules...',
@@ -2261,8 +2266,9 @@
                 <div>Rows Highlighted: <strong>${result.rowsHighlighted ?? 0}</strong></div>
                 <div>Rows Awaiting Review: <strong>${result.rowsAwaitingReview ?? 0}</strong></div>
                 <div>Rows Reviewed &amp; Kept: <strong>${result.rowsReviewedKept ?? 0}</strong></div>
-                <div style="margin-top: 6px; ${result.rowsDeleted > 0 ? 'color: #fbbf24;' : ''}">Rows Deleted (previously approved by you): <strong>${result.rowsDeleted ?? 0}</strong></div>
-                <div style="margin-top: 10px; color: #34d399;">No question was deleted unless you had already marked it "OK to Delete".</div>
+                <div style="margin-top: 6px; ${result.exactDuplicatesRemoved > 0 ? 'color: #f87171;' : ''}">Exact Duplicates Auto-Removed (same question + same answer): <strong>${result.exactDuplicatesRemoved ?? 0}</strong></div>
+                <div style="${result.rowsDeleted > 0 ? 'color: #fbbf24;' : ''}">Rows Deleted (previously approved by you): <strong>${result.rowsDeleted ?? 0}</strong></div>
+                <div style="margin-top: 10px; color: #34d399;">No other question was deleted unless you had already marked it "OK to Delete".</div>
             `;
 
             if (hasErrors) {
