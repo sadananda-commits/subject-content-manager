@@ -470,6 +470,7 @@
                     <li>Set "Active" to TRUE for every valid row</li>
                     <li style="color: #34d399;"><strong>Preserve every question by default</strong></li>
                     <li style="color: #f87171;">Automatically delete <strong>exact</strong> duplicates - rows with the identical question AND identical answer - keeping only the first copy</li>
+                    <li>Archive the full content of every deleted row to a "Deleted Duplicates" tab in this workbook first, so nothing is ever permanently lost</li>
                     <li style="color: #fbbf24;">For every other duplicate (same question <em>or</em> same answer, not both), delete <strong>only</strong> rows YOU previously marked "OK to Delete" in the Review Status column</li>
                 </ul>
 
@@ -2271,7 +2272,7 @@
                 <div>Rows Reviewed &amp; Kept: <strong>${result.rowsReviewedKept ?? 0}</strong></div>
                 <div style="margin-top: 6px; ${result.exactDuplicatesRemoved > 0 ? 'color: #f87171;' : ''}">Exact Duplicates Auto-Removed (same question + same answer): <strong>${result.exactDuplicatesRemoved ?? 0}</strong></div>
                 <div style="${result.rowsDeleted > 0 ? 'color: #fbbf24;' : ''}">Rows Deleted (previously approved by you): <strong>${result.rowsDeleted ?? 0}</strong></div>
-                <div style="margin-top: 10px; color: #34d399;">No other question was deleted unless you had already marked it "OK to Delete".</div>
+                <div style="margin-top: 10px; color: #34d399;">No other question was deleted unless you had already marked it "OK to Delete". Every deleted row's full content was archived to the "Deleted Duplicates" tab first.</div>
             `;
 
             if (hasErrors) {
