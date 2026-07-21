@@ -1971,7 +1971,7 @@
 
                 // Create Questions sheet
                 const questionsData = [
-                    ['Question Type*', 'Module Title*', 'Question*', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
+                    ['Question Type', 'Module Title', 'Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
                     ['MCQ', 'Percentage', 'What is 25% of 100?', '10', '20', '25', '30', 'C', '', '', '', '', '', '', '', '', '', '', 'Understand percentage as parts per hundred', 'Fractions, Decimals', 'Step 1: 25% means 25 out of 100', '25% of 100 equals 25', '', ''],
                     ['MatchTheFollowing', 'Parts of Speech', 'Match words with parts', '', '', '', '', '', 'Happy', 'Adjective', 'Run', 'Verb', 'The', 'Article', '', '', '', '', 'Word classification', 'Nouns, Verbs, Adjectives', 'Review word functions', 'Different word types', '', '']
                 ];
@@ -1981,7 +1981,7 @@
                 XLSX.utils.book_append_sheet(wb, questionsSheet, 'Questions');
 
                 // Download
-                XLSX.writeFile(wb, 'Question_Upload_Template_V4.xlsx');
+                XLSX.writeFile(wb, 'Question_Upload_Template.xlsx');
                 console.log('✅ Template downloaded successfully');
             } catch (err) {
                 console.error('❌ Error downloading template:', err);
