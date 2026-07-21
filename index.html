@@ -463,6 +463,7 @@
                     <li>Regenerate Module IDs and update all Module references</li>
                     <li>Recover any steps pointing at a missing Module ID into a new module, following the same ID rule</li>
                     <li>Renumber Learning Steps</li>
+                    <li>Recalculate "Question Count" on each chapter in Learning Modules from the actual number of questions in Learning Steps</li>
                     <li>Physically group each module's questions together in curriculum order, sorted by Step Number - not just relabel numbers in place</li>
                     <li>Detect duplicate questions and duplicate long answers</li>
                     <li>Highlight partial duplicates with a reason, for you to review</li>
@@ -2180,6 +2181,7 @@
             'Recovering orphaned steps into modules...',
             'Updating Learning Steps...',
             'Renumbering Steps...',
+            'Updating Question Counts...',
             'Reordering rows into module + step order...',
             'Normalizing Question Type & Active...',
             'Checking Duplicate Questions...',
@@ -2262,6 +2264,7 @@
                 <div>Learning Steps Updated: <strong>${result.learningStepsUpdated ?? 0}</strong></div>
                 <div>Module IDs Regenerated: <strong>${result.moduleIdsRegenerated ?? 0}</strong></div>
                 <div>Rows Physically Reordered: <strong>${result.rowsPhysicallyMoved ?? 0}</strong></div>
+                <div>Question Counts Updated: <strong>${result.questionCountsUpdated ?? 0}</strong></div>
                 <div>Questions Checked: <strong>${result.questionsChecked ?? 0}</strong></div>
                 <div>Question Types Normalized: <strong>${result.questionTypesNormalized ?? 0}</strong></div>
                 <div>Active Flags Set: <strong>${result.activeFlagsSet ?? 0}</strong></div>
