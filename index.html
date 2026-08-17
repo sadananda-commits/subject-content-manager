@@ -144,6 +144,31 @@
             font-size: 12px;
         }
 
+        .mcq-correct-checks {
+            display: flex;
+            gap: 18px;
+            padding: 10px 12px;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            background: #0f172a;
+        }
+
+        .mcq-correct-checks label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #e2e8f0;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .mcq-correct-checks input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
         .grid2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -463,15 +488,13 @@
                     <li>Regenerate Module IDs and update all Module references</li>
                     <li>Recover any steps pointing at a missing Module ID into a new module, following the same ID rule</li>
                     <li>Renumber Learning Steps</li>
-                    <li>Recalculate "Question Count" on each chapter in Learning Modules from the actual number of questions in Learning Steps</li>
                     <li>Physically group each module's questions together in curriculum order, sorted by Step Number - not just relabel numbers in place</li>
                     <li>Detect duplicate questions and duplicate long answers</li>
                     <li>Highlight partial duplicates with a reason, for you to review</li>
                     <li>Normalize Question Type to "MCQ" / "MatchTheFollowing"</li>
                     <li>Set "Active" to TRUE for every valid row</li>
                     <li style="color: #34d399;"><strong>Preserve every question by default</strong></li>
-                    <li style="color: #f87171;">Automatically delete <strong>100% exact</strong> duplicates only - question, Option A, Option B, Option C, Option D (each in the same position), and the correct answer must ALL match - keeping only the first copy</li>
-                    <li>Archive the full content of every deleted row to a "Deleted Duplicates" tab in this workbook first, so nothing is ever permanently lost</li>
+                    <li style="color: #f87171;">Automatically delete <strong>exact</strong> duplicates - rows with the identical question AND identical answer - keeping only the first copy</li>
                     <li style="color: #fbbf24;">For every other duplicate (same question <em>or</em> same answer, not both), delete <strong>only</strong> rows YOU previously marked "OK to Delete" in the Review Status column</li>
                 </ul>
 
@@ -697,13 +720,13 @@
                         </div>
 
                         <div class="field">
-                            <label>Correct Answer *</label>
-                            <select id="mcqCorrect">
-                                <option>A</option>
-                                <option>B</option>
-                                <option>C</option>
-                                <option>D</option>
-                            </select>
+                            <label>Correct Answer(s) * <small style="color:#94a3b8;">(check ALL that apply &mdash; check more than one for a multi-select question)</small></label>
+                            <div class="mcq-correct-checks">
+                                <label><input type="checkbox" class="mcqCorrectChk" value="A"> A</label>
+                                <label><input type="checkbox" class="mcqCorrectChk" value="B"> B</label>
+                                <label><input type="checkbox" class="mcqCorrectChk" value="C"> C</label>
+                                <label><input type="checkbox" class="mcqCorrectChk" value="D"> D</label>
+                            </div>
                         </div>
 
                         <button class="btn btn-primary" onclick="addMCQ()" style="margin-top: 15px;">
@@ -1400,13 +1423,17 @@
             }
         }
 
+        function getCheckedMcqCorrectLetters() {
+            return Array.from(document.querySelectorAll('.mcqCorrectChk:checked')).map(el => el.value);
+        }
+
         function addMCQ() {
             const question = document.getElementById('mcqQ').value.trim();
             const optA = document.getElementById('mcqA').value.trim();
             const optB = document.getElementById('mcqB').value.trim();
             const optC = document.getElementById('mcqC').value.trim();
             const optD = document.getElementById('mcqD').value.trim();
-            const correct = document.getElementById('mcqCorrect').value;
+            const correctLetters = getCheckedMcqCorrectLetters();
             const explanation = document.getElementById('mcqExpl').value.trim();
 
             if (!question || !optA || !optB || !optC || !optD) {
@@ -1414,6 +1441,14 @@
                 return;
             }
 
+            if (correctLetters.length === 0) {
+                alert('Check at least one correct answer');
+                return;
+            }
+
+            // A single checked letter ("A") is a normal single-answer MCQ.
+            // Two or more ("A,C") makes it a multi-select MCQ — the student
+            // has to pick every correct option to be marked correct.
             const q = {
                 type: 'MCQ',
                 moduleTitle: state.selectedChapter || document.getElementById('manualChapterTitle').value || 'Untitled Chapter',
@@ -1422,7 +1457,7 @@
                 optionB: optB,
                 optionC: optC,
                 optionD: optD,
-                correctAnswer: correct,
+                correctAnswer: correctLetters.join(','),
                 explanation
             };
 
@@ -1436,6 +1471,7 @@
             document.getElementById('mcqC').value = '';
             document.getElementById('mcqD').value = '';
             document.getElementById('mcqExpl').value = '';
+            document.querySelectorAll('.mcqCorrectChk').forEach(el => { el.checked = false; });
         }
 
         function initMatchPairs() {
@@ -1529,20 +1565,28 @@
             const count = document.getElementById('questionCount');
             count.textContent = state.questions.length;
 
-            list.innerHTML = state.questions.map((q, i) => `
+            list.innerHTML = state.questions.map((q, i) => {
+                const isMulti = q.type === 'MCQ' && (q.correctAnswer || '').split(',').filter(Boolean).length > 1;
+                const typeLabel = q.type === 'MCQ' ? (isMulti ? 'MCQ · MULTI' : 'MCQ') : 'MATCH';
+                const correctLine = q.type === 'MCQ'
+                    ? `<br><small style="color: #94a3b8;">Correct: ${q.correctAnswer}</small>`
+                    : '';
+                return `
                 <div class="question-card ${q.type === 'MCQ' ? 'mcq' : 'match'}">
                     <div class="question-info">
                         <span class="question-type ${q.type === 'MCQ' ? 'mcq' : 'match'}">
-                            ${q.type === 'MCQ' ? 'MCQ' : 'MATCH'}
+                            ${typeLabel}
                         </span>
                         <strong>${q.question.substring(0, 50)}...</strong>
                         <br><small style="color: #94a3b8;">Module: ${q.moduleTitle}</small>
+                        ${correctLine}
                     </div>
                     <button class="btn btn-ghost btn-small" onclick="removeQuestion(${i})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             // Update submission summary
             if (state.questions.length > 0) {
@@ -1958,6 +2002,11 @@
                     ['4. Match Questions', 'Fill: Question, Left 1, Right 1, Left 2, Right 2, etc.'],
                     ['5. Optional Columns', 'Chapter Description, Subtopics, Teaching Notes, Explanation'],
                     [''],
+                    ['MULTI-SELECT MCQs (new)'],
+                    [''],
+                    ['• One correct answer', 'Correct Answer = a single letter, e.g. "C"'],
+                    ['• More than one correct answer', 'Correct Answer = comma-separated letters, e.g. "A,C" — the student must pick every one of these options to be marked correct'],
+                    [''],
                     ['IMPORTANT NOTES'],
                     [''],
                     ['• System auto-detects if chapter exists', '→ reuses it, else creates new one'],
@@ -1972,8 +2021,9 @@
 
                 // Create Questions sheet
                 const questionsData = [
-                    ['Question Type', 'Module Title', 'Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
+                    ['Question Type*', 'Module Title*', 'Question*', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Left 1', 'Right 1', 'Left 2', 'Right 2', 'Left 3', 'Right 3', 'Left 4', 'Right 4', 'Left 5', 'Right 5', 'Chapter Description', 'Subtopics', 'Teaching Notes', 'Explanation', 'Module ID', 'Step Number'],
                     ['MCQ', 'Percentage', 'What is 25% of 100?', '10', '20', '25', '30', 'C', '', '', '', '', '', '', '', '', '', '', 'Understand percentage as parts per hundred', 'Fractions, Decimals', 'Step 1: 25% means 25 out of 100', '25% of 100 equals 25', '', ''],
+                    ['MCQ', 'Percentage', 'Which of these are multiples of 5? (select all that apply)', '10', '12', '25', '30', 'A,C,D', '', '', '', '', '', '', '', '', '', '', 'Understand percentage as parts per hundred', 'Fractions, Decimals', 'Step 2: multiples of 5 end in 0 or 5', '10, 25 and 30 are all multiples of 5', '', ''],
                     ['MatchTheFollowing', 'Parts of Speech', 'Match words with parts', '', '', '', '', '', 'Happy', 'Adjective', 'Run', 'Verb', 'The', 'Article', '', '', '', '', 'Word classification', 'Nouns, Verbs, Adjectives', 'Review word functions', 'Different word types', '', '']
                 ];
 
@@ -1982,7 +2032,7 @@
                 XLSX.utils.book_append_sheet(wb, questionsSheet, 'Questions');
 
                 // Download
-                XLSX.writeFile(wb, 'Question_Upload_Template.xlsx');
+                XLSX.writeFile(wb, 'Question_Upload_Template_V4.xlsx');
                 console.log('✅ Template downloaded successfully');
             } catch (err) {
                 console.error('❌ Error downloading template:', err);
@@ -2151,7 +2201,7 @@
 
                 let statsHtml = `Currently: <strong>${data.moduleCount ?? '?'}</strong> module(s), <strong>${data.stepCount ?? '?'}</strong> question(s) for ${state.selectedClass} · ${state.selectedSubject}.`;
                 if (data.exactDuplicatesPendingRemoval > 0) {
-                    statsHtml += `<br><span style="color: #f87171;">🗑️ <strong>${data.exactDuplicatesPendingRemoval}</strong> row(s) are 100% exact duplicates (identical question, options, and answer) and will be automatically removed this run.</span>`;
+                    statsHtml += `<br><span style="color: #f87171;">🗑️ <strong>${data.exactDuplicatesPendingRemoval}</strong> row(s) are exact duplicates (same question + same answer) and will be automatically removed this run.</span>`;
                 }
                 if (data.pendingDeleteCount > 0) {
                     statsHtml += `<br><span style="color: #fbbf24;">⚠️ <strong>${data.pendingDeleteCount}</strong> row(s) are marked "OK to Delete" and will be permanently removed this run.</span>`;
@@ -2181,7 +2231,6 @@
             'Recovering orphaned steps into modules...',
             'Updating Learning Steps...',
             'Renumbering Steps...',
-            'Updating Question Counts...',
             'Reordering rows into module + step order...',
             'Normalizing Question Type & Active...',
             'Checking Duplicate Questions...',
@@ -2264,7 +2313,6 @@
                 <div>Learning Steps Updated: <strong>${result.learningStepsUpdated ?? 0}</strong></div>
                 <div>Module IDs Regenerated: <strong>${result.moduleIdsRegenerated ?? 0}</strong></div>
                 <div>Rows Physically Reordered: <strong>${result.rowsPhysicallyMoved ?? 0}</strong></div>
-                <div>Question Counts Updated: <strong>${result.questionCountsUpdated ?? 0}</strong></div>
                 <div>Questions Checked: <strong>${result.questionsChecked ?? 0}</strong></div>
                 <div>Question Types Normalized: <strong>${result.questionTypesNormalized ?? 0}</strong></div>
                 <div>Active Flags Set: <strong>${result.activeFlagsSet ?? 0}</strong></div>
@@ -2273,9 +2321,9 @@
                 <div>Rows Highlighted: <strong>${result.rowsHighlighted ?? 0}</strong></div>
                 <div>Rows Awaiting Review: <strong>${result.rowsAwaitingReview ?? 0}</strong></div>
                 <div>Rows Reviewed &amp; Kept: <strong>${result.rowsReviewedKept ?? 0}</strong></div>
-                <div style="margin-top: 6px; ${result.exactDuplicatesRemoved > 0 ? 'color: #f87171;' : ''}">Exact Duplicates Auto-Removed (100% row match): <strong>${result.exactDuplicatesRemoved ?? 0}</strong></div>
+                <div style="margin-top: 6px; ${result.exactDuplicatesRemoved > 0 ? 'color: #f87171;' : ''}">Exact Duplicates Auto-Removed (same question + same answer): <strong>${result.exactDuplicatesRemoved ?? 0}</strong></div>
                 <div style="${result.rowsDeleted > 0 ? 'color: #fbbf24;' : ''}">Rows Deleted (previously approved by you): <strong>${result.rowsDeleted ?? 0}</strong></div>
-                <div style="margin-top: 10px; color: #34d399;">No other question was deleted unless you had already marked it "OK to Delete". Every deleted row's full content was archived to the "Deleted Duplicates" tab first.</div>
+                <div style="margin-top: 10px; color: #34d399;">No other question was deleted unless you had already marked it "OK to Delete".</div>
             `;
 
             if (hasErrors) {
